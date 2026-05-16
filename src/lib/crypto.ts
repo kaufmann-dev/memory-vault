@@ -17,6 +17,11 @@ export async function generateDEK(): Promise<CryptoKey> {
   return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
 }
 
+export async function makeDEKNonExtractable(dek: CryptoKey): Promise<CryptoKey> {
+  const raw = await crypto.subtle.exportKey('raw', dek);
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
 export async function encryptDEK(kek: CryptoKey, dek: CryptoKey) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const raw = await crypto.subtle.exportKey('raw', dek);

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { forgetRememberedDEK } from '$lib/client/rememberedDevice';
   import { lockVault } from '$lib/stores/cryptoKey';
   import type { SafeUser } from '$lib/types';
   import { page } from '$app/state';
@@ -34,6 +35,7 @@
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
+    await forgetRememberedDEK(user.email).catch(() => undefined);
     lockVault();
     location.href = '/login';
   }

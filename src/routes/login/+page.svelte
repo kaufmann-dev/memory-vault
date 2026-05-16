@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { deriveKEK, encryptDEK, generateDEK } from '$lib/crypto';
+  import { saveRememberedDEK } from '$lib/client/rememberedDevice';
+  import { deriveKEK, encryptDEK, generateDEK, makeDEKNonExtractable } from '$lib/crypto';
   import { lockVault, sessionDEK } from '$lib/stores/cryptoKey';
   import { goto } from '$app/navigation';
   import type { PageProps } from './$types';
@@ -13,6 +14,7 @@
   let confirmAccountPassword = $state('');
   let vaultPassphrase = $state('');
   let confirmVaultPassphrase = $state('');
+  let rememberThisDevice = $state(false);
   let loading = $state(false);
   let message = $state('');
 
@@ -60,8 +62,9 @@
     try {
       const kekSalt = randomBase64(16);
       const kek = await deriveKEK(vaultPassphrase, kekSalt);
-      const dek = await generateDEK();
-      const { encryptedDEK, dekIV } = await encryptDEK(kek, dek);
+      const exportableDEK = await generateDEK();
+      const { encryptedDEK, dekIV } = await encryptDEK(kek, exportableDEK);
+      const dek = await makeDEKNonExtractable(exportableDEK);
 
       await postJson('/api/auth/setup', {
         email,
@@ -72,7 +75,11 @@
         dekIV
       });
 
+      const normalizedEmail = email.trim().toLowerCase();
       sessionDEK.set(dek);
+      if (rememberThisDevice) {
+        await saveRememberedDEK(normalizedEmail, dek).catch(() => undefined);
+      }
       await goto('/');
     } catch (error) {
       lockVault();
@@ -187,6 +194,16 @@
               autocomplete="new-password"
               required
             />
+          </label>
+
+          <label class="mt-4 flex items-start gap-3 text-sm">
+            <input class="mt-1" type="checkbox" bind:checked={rememberThisDevice} />
+            <span>
+              <span class="block font-semibold" style="color: var(--foreground)">Remember this device</span>
+              <span class="block text-xs leading-relaxed" style="color: var(--muted)">
+                Unlock automatically after reloads on this browser.
+              </span>
+            </span>
           </label>
         </div>
       {/if}
