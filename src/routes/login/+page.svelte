@@ -88,14 +88,12 @@
   <title>Login | Memory Vault</title>
 </svelte:head>
 
-<main class="grid min-h-screen place-items-center px-4 py-10 relative overflow-hidden" style="background: radial-gradient(ellipse 80% 60% at 50% -10%, var(--accent-light) 0%, var(--background) 60%)">
-  <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, var(--border-strong) 1px, transparent 0); background-size: 32px 32px;"></div>
-
-  <section class="relative w-full max-w-md rounded-2xl p-8 vault-card" style="box-shadow: var(--shadow-lg)">
+<main class="grid min-h-screen place-items-center px-4 py-10" style="background: var(--background)">
+  <section class="w-full max-w-md vault-card p-8">
     <div class="mb-8 text-center">
-      <div class="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl text-2xl font-extrabold text-white" style="background: var(--accent); box-shadow: 0 8px 24px rgba(37,99,235,0.3)">M</div>
+      <div class="mx-auto mb-4 grid h-12 w-12 place-items-center text-2xl font-extrabold text-white" style="background: var(--accent)">M</div>
       <p class="text-xs font-semibold uppercase tracking-widest" style="color: var(--accent)">{data.hasAdmin ? 'Private vault' : 'First setup'}</p>
-      <h1 class="mt-2 text-2xl font-extrabold tracking-tight">{data.hasAdmin ? 'Unlock Memory Vault' : 'Create the admin vault'}</h1>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight" style="color: var(--foreground)">{data.hasAdmin ? 'Unlock Memory Vault' : 'Create the admin vault'}</h1>
       <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">
         {data.hasAdmin
           ? 'Your password unlocks the in-memory encryption key for this browser tab.'

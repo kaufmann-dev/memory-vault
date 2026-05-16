@@ -136,11 +136,11 @@
 {:else if loading}
   <p class="text-sm" style="color: var(--muted)">Decrypting metrics...</p>
 {:else}
-  <div class="space-y-10">
+  <div class="space-y-6">
     <section class="vault-card p-5">
       <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 class="text-xl font-semibold" style="color: var(--foreground)">Weight</h2>
+          <h2 class="text-lg font-semibold" style="color: var(--foreground)">Weight</h2>
           <p class="mt-1 text-sm" style="color: var(--muted)">Body weight over time.</p>
         </div>
         <form class="flex flex-col gap-2 sm:flex-row" on:submit|preventDefault={saveWeight}>
@@ -158,7 +158,7 @@
     <section class="vault-card p-5">
       <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 class="text-xl font-semibold" style="color: var(--foreground)">Blood</h2>
+          <h2 class="text-lg font-semibold" style="color: var(--foreground)">Blood</h2>
           <p class="mt-1 text-sm" style="color: var(--muted)">Blood pressure and pulse.</p>
         </div>
         <form class="grid gap-2 sm:grid-cols-5" on:submit|preventDefault={saveBlood}>
@@ -172,15 +172,15 @@
       <SimpleLineChart
         series={[
           { label: 'SYS', points: points(blood, 'sys'), color: 'var(--accent)' },
-          { label: 'DIA', points: points(blood, 'dia'), color: 'var(--success)' },
-          { label: 'PUL', points: points(blood, 'pul'), color: 'var(--danger)' }
+          { label: 'DIA', points: points(blood, 'dia'), color: 'var(--foreground)' },
+          { label: 'PUL', points: points(blood, 'pul'), color: 'var(--muted)' }
         ]}
       />
     </section>
 
     <section class="vault-card p-5">
       <div class="mb-4">
-        <h2 class="text-xl font-semibold" style="color: var(--foreground)">Hormones</h2>
+        <h2 class="text-lg font-semibold" style="color: var(--foreground)">Hormones</h2>
         <p class="mt-1 text-sm" style="color: var(--muted)">Lab values with optional fields.</p>
       </div>
       <form class="mb-4 grid gap-2 sm:grid-cols-5" on:submit|preventDefault={saveHormone}>
@@ -200,50 +200,50 @@
       <SimpleLineChart
         series={[
           { label: 'LH', points: points(hormones, 'lh'), color: 'var(--accent)' },
-          { label: 'FSH', points: points(hormones, 'fsh'), color: 'var(--success)' },
-          { label: 'E2', points: points(hormones, 'e2'), color: 'var(--warn)' },
-          { label: 'T', points: points(hormones, 't'), color: 'var(--danger)' },
-          { label: 'TSH', points: points(hormones, 'tsh'), color: 'var(--muted)' }
+          { label: 'FSH', points: points(hormones, 'fsh'), color: 'var(--foreground)' },
+          { label: 'E2', points: points(hormones, 'e2'), color: 'var(--muted)' },
+          { label: 'T', points: points(hormones, 't'), color: 'var(--border-strong)' },
+          { label: 'TSH', points: points(hormones, 'tsh'), color: '#A3A3A3' }
         ]}
       />
     </section>
 
     <section>
-      <h2 class="mb-3 text-xl font-semibold" style="color: var(--foreground)">Recent measurements</h2>
+      <h2 class="mb-3 text-lg font-semibold" style="color: var(--foreground)">Recent measurements</h2>
       {#if weights.length + blood.length + hormones.length === 0}
         <EmptyState title="No measurements yet" description="Add measurements above to populate this area." />
       {:else}
         <div class="overflow-hidden vault-card">
           <table class="w-full text-left text-sm">
             <thead>
-              <tr style="background: var(--background)">
-                <th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--muted)">Type</th>
-                <th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--muted)">Date</th>
-                <th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--muted)">Value</th>
-                <th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--muted)"></th>
+              <tr style="background: var(--surface)">
+                <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Type</th>
+                <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Date</th>
+                <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Value</th>
+                <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)"></th>
               </tr>
             </thead>
             <tbody class="divide-y" style="border-color: var(--border)">
               {#each weights as item}
-                <tr class="transition-colors hover:bg-slate-50/50">
+                <tr class="transition-colors hover:bg-neutral-50/50">
                   <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Weight</td>
-                  <td class="px-4 py-3" style="color: var(--muted)">{item.payload.date}</td>
+                  <td class="px-4 py-3 text-sm" style="color: var(--muted)">{item.payload.date}</td>
                   <td class="px-4 py-3 font-medium" style="color: var(--foreground)">{item.payload.weight} kg</td>
                   <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
                 </tr>
               {/each}
               {#each blood as item}
-                <tr class="transition-colors hover:bg-slate-50/50">
+                <tr class="transition-colors hover:bg-neutral-50/50">
                   <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Blood</td>
-                  <td class="px-4 py-3" style="color: var(--muted)">{item.payload.date}</td>
+                  <td class="px-4 py-3 text-sm" style="color: var(--muted)">{item.payload.date}</td>
                   <td class="px-4 py-3 font-medium" style="color: var(--foreground)">{item.payload.sys}/{item.payload.dia}, {item.payload.pul}</td>
                   <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
                 </tr>
               {/each}
               {#each hormones as item}
-                <tr class="transition-colors hover:bg-slate-50/50">
+                <tr class="transition-colors hover:bg-neutral-50/50">
                   <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Hormones</td>
-                  <td class="px-4 py-3" style="color: var(--muted)">{item.payload.date}</td>
+                  <td class="px-4 py-3 text-sm" style="color: var(--muted)">{item.payload.date}</td>
                   <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Lab record</td>
                   <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
                 </tr>

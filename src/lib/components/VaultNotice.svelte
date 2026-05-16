@@ -3,9 +3,9 @@
   let { message = 'Unlock your vault to decrypt this page.' }: { message?: string } = $props();
 </script>
 
-<div class="vault-card p-8">
+<div class="vault-card p-6">
   <div class="flex items-start gap-4">
-    <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style="background: var(--accent-light)">
+    <div class="grid h-10 w-10 shrink-0 place-items-center" style="background: var(--accent-light)">
       <Shield size={20} color="var(--accent)" />
     </div>
     <div>

@@ -53,7 +53,7 @@
         <polyline
           fill="none"
           stroke={item.color}
-          stroke-width="2.5"
+          stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
           points={pathFor(item.points)}

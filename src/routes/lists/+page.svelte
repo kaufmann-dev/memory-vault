@@ -119,7 +119,7 @@
   <div class="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
     <aside class="space-y-4">
       <form class="vault-card p-4" on:submit|preventDefault={saveList}>
-        <h2 class="mb-4 text-base font-semibold" style="color: var(--foreground)">Create list</h2>
+        <h2 class="mb-4 text-sm font-semibold" style="color: var(--foreground)">Create list</h2>
         <label class="block text-sm font-medium">
           Title
           <input class="focus-ring vault-input mt-1.5" bind:value={form.title} required />
@@ -129,7 +129,7 @@
           <textarea class="focus-ring vault-input mt-1.5" bind:value={form.description}></textarea>
         </label>
         <label class="mt-3 flex items-center gap-2 text-sm font-medium">
-          <input type="checkbox" bind:checked={form.checklist} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+          <input type="checkbox" bind:checked={form.checklist} class="rounded border-neutral-300 text-orange-500 focus:ring-orange-500" />
           Checklist
         </label>
         <button class="focus-ring vault-btn-primary mt-4" type="submit">
@@ -139,13 +139,12 @@
       </form>
 
       {#if lists.length}
-        <nav class="space-y-2">
+        <nav class="space-y-1">
           {#each lists as item}
             <button
-              class="focus-ring w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all"
-              class:vault-card={selected?.record.id === item.record.id}
+              class="focus-ring w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors"
               style={selected?.record.id === item.record.id
-                ? 'color: var(--accent); background: var(--accent-light); border: 1px solid rgba(37,99,235,0.15)'
+                ? 'color: var(--accent); background: var(--accent-light); border: 1px solid var(--border)'
                 : 'color: var(--foreground); background: transparent; border: 1px solid transparent'}
               type="button"
               on:click={() => (selectedId = item.record.id)}
@@ -166,7 +165,7 @@
         <div class="vault-card p-5">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 class="text-xl font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
+              <h2 class="text-lg font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
               {#if selected.payload.description}
                 <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">{selected.payload.description}</p>
               {/if}
@@ -185,7 +184,7 @@
             {#each selected.payload.tasks as task}
               <div class="flex items-center gap-3 py-3 group">
                 {#if selected.payload.checklist}
-                  <input type="checkbox" checked={task.done} on:change={() => toggleTask(selected, task.id)} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  <input type="checkbox" checked={task.done} on:change={() => toggleTask(selected, task.id)} class="rounded border-neutral-300 text-orange-500 focus:ring-orange-500" />
                 {/if}
                 <span class:line-through={task.done} class="flex-1 text-sm" style="color: var(--foreground)">{task.text}</span>
                 <button class="focus-ring vault-btn-ghost opacity-0 group-hover:opacity-100 transition-opacity" type="button" on:click={() => removeTask(selected, task.id)}>

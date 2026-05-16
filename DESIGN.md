@@ -1,41 +1,41 @@
 ---
 version: alpha
 name: Memory Vault
-description: A calm, confident, and modern encrypted personal vault. Deep slate typography on a cool gray canvas, with vibrant cobalt accents and soft layered shadows.
+description: A serious, technical encrypted personal vault. Stark black-and-white palette with a single orange accent. Clean lines, flat surfaces, and precise geometry.
 colors:
-  background: "#F6F7F9"
-  foreground: "#0F172A"
-  primary: "#2563EB"
-  primary-hover: "#1D4ED8"
-  primary-light: "#EFF6FF"
-  primary-glow: "rgba(37, 99, 235, 0.12)"
-  muted: "#64748B"
-  border: "#E2E8F0"
-  border-strong: "#CBD5E1"
-  surface: "#FFFFFF"
+  background: "#FFFFFF"
+  foreground: "#171717"
+  primary: "#F97316"
+  primary-hover: "#EA580C"
+  primary-light: "#FFF7ED"
+  primary-glow: "rgba(249, 115, 22, 0.15)"
+  muted: "#525252"
+  border: "#E5E5E5"
+  border-strong: "#D4D4D4"
+  surface: "#FAFAFA"
   success: "#16A34A"
   warn: "#CA8A04"
   danger: "#DC2626"
   danger-subtle: "rgba(220, 38, 38, 0.06)"
-  ring: "rgba(37, 99, 235, 0.2)"
+  ring: "rgba(249, 115, 22, 0.25)"
 typography:
   headline-xl:
     fontFamily: Inter
-    fontSize: 2.25rem
-    fontWeight: 800
-    lineHeight: 1.1
+    fontSize: 1.875rem
+    fontWeight: 700
+    lineHeight: 1.15
     letterSpacing: -0.02em
   headline-lg:
     fontFamily: Inter
-    fontSize: 1.875rem
-    fontWeight: 800
-    lineHeight: 1.15
-    letterSpacing: -0.02em
+    fontSize: 1.5rem
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: -0.01em
   headline-md:
     fontFamily: Inter
-    fontSize: 1.25rem
+    fontSize: 1.125rem
     fontWeight: 600
-    lineHeight: 1.2
+    lineHeight: 1.3
     letterSpacing: -0.01em
   body-md:
     fontFamily: Inter
@@ -68,10 +68,10 @@ typography:
     lineHeight: 1rem
     letterSpacing: 0.05em
 rounded:
-  sm: 8px
-  md: 10px
-  lg: 16px
-  xl: 20px
+  sm: 4px
+  md: 8px
+  lg: 8px
+  xl: 8px
   full: 999px
 spacing:
   xs: 4px
@@ -83,10 +83,10 @@ spacing:
 components:
   card:
     backgroundColor: "{colors.surface}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.md}"
     padding: 20px
   card-hover:
-    shadow: "0 4px 12px rgba(0,0,0,0.05), 0 16px 48px rgba(0,0,0,0.05)"
+    borderColor: "{colors.border-strong}"
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "#FFFFFF"
@@ -95,7 +95,7 @@ components:
     typography: "{typography.label-md}"
   button-primary-hover:
     backgroundColor: "{colors.primary-hover}"
-    shadow: "0 4px 14px rgba(37, 99, 235, 0.3)"
+    borderColor: "{colors.primary-hover}"
   button-secondary:
     backgroundColor: "transparent"
     textColor: "{colors.foreground}"
@@ -109,7 +109,7 @@ components:
     padding: "10px 16px"
     typography: "{typography.label-md}"
   input:
-    backgroundColor: "{colors.surface}"
+    backgroundColor: "{colors.background}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.md}"
     padding: "10px 12px"
@@ -117,129 +117,124 @@ components:
   tag:
     backgroundColor: "{colors.background}"
     textColor: "{colors.muted}"
-    rounded: "{rounded.full}"
-    padding: "4px 10px"
+    rounded: "{rounded.sm}"
+    padding: "4px 8px"
     typography: "{typography.label-sm}"
   nav-item:
     backgroundColor: "transparent"
     textColor: "{colors.muted}"
-    rounded: "{rounded.md}"
+    rounded: "0px"
     padding: "10px 12px"
     typography: "{typography.label-md}"
   nav-item-active:
-    backgroundColor: "{colors.primary}"
-    textColor: "#FFFFFF"
-    shadow: "0 1px 3px rgba(37, 99, 235, 0.25)"
+    backgroundColor: "{colors.primary-light}"
+    textColor: "{colors.primary-hover}"
+    borderLeft: "2px solid {colors.primary}"
 ---
 
 ## Overview
 
-Memory Vault is a calm, confident, and modern encrypted personal vault. The visual identity balances deep slate typography on a cool gray canvas with vibrant cobalt accents. Every surface feels intentional — cards float with soft layered shadows, interactive elements respond with subtle lift, and the overall experience reads as premium without being ornate.
+Memory Vault is a serious, technical encrypted personal vault. The visual identity is stark and precise: pure black and white with a single vivid orange accent. Every surface is flat, every corner is sharp, and every interaction is deliberate. The design communicates security, precision, and zero ornamentation.
 
-The design philosophy is "content-first, chrome-second." Whitespace is the primary separator. One accent element per screen. No underlines on hover. No pure black or pure white backgrounds.
+The philosophy is "form follows function." There are no decorative gradients, no blurred orbs, no playful hover lifts. Whitespace is generous. Borders are thin and gray. The orange accent is reserved exclusively for primary actions, active navigation, and focus states.
 
 ## Colors
 
-The palette is rooted in cool slate neutrals with a single energetic cobalt accent.
+The palette is strictly monochromatic with one functional accent.
 
-- **Background ({colors.background}):** Cool gray canvas. Softer than pure white, providing gentle contrast for floating cards.
-- **Foreground ({colors.foreground}):** Deep slate for headlines and body text. Richer than pure black.
-- **Primary ({colors.primary}):** Cobalt blue — the sole driver for CTAs, active navigation, links, and focus rings.
-- **Primary Hover ({colors.primary-hover}):** A deeper cobalt for button hover and pressed states.
-- **Primary Light ({colors.primary-light}):** Very pale blue for selection highlights and subtle gradient backgrounds.
-- **Muted ({colors.muted}):** Slate-500 for captions, descriptions, and secondary metadata.
-- **Border ({colors.border}):** Soft slate-200 for input borders and dividers.
-- **Border Strong ({colors.border-strong}):** Slightly stronger for hover states on secondary buttons.
-- **Surface ({colors.surface}):** Pure white for cards, modals, and elevated containers.
-- **Success ({colors.success}):** Emerald green for positive feedback.
-- **Warn ({colors.warn}):** Amber for cautionary states.
-- **Danger ({colors.danger}):** Red for destructive actions and errors.
+- **Background ({colors.background}):** Pure white. Maximum contrast for content.
+- **Foreground ({colors.foreground}):** Near-black for all text. Heavy and authoritative.
+- **Primary ({colors.primary}):** Vivid orange — the only color allowed for CTAs, active states, and focus rings.
+- **Primary Hover ({colors.primary-hover}):** Deeper orange for pressed and hover states.
+- **Primary Light ({colors.primary-light}):** Very pale orange tint for active navigation backgrounds.
+- **Muted ({colors.muted}):** Neutral gray for captions, descriptions, and secondary text.
+- **Border ({colors.border}):** Light gray for dividing lines, card borders, and input outlines.
+- **Border Strong ({colors.border-strong}):** Slightly darker gray for hovered card borders.
+- **Surface ({colors.surface}):** Off-white for card backgrounds, creating a subtle elevation without shadow.
+- **Success ({colors.success}):** Emerald green for functional positive states only.
+- **Danger ({colors.danger}):** Red for destructive actions and errors only.
 
 ## Typography
 
-All text is set in **Inter** with `-apple-system` and `system-ui` fallbacks. Headlines are tightly tracked and heavily weighted for confidence. Body text is relaxed and readable.
+All text is set in **Inter** with system fallbacks. Headlines are bold and tightly tracked. Body text is neutral and readable. Labels are crisp and medium-weight.
 
-- **Headline XL ({typography.headline-xl.fontSize}):** Page heroes and vault titles. Weight 800, tight tracking.
-- **Headline LG ({typography.headline-lg.fontSize}):** Section titles and card headers. Weight 800.
-- **Headline MD ({typography.headline-md.fontSize}):** Sub-sections and form labels. Weight 600.
-- **Body MD ({typography.body-md.fontSize}):** Standard paragraphs and descriptions.
-- **Body SM ({typography.body-sm.fontSize}):** Compact metadata and captions.
-- **Label MD ({typography.label-md.fontSize}):** Buttons and navigation links. Weight 500.
-- **Label SM ({typography.label-sm.fontSize}):** Tags and chips. Weight 500.
-- **Label XS ({typography.label-xs.fontSize}):** Eyebrow labels and table headers. Uppercase, wide tracking, weight 600.
+- **Headline XL ({typography.headline-xl.fontSize}):** Page titles. Weight 700, tight tracking.
+- **Headline LG ({typography.headline-lg.fontSize}):** Section headers and card titles.
+- **Headline MD ({typography.headline-md.fontSize}):** Sub-sections and form labels.
+- **Body MD ({typography.body-md.fontSize}):** Standard paragraphs.
+- **Body SM ({typography.body-sm.fontSize}):** Metadata and compact text.
+- **Label MD ({typography.label-md.fontSize}):** Buttons and navigation. Weight 500.
+- **Label SM ({typography.label-sm.fontSize}):** Tags and chips.
+- **Label XS ({typography.label-xs.fontSize}):** Eyebrow labels and table headers. Uppercase, wide tracking.
 
 ## Layout & Spacing
 
-A single-column fluid layout with a max-width of 1200px. Content is centered and top-biased.
+A single-column fluid layout with a max-width of 1200px. Content is centered and top-biased. The layout is grid-like and rigid.
 
 - **Page padding:** {spacing.md} on mobile, {spacing.lg} on desktop.
 - **Section gap:** {spacing.lg} between major sections.
 - **Card internal padding:** {spacing.md} to {spacing.lg}.
-- **Sidebar width:** 256px on desktop (fixed left).
+- **Sidebar width:** 256px on desktop (fixed left, 1px right border).
 - **Grid:** 1-column mobile, 2-column tablet, 3-column desktop for card grids.
 
 ## Elevation & Depth
 
-Elevation is expressed through layered soft shadows rather than borders. This creates a modern, floating aesthetic.
+Elevation is expressed almost exclusively through borders, not shadows. The design is intentionally flat.
 
 - **Flat:** Default state. No shadow.
-- **Card ({components.card.shadow}):** Subtle ambient shadow for all surface cards.
-- **Card Hover ({components.card-hover.shadow}):** Stronger shadow with a 2px upward lift on interactive cards.
-- **Button Primary Hover ({components.button-primary-hover.shadow}):** Colored drop shadow matching the primary accent.
-- **Modal / Drawer:** Large directional shadow (`-4px 0 24px rgba(0,0,0,0.08)`) for the mobile slide-out drawer.
-- **Focus Ring ({colors.ring}):** A soft 3px cobalt glow replaces traditional outlines.
+- **Card:** {colors.surface} background with a 1px {colors.border} border and {rounded.md} corners.
+- **Card Hover:** Border darkens to {colors.border-strong}. No lift, no shadow change.
+- **Button Primary Hover:** Background darkens to {colors.primary-hover}. No shadow.
+- **Modal / Drawer:** 1px left border for the mobile slide-out drawer. No blur, no backdrop dim beyond black at 50% opacity.
+- **Focus Ring ({colors.ring}):** A 3px orange glow for accessible focus states.
 
 ## Shapes
 
-All corners are generously rounded for a friendly, modern feel.
+Corners are sharp and consistent. The aesthetic is geometric and technical.
 
-- **Small ({rounded.sm}):** Checkboxes and tiny controls.
-- **Medium ({rounded.md}):** Buttons, inputs, and navigation items.
-- **Large ({rounded.lg}):** Cards, tables, and modals.
-- **Extra Large ({rounded.xl}):** Hero banners and login cards.
-- **Full ({rounded.full}):** Tags, pills, and progress bars.
+- **Small ({rounded.sm}):** Tags and tiny controls.
+- **Medium ({rounded.md}):** Buttons, inputs, cards, and navigation items. The default radius.
+- **Full ({rounded.full}):** Tags when used as pills (rare).
 
 ## Components
 
 ### Card
-The fundamental building block. A white surface with {rounded.lg} corners and a layered soft shadow. Interactive cards gain lift and a stronger shadow on hover.
+The fundamental building block. A flat {colors.surface} surface with a 1px {colors.border} border and {rounded.md} corners. No shadow. On hover, the border darkens to {colors.border-strong}.
 
 ### Button Primary
-Solid cobalt fill with white text. {rounded.md} corners. On hover, deepens to {colors.primary-hover} and casts a colored shadow. Never use a border.
+Solid orange fill with white text. {rounded.md} corners. No border, no shadow. On hover, background shifts to {colors.primary-hover}. Used sparingly — one per screen.
 
 ### Button Secondary
-Transparent background with a {colors.border} outline. {rounded.md} corners. On hover, fills with {colors.background} and the border darkens to {colors.border-strong}.
+Transparent background with a 1px {colors.border} outline and black text. {rounded.md} corners. On hover, fills with {colors.background} and darkens the border.
 
 ### Button Danger
 Transparent background with a subtle red-tinted border. On hover, fills with {colors.danger-subtle}. Used for delete and destructive actions.
 
 ### Button Ghost
-No border by default. Used for icon-only actions and close buttons. On hover, reveals a background and border.
+No border by default. Gray text. On hover, reveals a background and border. Used for icon-only actions.
 
 ### Input
-White background, {colors.border} border, {rounded.md} corners. Focus state shifts the border to {colors.primary} and adds a 3px ring glow. Placeholder text uses a lighter slate.
+White background, 1px {colors.border} border, {rounded.md} corners. Focus state shifts the border to {colors.primary} and adds a 3px orange ring.
 
 ### Tag / Chip
-Pill-shaped ({rounded.full}) with a soft gray background and muted text. Used for diary tags and metadata.
+Small rectangular pill with a gray border and muted text. {rounded.sm} corners. Functional, not decorative.
 
 ### Navigation Item
-Horizontal row with an icon and label. Default state is muted text. Active state is a filled cobalt pill with white text and a subtle shadow. No left-border accents.
+Horizontal row with an icon and label. Default: muted text, transparent background, 2px transparent left border. Active: orange left border, pale orange background tint, orange text. No filled pills.
 
 ### Table
-Headers use {typography.label-xs} (uppercase, tracked). Rows have a subtle hover background. The table itself is wrapped in a card with hidden overflow.
-
-### Hero Banner
-A large card with a decorative blurred gradient orb in the corner (using {colors.primary} at low opacity). Contains the page welcome message.
+Headers use {typography.label-xs} (uppercase, tracked). Rows have a subtle hover background. The table is wrapped in a bordered card.
 
 ## Do's and Don'ts
 
-- Do let whitespace do the work. Avoid cramped layouts.
-- Do use the primary color sparingly — one hero element and one CTA per screen.
+- Do use the orange accent sparingly — one primary action and one active element per screen.
+- Do rely on borders and whitespace for separation, not shadows.
 - Do use sentence-case for all headings and labels.
-- Do add hover lift and shadow transitions to all interactive cards and buttons.
-- Do use the `vault-card`, `vault-btn-primary`, `vault-input`, and `vault-tag` utility classes for consistency.
+- Do keep corners at {rounded.md} (8px) for consistency.
+- Do use the `vault-card`, `vault-btn-primary`, `vault-input`, and `vault-tag` utility classes.
 - Don't use underlines on hover for links or buttons.
-- Don't use pure black or pure white for backgrounds.
-- Don't use flat borders as the primary elevation mechanism — rely on shadow.
+- Don't use decorative gradients, blurred orbs, or background patterns.
+- Don't use shadows as the primary elevation mechanism.
 - Don't add more than three type sizes on a single screen.
-- Don't invent hex values outside the defined palette.
+- Don't invent colors outside the defined palette.
+- Don't use hover lifts, scale transforms, or playful animations.
