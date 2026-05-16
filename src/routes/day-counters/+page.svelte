@@ -14,7 +14,7 @@
   import type { DayCounterPayload, EncryptedRecord } from '$lib/types';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Plus, RotateCcw, Trash2 } from '@lucide/svelte';
+  import { Pencil, Plus, RotateCcw, Trash2 } from '@lucide/svelte';
 
   type CounterItem = {
     record: EncryptedRecord;
@@ -29,6 +29,7 @@
   let loading = $state(true);
   let counters: CounterItem[] = $state([]);
   let form = $state(emptyCounter());
+  let editingCounterId: string | null = $state(null);
   let formOpen = $state(false);
 
   function elapsedDays(date: string) {
@@ -47,11 +48,35 @@
     loading = false;
   }
 
-  async function saveCounter() {
-    if (!dek || !form.name.trim()) return;
-    await createEncryptedRecord('day_counter', { ...form, name: form.name.trim() }, dek);
+  function openCreateCounter() {
+    editingCounterId = null;
+    form = emptyCounter();
+    formOpen = true;
+  }
+
+  function openEditCounter(item: CounterItem) {
+    editingCounterId = item.record.id;
+    form = { ...item.payload };
+    formOpen = true;
+  }
+
+  function closeCounterForm() {
+    editingCounterId = null;
     form = emptyCounter();
     formOpen = false;
+  }
+
+  async function saveCounter() {
+    if (!dek || !form.name.trim()) return;
+    const payload = { ...form, name: form.name.trim() };
+
+    if (editingCounterId) {
+      await updateEncryptedRecord(editingCounterId, 'day_counter', payload, dek);
+    } else {
+      await createEncryptedRecord('day_counter', payload, dek);
+    }
+
+    closeCounterForm();
     await loadCounters();
   }
 
@@ -79,7 +104,7 @@
 </script>
 
 <PageHeader title="Milestones" description="Encrypted trackers for elapsed days since an event.">
-  <button class="focus-ring vault-btn-primary" type="button" onclick={() => (formOpen = true)}>
+  <button class="focus-ring vault-btn-primary" type="button" onclick={openCreateCounter}>
     <Plus size={16} />
     New
   </button>
@@ -103,6 +128,9 @@
                 <p class="mt-1 text-xs" style="color: var(--muted)">Since {item.payload.initiated}</p>
               </div>
               <div class="flex gap-2">
+                <button class="focus-ring vault-btn-ghost" type="button" onclick={() => openEditCounter(item)} aria-label="Edit milestone">
+                  <Pencil size={15} />
+                </button>
                 <button class="focus-ring vault-btn-ghost" type="button" onclick={() => resetCounter(item)}>
                   <RotateCcw size={15} />
                 </button>
@@ -129,12 +157,9 @@
 
   <EntryModal
     open={formOpen}
-    title="New milestone"
-    description="Choose the date you want to measure from. Everything stays encrypted."
-    onClose={() => {
-      formOpen = false;
-      form = emptyCounter();
-    }}
+    title={editingCounterId ? 'Edit milestone' : 'New milestone'}
+    description={editingCounterId ? 'Update this encrypted milestone.' : 'Choose the date you want to measure from. Everything stays encrypted.'}
+    onClose={closeCounterForm}
   >
     <form
       class="space-y-4"
@@ -162,7 +187,7 @@
         />
       </label>
       <div class="flex justify-end">
-        <button class="focus-ring vault-btn-primary" type="submit">Create</button>
+        <button class="focus-ring vault-btn-primary" type="submit">{editingCounterId ? 'Save' : 'Create'}</button>
       </div>
     </form>
   </EntryModal>
