@@ -1,6 +1,6 @@
 <script lang="ts">
   import { deriveKEK, encryptDEK, generateDEK } from '$lib/crypto';
-  import { lockVault, sessionDEK, unlockVault } from '$lib/stores/cryptoKey';
+  import { lockVault, sessionDEK } from '$lib/stores/cryptoKey';
   import { goto } from '$app/navigation';
   import type { PageProps } from './$types';
   import { Shield } from '@lucide/svelte';
@@ -9,8 +9,10 @@
 
   let email = $state('');
   let name = $state('');
-  let password = $state('');
-  let confirmPassword = $state('');
+  let accountPassword = $state('');
+  let confirmAccountPassword = $state('');
+  let vaultPassphrase = $state('');
+  let confirmVaultPassphrase = $state('');
   let loading = $state(false);
   let message = $state('');
 
@@ -33,26 +35,38 @@
 
   async function setup() {
     message = '';
-    if (password.length < 12) {
-      message = 'Use at least 12 characters.';
+    if (accountPassword.length < 12) {
+      message = 'Use at least 12 characters for the account password.';
       return;
     }
-    if (password !== confirmPassword) {
-      message = 'Passwords do not match.';
+    if (accountPassword !== confirmAccountPassword) {
+      message = 'Account passwords do not match.';
+      return;
+    }
+    if (vaultPassphrase.length < 12) {
+      message = 'Use at least 12 characters for the vault passphrase.';
+      return;
+    }
+    if (vaultPassphrase !== confirmVaultPassphrase) {
+      message = 'Vault passphrases do not match.';
+      return;
+    }
+    if (accountPassword === vaultPassphrase) {
+      message = 'Use a different vault passphrase than your account password.';
       return;
     }
 
     loading = true;
     try {
       const kekSalt = randomBase64(16);
-      const kek = await deriveKEK(password, kekSalt);
+      const kek = await deriveKEK(vaultPassphrase, kekSalt);
       const dek = await generateDEK();
       const { encryptedDEK, dekIV } = await encryptDEK(kek, dek);
 
       await postJson('/api/auth/setup', {
         email,
         name,
-        password,
+        password: accountPassword,
         kekSalt,
         encryptedDEK,
         dekIV
@@ -77,12 +91,11 @@
 
     loading = true;
     try {
-      await unlockVault(password, data.kekSalt, data.encryptedDEK, data.dekIV);
-      await postJson('/api/auth/login', { email, password });
+      await postJson('/api/auth/login', { email, password: accountPassword });
       await goto('/');
     } catch {
       lockVault();
-      message = 'Password could not unlock this vault.';
+      message = 'Invalid account credentials.';
     } finally {
       loading = false;
     }
@@ -98,11 +111,11 @@
     <div class="mb-8 text-center">
       <img src="/memory-vault.svg" alt="" class="mx-auto mb-4 h-12 w-12" />
       <p class="text-xs font-semibold uppercase tracking-widest" style="color: var(--foreground)">{data.hasAdmin ? 'Private vault' : 'First setup'}</p>
-      <h1 class="mt-2 text-2xl font-bold tracking-tight" style="color: var(--foreground)">{data.hasAdmin ? 'Unlock Memory Vault' : 'Create the admin vault'}</h1>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight" style="color: var(--foreground)">{data.hasAdmin ? 'Sign in to Memory Vault' : 'Create the admin vault'}</h1>
       <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">
         {data.hasAdmin
-          ? 'Your password unlocks the in-memory encryption key for this browser tab.'
-          : 'This creates the only admin account and the client-side data encryption key.'}
+          ? 'Sign in to your account. The vault passphrase is requested only after the account session is active.'
+          : 'This creates the admin account and a separate client-side vault passphrase.'}
       </p>
     </div>
 
@@ -126,11 +139,11 @@
       </label>
 
       <label class="block text-sm font-medium">
-        Password
+        Account password
         <input
           class="focus-ring vault-input mt-1.5"
           type="password"
-          bind:value={password}
+          bind:value={accountPassword}
           autocomplete={data.hasAdmin ? 'current-password' : 'new-password'}
           required
         />
@@ -138,15 +151,44 @@
 
       {#if !data.hasAdmin}
         <label class="block text-sm font-medium">
-          Confirm password
+          Confirm account password
           <input
             class="focus-ring vault-input mt-1.5"
             type="password"
-            bind:value={confirmPassword}
+            bind:value={confirmAccountPassword}
             autocomplete="new-password"
             required
           />
         </label>
+
+        <div class="rounded-lg border p-4" style="border-color: var(--border); background: var(--surface)">
+          <p class="text-sm font-semibold" style="color: var(--foreground)">Vault passphrase</p>
+          <p class="mt-1 text-xs leading-relaxed" style="color: var(--muted)">
+            This passphrase never gets sent to the server. It only decrypts the vault key in this browser.
+          </p>
+
+          <label class="mt-4 block text-sm font-medium">
+            Vault passphrase
+            <input
+              class="focus-ring vault-input mt-1.5"
+              type="password"
+              bind:value={vaultPassphrase}
+              autocomplete="new-password"
+              required
+            />
+          </label>
+
+          <label class="mt-4 block text-sm font-medium">
+            Confirm vault passphrase
+            <input
+              class="focus-ring vault-input mt-1.5"
+              type="password"
+              bind:value={confirmVaultPassphrase}
+              autocomplete="new-password"
+              required
+            />
+          </label>
+        </div>
       {/if}
 
       {#if message}
@@ -155,7 +197,7 @@
 
       <button class="focus-ring vault-btn-primary w-full mt-2" type="submit" disabled={loading}>
         <Shield size={16} />
-        {loading ? 'Working...' : data.hasAdmin ? 'Unlock' : 'Create vault'}
+        {loading ? 'Working...' : data.hasAdmin ? 'Sign in' : 'Create vault'}
       </button>
     </form>
   </section>

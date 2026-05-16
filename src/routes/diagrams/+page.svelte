@@ -14,7 +14,6 @@
   } from '$lib/client/records';
   import { sessionDEK } from '$lib/stores/cryptoKey';
   import type { DiagramField, DiagramMeasurement, DiagramPayload, EncryptedRecord } from '$lib/types';
-  import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { Pencil, Plus, Trash2 } from '@lucide/svelte';
@@ -223,7 +222,6 @@
     if (!dek) {
       locked = true;
       loading = false;
-      await goto('/login');
       return;
     }
     await loadDiagrams();

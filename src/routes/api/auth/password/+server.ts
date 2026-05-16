@@ -14,27 +14,15 @@ export async function POST({ request, locals }) {
   const body = await request.json();
   const currentPassword = String(body.currentPassword ?? '');
   const newPassword = String(body.newPassword ?? '');
-  const newKekSalt = String(body.newKekSalt ?? '');
-  const newEncryptedDEK = String(body.newEncryptedDEK ?? '');
-  const newDekIV = String(body.newDekIV ?? '');
 
-  if (
-    !(await verifyPassword(currentPassword, user.passwordHash)) ||
-    newPassword.length < 12 ||
-    !newKekSalt ||
-    !newEncryptedDEK ||
-    !newDekIV
-  ) {
-    error(400, 'Password change failed');
+  if (!(await verifyPassword(currentPassword, user.passwordHash)) || newPassword.length < 12) {
+    error(400, 'Account password change failed');
   }
 
   await db
     .update(users)
     .set({
       passwordHash: await hashPassword(newPassword),
-      kekSalt: newKekSalt,
-      encryptedDek: newEncryptedDEK,
-      dekIv: newDekIV,
       updatedAt: new Date()
     })
     .where(eq(users.id, user.id));
