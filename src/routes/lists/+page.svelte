@@ -15,7 +15,7 @@
   import type { EncryptedRecord, ListPayload } from '$lib/types';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Plus, Trash2 } from '@lucide/svelte';
+  import { Pencil, Plus, Trash2 } from '@lucide/svelte';
 
   type ListItem = {
     record: EncryptedRecord;
@@ -35,6 +35,7 @@
   let lists: ListItem[] = $state([]);
   let selectedId: string | null = $state(null);
   let form = $state(emptyList());
+  let editingListId: string | null = $state(null);
   let newTask = $state('');
   let listFormOpen = $state(false);
   let taskFormOpen = $state(false);
@@ -50,19 +51,44 @@
     loading = false;
   }
 
+  function openCreateList() {
+    editingListId = null;
+    form = emptyList();
+    listFormOpen = true;
+  }
+
+  function openEditList(item: ListItem) {
+    editingListId = item.record.id;
+    form = {
+      title: item.payload.title,
+      description: item.payload.description,
+      checklist: item.payload.checklist,
+      tasks: [...item.payload.tasks]
+    };
+    listFormOpen = true;
+  }
+
+  function closeListForm() {
+    listFormOpen = false;
+    editingListId = null;
+    form = emptyList();
+  }
+
   async function saveList() {
     if (!dek || !form.title.trim()) return;
-    await createEncryptedRecord(
-      'list',
-      {
-        ...form,
-        title: form.title.trim(),
-        description: form.description.trim()
-      },
-      dek
-    );
-    form = emptyList();
-    listFormOpen = false;
+    const payload = {
+      ...form,
+      title: form.title.trim(),
+      description: form.description.trim()
+    };
+
+    if (editingListId) {
+      await updateEncryptedRecord(editingListId, 'list', payload, dek);
+    } else {
+      await createEncryptedRecord('list', payload, dek);
+    }
+
+    closeListForm();
     await loadLists();
   }
 
@@ -115,7 +141,7 @@
 </script>
 
 <PageHeader title="Lists" description="Encrypted checklists and plain lists, stored as self-contained records.">
-  <button class="focus-ring vault-btn-primary" type="button" onclick={() => (listFormOpen = true)}>
+  <button class="focus-ring vault-btn-primary" type="button" onclick={openCreateList}>
     <Plus size={16} />
     New
   </button>
@@ -151,19 +177,23 @@
         <EmptyState title="No lists yet" description="Create a list to start tracking tasks." />
       {:else}
         <div class="vault-card p-5">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+          <div class="space-y-3">
+            <div class="flex items-start justify-between gap-3">
               <h2 class="text-lg font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
-              {#if selected.payload.description}
-                <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">{selected.payload.description}</p>
-              {/if}
+              <div class="flex shrink-0 gap-2">
+                <button class="focus-ring vault-btn-primary" type="button" onclick={() => (taskFormOpen = true)}>+ Add</button>
+                <button class="focus-ring vault-btn-secondary" type="button" onclick={() => openEditList(selected)}>
+                  <Pencil size={16} />
+                  Edit
+                </button>
+                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeList(selected)} aria-label="Delete list">
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
-            <div class="flex gap-2">
-              <button class="focus-ring vault-btn-primary" type="button" onclick={() => (taskFormOpen = true)}>New task</button>
-              <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeList(selected)}>
-                <Trash2 size={16} />
-              </button>
-            </div>
+            {#if selected.payload.description}
+              <p class="text-sm leading-relaxed" style="color: var(--muted)">{selected.payload.description}</p>
+            {/if}
           </div>
 
           <div class="mt-5 divide-y" style="border-color: var(--border)">
@@ -186,12 +216,9 @@
 
   <EntryModal
     open={listFormOpen}
-    title="New list"
-    description="Create a private list shell. Tasks can be added once the list exists."
-    onClose={() => {
-      listFormOpen = false;
-      form = emptyList();
-    }}
+    title={editingListId ? 'Edit list' : 'New list'}
+    description={editingListId ? 'Update this private list shell.' : 'Create a private list shell. Tasks can be added once the list exists.'}
+    onClose={closeListForm}
   >
     <form
       class="space-y-4"
@@ -213,7 +240,7 @@
         Checklist
       </label>
       <div class="flex justify-end">
-        <button class="focus-ring vault-btn-primary" type="submit">Create</button>
+        <button class="focus-ring vault-btn-primary" type="submit">{editingListId ? 'Save' : 'Create'}</button>
       </div>
     </form>
   </EntryModal>
