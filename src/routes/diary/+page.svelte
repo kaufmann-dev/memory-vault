@@ -16,7 +16,7 @@
   import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Plus, Save, Trash2 } from '@lucide/svelte';
+  import { Pencil, Plus, Save, Trash2 } from '@lucide/svelte';
 
   type DiaryItem = {
     record: EncryptedRecord;
@@ -41,6 +41,14 @@
   let form = $state(emptyForm());
   let tagInput = $state('');
   let entries: DiaryItem[] = $state([]);
+
+  function formatDate(value: string) {
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(new Date(`${value}T00:00:00`));
+  }
 
   async function loadEntries() {
     if (!dek) return;
@@ -132,42 +140,53 @@
 {#if locked}
   <VaultNotice />
 {:else}
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-    <section class="space-y-4">
-      {#if loading}
-        <p class="text-sm" style="color: var(--muted)">Decrypting entries...</p>
-      {:else if entries.length === 0}
-        <EmptyState title="No diary entries yet" description="Create the first encrypted entry when you are ready." />
-      {:else}
-        {#each entries as item}
-          <article class="vault-card p-5">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 class="text-base font-semibold" style="color: var(--foreground)">{item.payload.title || 'Untitled'}</h2>
-                <p class="mt-1 text-xs" style="color: var(--muted)">
-                  {item.payload.occurredAt} · {item.payload.language} · {item.payload.wordCount} words
-                </p>
-              </div>
-              <div class="flex gap-2">
-                <button class="focus-ring vault-btn-secondary" type="button" onclick={() => startEdit(item)}>Edit</button>
-                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeEntry(item.record.id)}>
+  <section class="w-full">
+    {#if loading}
+      <p class="text-sm" style="color: var(--muted)">Decrypting entries...</p>
+    {:else if entries.length === 0}
+      <EmptyState title="No diary entries yet" description="Create the first encrypted entry when you are ready." />
+    {:else}
+      <div class="diary-reader">
+        {#each entries as item (item.record.id)}
+          <article class="diary-entry">
+            <div class="diary-entry__meta">
+              <time datetime={item.payload.occurredAt}>{formatDate(item.payload.occurredAt)}</time>
+              <span>{item.payload.language}</span>
+              <span>{item.payload.wordCount} words</span>
+            </div>
+
+            <div class="diary-entry__header">
+              <h2>{item.payload.title || 'Untitled'}</h2>
+              <div class="diary-entry__actions" aria-label="Entry actions">
+                <button class="focus-ring vault-btn-secondary" type="button" onclick={() => startEdit(item)}>
+                  <Pencil size={15} />
+                  Edit
+                </button>
+                <button
+                  class="focus-ring vault-btn-danger"
+                  type="button"
+                  onclick={() => removeEntry(item.record.id)}
+                  aria-label="Delete entry"
+                >
                   <Trash2 size={16} />
                 </button>
               </div>
             </div>
+
             {#if item.payload.tags.length}
-              <div class="mt-3 flex flex-wrap gap-2">
-                {#each item.payload.tags as tag}
+              <div class="diary-entry__tags">
+                {#each item.payload.tags as tag (tag)}
                   <span class="vault-tag">{tag}</span>
                 {/each}
               </div>
             {/if}
-            <p class="mt-4 whitespace-pre-wrap text-sm leading-relaxed" style="color: var(--foreground)">{item.payload.body}</p>
+
+            <div class="diary-entry__body">{item.payload.body}</div>
           </article>
         {/each}
-      {/if}
-    </section>
-  </div>
+      </div>
+    {/if}
+  </section>
 
   <EntryModal
     open={formOpen}
@@ -175,50 +194,148 @@
     description="Write privately. The content is encrypted before it leaves this browser."
     onClose={closeForm}
   >
-      <form
-        class="space-y-4"
-        onsubmit={(event) => {
-          event.preventDefault();
-          saveEntry();
-        }}
-      >
+    <form
+      class="space-y-4"
+      onsubmit={(event) => {
+        event.preventDefault();
+        saveEntry();
+      }}
+    >
+      <label class="block text-sm font-medium">
+        Title
+        <input class="focus-ring vault-input mt-1.5" bind:value={form.title} />
+      </label>
+
+      <div class="grid grid-cols-2 gap-3">
         <label class="block text-sm font-medium">
-          Title
-          <input class="focus-ring vault-input mt-1.5" bind:value={form.title} />
+          Date
+          <input class="focus-ring vault-input mt-1.5" type="date" bind:value={form.occurredAt} required />
         </label>
-
-        <div class="grid grid-cols-2 gap-3">
-          <label class="block text-sm font-medium">
-            Date
-            <input class="focus-ring vault-input mt-1.5" type="date" bind:value={form.occurredAt} required />
-          </label>
-          <label class="block text-sm font-medium">
-            Language
-            <select class="focus-ring vault-input mt-1.5" bind:value={form.language}>
-              <option>English</option>
-              <option>German</option>
-              <option>Other</option>
-            </select>
-          </label>
-        </div>
-
         <label class="block text-sm font-medium">
-          Tags
-          <input class="focus-ring vault-input mt-1.5" bind:value={tagInput} placeholder="comma, separated" />
+          Language
+          <select class="focus-ring vault-input mt-1.5" bind:value={form.language}>
+            <option>English</option>
+            <option>German</option>
+            <option>Other</option>
+          </select>
         </label>
+      </div>
 
-        <label class="block text-sm font-medium">
-          Body
-          <textarea class="focus-ring vault-input mt-1.5 min-h-64 leading-relaxed" bind:value={form.body} required></textarea>
-        </label>
+      <label class="block text-sm font-medium">
+        Tags
+        <input class="focus-ring vault-input mt-1.5" bind:value={tagInput} placeholder="comma, separated" />
+      </label>
 
-        <div class="flex items-center justify-between">
-          <span class="text-sm" style="color: var(--muted)">{wordCount(form.body)} words</span>
-          <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
-            <Save size={16} />
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </form>
+      <label class="block text-sm font-medium">
+        Body
+        <textarea class="focus-ring vault-input mt-1.5 min-h-64 leading-relaxed" bind:value={form.body} required></textarea>
+      </label>
+
+      <div class="flex items-center justify-between">
+        <span class="text-sm" style="color: var(--muted)">{wordCount(form.body)} words</span>
+        <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
+          <Save size={16} />
+          {saving ? 'Saving...' : 'Save'}
+        </button>
+      </div>
+    </form>
   </EntryModal>
 {/if}
+
+<style>
+  .diary-reader {
+    width: 100%;
+    border-top: 1px solid var(--border);
+  }
+
+  .diary-entry {
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    padding: 2.5rem 0;
+  }
+
+  .diary-entry__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: var(--muted);
+  }
+
+  .diary-entry__meta span::before {
+    content: "/";
+    margin-right: 0.5rem;
+    color: var(--border-strong);
+  }
+
+  .diary-entry__header {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-top: 0.65rem;
+  }
+
+  .diary-entry__header h2 {
+    max-width: 46rem;
+    margin: 0;
+    color: var(--foreground);
+    font-size: clamp(1.5rem, 1.1rem + 1vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.12;
+    overflow-wrap: anywhere;
+  }
+
+  .diary-entry__actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.5rem;
+    opacity: 0.72;
+    transition: opacity 0.15s ease;
+  }
+
+  .diary-entry:hover .diary-entry__actions,
+  .diary-entry:focus-within .diary-entry__actions {
+    opacity: 1;
+  }
+
+  .diary-entry__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+  }
+
+  .diary-entry__body {
+    width: 100%;
+    max-width: 74ch;
+    margin-top: 1.4rem;
+    white-space: pre-wrap;
+    color: var(--foreground);
+    font-size: 1.0625rem;
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 640px) {
+    .diary-entry {
+      padding: 2rem 0;
+    }
+
+    .diary-entry__header {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .diary-entry__actions {
+      width: 100%;
+      opacity: 1;
+    }
+
+    .diary-entry__actions :global(.vault-btn-secondary) {
+      flex: 1;
+    }
+  }
+</style>
