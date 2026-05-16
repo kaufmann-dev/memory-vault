@@ -6,6 +6,7 @@
 - Production build: `npm run build`; production start is `npm start`, which runs `npm run db:migrate` before `node build/index.js`.
 - Main verification: `npm run check` (`svelte-kit sync && svelte-check --tsconfig ./tsconfig.json`). No test, lint, or formatter scripts are currently configured.
 - Database commands require `DATABASE_URL`: `npm run db:generate` creates Drizzle migrations from `src/lib/server/db/schema.ts`; `npm run db:migrate` runs `scripts/migrate.mjs`; `npm run db:migrate:kit` is the raw Drizzle Kit migrator for local debugging.
+- Do not run the application or test it locally. The app needs a database; the user will run it and give feedback if something is wrong.
 
 ## Runtime And Data
 - The only required env var shown in `.env.example` is `DATABASE_URL`.
