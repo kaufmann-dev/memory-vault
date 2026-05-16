@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SimpleLineChart from '$lib/components/SimpleLineChart.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
@@ -16,7 +17,7 @@
   import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Pencil, Plus, Trash2, X } from '@lucide/svelte';
+  import { Pencil, Plus, Trash2 } from '@lucide/svelte';
 
   type DiagramItem = {
     record: EncryptedRecord;
@@ -50,6 +51,8 @@
   let editingId: string | null = $state(null);
   let diagramForm = $state(emptyDiagram());
   let measurementForm = $state(emptyMeasurement());
+  let diagramFormOpen = $state(false);
+  let measurementFormOpen = $state(false);
 
   let selected = $derived(diagrams.find((diagram) => diagram.record.id === selectedId) ?? diagrams[0] ?? null);
 
@@ -64,6 +67,7 @@
   function selectDiagram(item: DiagramItem) {
     selectedId = item.record.id;
     resetMeasurement(item.payload);
+    measurementFormOpen = false;
   }
 
   function startEdit(item: DiagramItem) {
@@ -76,11 +80,19 @@
         values: { ...measurement.values }
       }))
     };
+    diagramFormOpen = true;
   }
 
   function cancelEdit() {
     editingId = null;
     diagramForm = emptyDiagram();
+    diagramFormOpen = false;
+  }
+
+  function openCreate() {
+    editingId = null;
+    diagramForm = emptyDiagram();
+    diagramFormOpen = true;
   }
 
   function addFormField() {
@@ -171,6 +183,7 @@
       dek
     );
     resetMeasurement(item.payload);
+    measurementFormOpen = false;
     await loadDiagrams();
   }
 
@@ -217,71 +230,18 @@
   });
 </script>
 
-<PageHeader title="Diagrams" description="Encrypted custom measurements, decrypted in the browser and rendered locally." />
+<PageHeader title="Diagrams" description="Encrypted custom measurements, decrypted in the browser and rendered locally.">
+  <button class="focus-ring vault-btn-primary" type="button" onclick={openCreate}>
+    <Plus size={16} />
+    New
+  </button>
+</PageHeader>
 
 {#if locked}
   <VaultNotice />
 {:else}
   <div class="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
     <aside class="space-y-4">
-      <form
-        class="vault-card p-5"
-        onsubmit={(event) => {
-          event.preventDefault();
-          saveDiagram();
-        }}
-      >
-        <div class="mb-4 flex items-center justify-between gap-3">
-          <h2 class="text-base font-semibold" style="color: var(--foreground)">
-            {editingId ? 'Edit diagram' : 'Create diagram'}
-          </h2>
-          {#if editingId}
-            <button class="focus-ring vault-btn-ghost" type="button" onclick={cancelEdit} aria-label="Cancel edit">
-              <X size={15} />
-            </button>
-          {/if}
-        </div>
-
-        <label class="block text-sm font-medium">
-          Title
-          <input class="focus-ring vault-input mt-1.5" bind:value={diagramForm.title} required />
-        </label>
-        <label class="mt-3 block text-sm font-medium">
-          Description
-          <textarea class="focus-ring vault-input mt-1.5" bind:value={diagramForm.description}></textarea>
-        </label>
-
-        <div class="mt-4 space-y-3">
-          <div class="flex items-center justify-between gap-3">
-            <h3 class="text-sm font-semibold" style="color: var(--foreground)">Series</h3>
-            <button class="focus-ring vault-btn-ghost" type="button" onclick={addFormField} aria-label="Add series">
-              <Plus size={15} />
-            </button>
-          </div>
-
-          {#each diagramForm.fields as field (field.id)}
-            <div class="grid grid-cols-[2.25rem_minmax(0,1fr)_4.5rem_2.25rem] gap-2">
-              <input class="focus-ring h-9 w-9 rounded-lg border-0 p-1" type="color" bind:value={field.color} aria-label="Series color" />
-              <input class="focus-ring vault-input min-w-0" bind:value={field.label} placeholder="Name" required />
-              <input class="focus-ring vault-input min-w-0" bind:value={field.unit} placeholder="Unit" />
-              <button
-                class="focus-ring vault-btn-ghost"
-                type="button"
-                onclick={() => removeFormField(field.id)}
-                aria-label="Remove series"
-                disabled={diagramForm.fields.length === 1}
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          {/each}
-        </div>
-
-        <button class="focus-ring vault-btn-primary mt-4" type="submit">
-          {editingId ? 'Save' : 'Create'}
-        </button>
-      </form>
-
       {#if diagrams.length}
         <nav class="space-y-2">
           {#each diagrams as item (item.record.id)}
@@ -317,6 +277,7 @@
                 {/if}
               </div>
               <div class="flex gap-2">
+                <button class="focus-ring vault-btn-primary" type="button" onclick={() => (measurementFormOpen = true)}>New measurement</button>
                 <button class="focus-ring vault-btn-secondary" type="button" onclick={() => startEdit(selected)}>
                   <Pencil size={15} />
                   Edit
@@ -326,26 +287,6 @@
                 </button>
               </div>
             </div>
-
-            <form
-              class="mb-4 grid gap-2 sm:grid-cols-4"
-              onsubmit={(event) => {
-                event.preventDefault();
-                addMeasurement(selected);
-              }}
-            >
-              <input class="focus-ring vault-input text-sm" type="datetime-local" bind:value={measurementForm.date} required />
-              {#each selected.payload.fields as field (field.id)}
-                <input
-                  class="focus-ring vault-input text-sm"
-                  type="number"
-                  step="0.001"
-                  bind:value={measurementForm.values[field.id]}
-                  placeholder={field.unit ? `${field.label} (${field.unit})` : field.label}
-                />
-              {/each}
-              <button class="focus-ring vault-btn-primary sm:col-span-4" type="submit">Add measurement</button>
-            </form>
 
             <SimpleLineChart
               series={selected.payload.fields.map((field) => ({
@@ -398,4 +339,99 @@
       {/if}
     </section>
   </div>
+
+  <EntryModal
+    open={diagramFormOpen}
+    title={editingId ? 'Edit diagram' : 'New diagram'}
+    description="Define the chart and the numeric series you want to track."
+    onClose={cancelEdit}
+  >
+    <form
+      class="space-y-4"
+      onsubmit={(event) => {
+        event.preventDefault();
+        saveDiagram();
+      }}
+    >
+      <label class="block text-sm font-medium">
+        Title
+        <input class="focus-ring vault-input mt-1.5" bind:value={diagramForm.title} required />
+      </label>
+      <label class="block text-sm font-medium">
+        Description
+        <textarea class="focus-ring vault-input mt-1.5" bind:value={diagramForm.description}></textarea>
+      </label>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-sm font-semibold" style="color: var(--foreground)">Series</h3>
+          <button class="focus-ring vault-btn-ghost" type="button" onclick={addFormField} aria-label="Add series">
+            <Plus size={15} />
+          </button>
+        </div>
+
+        {#each diagramForm.fields as field (field.id)}
+          <div class="grid grid-cols-[2.25rem_minmax(0,1fr)_4.5rem_2.25rem] gap-2">
+            <input class="focus-ring h-9 w-9 rounded-lg border-0 p-1" type="color" bind:value={field.color} aria-label="Series color" />
+            <input class="focus-ring vault-input min-w-0" bind:value={field.label} placeholder="Name" required />
+            <input class="focus-ring vault-input min-w-0" bind:value={field.unit} placeholder="Unit" />
+            <button
+              class="focus-ring vault-btn-ghost"
+              type="button"
+              onclick={() => removeFormField(field.id)}
+              aria-label="Remove series"
+              disabled={diagramForm.fields.length === 1}
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        {/each}
+      </div>
+
+      <div class="flex justify-end">
+        <button class="focus-ring vault-btn-primary" type="submit">{editingId ? 'Save' : 'Create'}</button>
+      </div>
+    </form>
+  </EntryModal>
+
+  {#if selected}
+    <EntryModal
+      open={measurementFormOpen}
+      title="New measurement"
+      description={`Add values to ${selected.payload.title}. Empty series are skipped.`}
+      onClose={() => {
+        measurementFormOpen = false;
+        resetMeasurement(selected.payload);
+      }}
+    >
+      <form
+        class="space-y-4"
+        onsubmit={(event) => {
+          event.preventDefault();
+          addMeasurement(selected);
+        }}
+      >
+        <label class="block text-sm font-medium">
+          Date
+          <input class="focus-ring vault-input mt-1.5" type="datetime-local" bind:value={measurementForm.date} required />
+        </label>
+        <div class="grid gap-3 sm:grid-cols-2">
+          {#each selected.payload.fields as field (field.id)}
+            <label class="block text-sm font-medium">
+              {field.unit ? `${field.label} (${field.unit})` : field.label}
+              <input
+                class="focus-ring vault-input mt-1.5"
+                type="number"
+                step="0.001"
+                bind:value={measurementForm.values[field.id]}
+              />
+            </label>
+          {/each}
+        </div>
+        <div class="flex justify-end">
+          <button class="focus-ring vault-btn-primary" type="submit">Add</button>
+        </div>
+      </form>
+    </EntryModal>
+  {/if}
 {/if}
