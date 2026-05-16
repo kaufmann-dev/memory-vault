@@ -25,20 +25,24 @@
 
   type MeasurementForm = {
     date: string;
+    x: number | null | undefined;
     values: Record<string, number | null>;
   };
 
-  const colors = ['#2563eb', '#0f172a', '#64748b', '#94a3b8', '#dc2626'];
+  const colors = ['#2563eb', '#dc2626', '#0f766e', '#ca8a04', '#9333ea', '#0891b2'];
   const todayDateTime = () => new Date().toISOString().slice(0, 16);
+  const defaultXAxis = () => ({ type: 'datetime' as const, label: 'Date', unit: '' });
   const emptyField = (): DiagramField => ({ id: randomId(), label: '', unit: '', color: colors[0] });
   const emptyDiagram = (): DiagramPayload => ({
     title: '',
     description: '',
+    xAxis: defaultXAxis(),
     fields: [{ ...emptyField(), label: 'Value' }],
     measurements: []
   });
   const emptyMeasurement = (fields: DiagramField[] = []): MeasurementForm => ({
     date: todayDateTime(),
+    x: null,
     values: Object.fromEntries(fields.map((field) => [field.id, null]))
   });
 
@@ -48,6 +52,7 @@
   let diagrams: DiagramItem[] = $state([]);
   let selectedId: string | null = $state(null);
   let editingId: string | null = $state(null);
+  let editingMeasurementId: string | null = $state(null);
   let diagramForm = $state(emptyDiagram());
   let measurementForm = $state(emptyMeasurement());
   let diagramFormOpen = $state(false);
@@ -55,12 +60,37 @@
 
   let selected = $derived(diagrams.find((diagram) => diagram.record.id === selectedId) ?? diagrams[0] ?? null);
 
-  function sortedMeasurements(measurements: DiagramMeasurement[]) {
-    return [...measurements].sort((a, b) => a.date.localeCompare(b.date));
+  function normalizeDiagramPayload(payload: DiagramPayload): DiagramPayload {
+    return {
+      ...payload,
+      xAxis: payload.xAxis ?? defaultXAxis(),
+      fields: payload.fields,
+      measurements: payload.measurements.map((measurement) => ({
+        ...measurement,
+        x: measurement.x ?? null,
+        values: { ...measurement.values }
+      }))
+    };
+  }
+
+  function xAxis(payload: DiagramPayload) {
+    return payload.xAxis ?? defaultXAxis();
+  }
+
+  function isNumberAxis(payload: DiagramPayload) {
+    return xAxis(payload).type === 'number';
+  }
+
+  function sortedMeasurements(payload: DiagramPayload) {
+    return [...payload.measurements].sort((a, b) => {
+      if (isNumberAxis(payload)) return (a.x ?? 0) - (b.x ?? 0);
+      return a.date.localeCompare(b.date);
+    });
   }
 
   function resetMeasurement(payload: DiagramPayload | null = selected?.payload ?? null) {
     measurementForm = emptyMeasurement(payload?.fields ?? []);
+    editingMeasurementId = null;
   }
 
   function selectDiagram(item: DiagramItem) {
@@ -73,9 +103,11 @@
     editingId = item.record.id;
     diagramForm = {
       ...item.payload,
+      xAxis: { ...xAxis(item.payload) },
       fields: item.payload.fields.map((field) => ({ ...field })),
       measurements: item.payload.measurements.map((measurement) => ({
         ...measurement,
+        x: measurement.x ?? null,
         values: { ...measurement.values }
       }))
     };
@@ -110,11 +142,27 @@
     });
   }
 
+  function setXAxisType(type: 'datetime' | 'number') {
+    const previousLabel = diagramForm.xAxis.label.trim();
+    diagramForm.xAxis.type = type;
+    if (type === 'number' && (!previousLabel || previousLabel === 'Date')) {
+      diagramForm.xAxis.label = 'Minutes';
+      diagramForm.xAxis.unit = 'min';
+    }
+    if (type === 'datetime' && (!previousLabel || previousLabel === 'Minutes' || previousLabel === 'X')) {
+      diagramForm.xAxis.label = 'Date';
+      diagramForm.xAxis.unit = '';
+    }
+  }
+
   async function loadDiagrams() {
     if (!dek) return;
     loading = true;
     const records = await fetchEncryptedRecords('diagram');
-    diagrams = await decryptRecords<DiagramPayload>(records, dek);
+    diagrams = (await decryptRecords<DiagramPayload>(records, dek)).map((item) => ({
+      ...item,
+      payload: normalizeDiagramPayload(item.payload)
+    }));
     if (!selectedId && diagrams[0]) {
       selectedId = diagrams[0].record.id;
       resetMeasurement(diagrams[0].payload);
@@ -139,6 +187,11 @@
       ...diagramForm,
       title: diagramForm.title.trim(),
       description: diagramForm.description.trim(),
+      xAxis: {
+        type: diagramForm.xAxis?.type ?? 'datetime',
+        label: diagramForm.xAxis?.label.trim() || (diagramForm.xAxis?.type === 'number' ? 'Minutes' : 'Date'),
+        unit: diagramForm.xAxis?.unit.trim() || (diagramForm.xAxis?.type === 'number' ? 'min' : '')
+      },
       fields
     };
 
@@ -162,8 +215,31 @@
     await loadDiagrams();
   }
 
-  async function addMeasurement(item: DiagramItem) {
+  function openCreateMeasurement(item: DiagramItem) {
+    editingMeasurementId = null;
+    measurementForm = emptyMeasurement(item.payload.fields);
+    measurementFormOpen = true;
+  }
+
+  function openEditMeasurement(item: DiagramItem, measurement: DiagramMeasurement) {
+    editingMeasurementId = measurement.id;
+    measurementForm = {
+      date: measurement.date,
+      x: measurement.x ?? null,
+      values: Object.fromEntries(item.payload.fields.map((field) => [field.id, measurement.values[field.id] ?? null]))
+    };
+    measurementFormOpen = true;
+  }
+
+  function closeMeasurementForm(item: DiagramItem) {
+    measurementFormOpen = false;
+    resetMeasurement(item.payload);
+  }
+
+  async function saveMeasurement(item: DiagramItem) {
     if (!dek) return;
+    const xValue = measurementForm.x;
+    if (isNumberAxis(item.payload) && (xValue === null || xValue === undefined || Number.isNaN(xValue))) return;
     const values = Object.fromEntries(
       item.payload.fields.map((field) => {
         const value = measurementForm.values[field.id];
@@ -172,12 +248,22 @@
     );
     if (!Object.values(values).some((value) => value !== null)) return;
 
+    const measurement: DiagramMeasurement = {
+      id: editingMeasurementId ?? randomId(),
+      date: measurementForm.date,
+      x: isNumberAxis(item.payload) ? xValue : null,
+      values
+    };
+    const measurements = editingMeasurementId
+      ? item.payload.measurements.map((existing) => (existing.id === editingMeasurementId ? measurement : existing))
+      : [...item.payload.measurements, measurement];
+
     await updateEncryptedRecord(
       item.record.id,
       'diagram',
       {
         ...item.payload,
-        measurements: [...item.payload.measurements, { id: randomId(), date: measurementForm.date, values }]
+        measurements
       },
       dek
     );
@@ -201,10 +287,17 @@
   }
 
   function points(item: DiagramItem, field: DiagramField) {
-    return sortedMeasurements(item.payload.measurements).map((measurement) => ({
-      x: measurement.date,
+    return sortedMeasurements(item.payload).map((measurement) => ({
+      x: isNumberAxis(item.payload) ? measurement.x : new Date(measurement.date).getTime(),
+      xLabel: xLabel(item.payload, measurement),
       y: measurement.values[field.id] ?? null
     }));
+  }
+
+  function xLabel(payload: DiagramPayload, measurement: DiagramMeasurement) {
+    if (!isNumberAxis(payload)) return new Date(measurement.date).toLocaleString();
+    const axis = xAxis(payload);
+    return `${measurement.x ?? ''}${axis.unit ? ` ${axis.unit}` : ''}`;
   }
 
   function measurementValue(payload: DiagramPayload, measurement: DiagramMeasurement) {
@@ -267,26 +360,27 @@
       {:else}
         <div class="space-y-6">
           <section class="vault-card p-5">
-            <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
+            <div class="mb-4 space-y-3">
+              <div class="flex items-start justify-between gap-3">
                 <h2 class="text-lg font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
-                {#if selected.payload.description}
-                  <p class="mt-1 text-sm" style="color: var(--muted)">{selected.payload.description}</p>
-                {/if}
+                <div class="flex shrink-0 gap-2">
+                  <button class="focus-ring vault-btn-primary" type="button" onclick={() => openCreateMeasurement(selected)}>+ Add</button>
+                  <button class="focus-ring vault-btn-secondary" type="button" onclick={() => startEdit(selected)}>
+                    <Pencil size={15} />
+                    Edit
+                  </button>
+                  <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeDiagram(selected)} aria-label="Delete diagram">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
-              <div class="flex gap-2">
-                <button class="focus-ring vault-btn-primary" type="button" onclick={() => (measurementFormOpen = true)}>New measurement</button>
-                <button class="focus-ring vault-btn-secondary" type="button" onclick={() => startEdit(selected)}>
-                  <Pencil size={15} />
-                  Edit
-                </button>
-                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeDiagram(selected)}>
-                  <Trash2 size={15} />
-                </button>
-              </div>
+              {#if selected.payload.description}
+                <p class="text-sm" style="color: var(--muted)">{selected.payload.description}</p>
+              {/if}
             </div>
 
             <SimpleLineChart
+              xAxis={xAxis(selected.payload)}
               series={selected.payload.fields.map((field) => ({
                 label: field.unit ? `${field.label} (${field.unit})` : field.label,
                 points: points(selected, field),
@@ -304,19 +398,29 @@
                 <table class="w-full text-left text-sm">
                   <thead>
                     <tr style="background: var(--surface)">
-                      <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Date</th>
+                      <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">
+                        {isNumberAxis(selected.payload) ? xAxis(selected.payload).label : 'Date'}
+                      </th>
                       <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Value</th>
                       <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)"></th>
                     </tr>
                   </thead>
                   <tbody class="divide-y" style="border-color: var(--border)">
-                    {#each sortedMeasurements(selected.payload.measurements) as measurement (measurement.id)}
+                    {#each sortedMeasurements(selected.payload) as measurement (measurement.id)}
                       <tr class="transition-colors hover:bg-neutral-50/50">
-                        <td class="px-4 py-3 text-sm" style="color: var(--muted)">{measurement.date}</td>
+                        <td class="px-4 py-3 text-sm" style="color: var(--muted)">{xLabel(selected.payload, measurement)}</td>
                         <td class="px-4 py-3 font-medium" style="color: var(--foreground)">
                           {measurementValue(selected.payload, measurement)}
                         </td>
                         <td class="px-4 py-3 text-right">
+                          <button
+                            class="focus-ring vault-btn-ghost"
+                            type="button"
+                            onclick={() => openEditMeasurement(selected, measurement)}
+                            aria-label="Edit measurement"
+                          >
+                            <Pencil size={15} />
+                          </button>
                           <button
                             class="focus-ring vault-btn-ghost"
                             type="button"
@@ -360,6 +464,39 @@
         <textarea class="focus-ring vault-input mt-1.5" bind:value={diagramForm.description}></textarea>
       </label>
 
+      <div class="space-y-3 rounded-lg border p-3" style="border-color: var(--border)">
+        <h3 class="text-sm font-semibold" style="color: var(--foreground)">X axis</h3>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="block text-sm font-medium">
+            Type
+            <select
+              class="focus-ring vault-input mt-1.5"
+              value={diagramForm.xAxis.type}
+              onchange={(event) => setXAxisType(event.currentTarget.value === 'number' ? 'number' : 'datetime')}
+            >
+              <option value="datetime">Date/time</option>
+              <option value="number">Number</option>
+            </select>
+          </label>
+          <label class="block text-sm font-medium">
+            Label
+            <input
+              class="focus-ring vault-input mt-1.5"
+              bind:value={diagramForm.xAxis.label}
+              placeholder={diagramForm.xAxis.type === 'number' ? 'Minutes' : 'Date'}
+            />
+          </label>
+          <label class="block text-sm font-medium">
+            Unit
+            <input
+              class="focus-ring vault-input mt-1.5"
+              bind:value={diagramForm.xAxis.unit}
+              placeholder={diagramForm.xAxis.type === 'number' ? 'min' : 'optional'}
+            />
+          </label>
+        </div>
+      </div>
+
       <div class="space-y-3">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-sm font-semibold" style="color: var(--foreground)">Series</h3>
@@ -395,24 +532,30 @@
   {#if selected}
     <EntryModal
       open={measurementFormOpen}
-      title="New measurement"
-      description={`Add values to ${selected.payload.title}. Empty series are skipped.`}
-      onClose={() => {
-        measurementFormOpen = false;
-        resetMeasurement(selected.payload);
-      }}
+      title={editingMeasurementId ? 'Edit measurement' : 'New measurement'}
+      description={`${editingMeasurementId ? 'Update' : 'Add'} values to ${selected.payload.title}. Empty series are skipped.`}
+      onClose={() => closeMeasurementForm(selected)}
     >
       <form
         class="space-y-4"
         onsubmit={(event) => {
           event.preventDefault();
-          addMeasurement(selected);
+          saveMeasurement(selected);
         }}
       >
-        <label class="block text-sm font-medium">
-          Date
-          <input class="focus-ring vault-input mt-1.5" type="datetime-local" bind:value={measurementForm.date} required />
-        </label>
+        {#if isNumberAxis(selected.payload)}
+          <label class="block text-sm font-medium">
+            {xAxis(selected.payload).unit
+              ? `${xAxis(selected.payload).label} (${xAxis(selected.payload).unit})`
+              : xAxis(selected.payload).label}
+            <input class="focus-ring vault-input mt-1.5" type="number" step="0.001" bind:value={measurementForm.x} required />
+          </label>
+        {:else}
+          <label class="block text-sm font-medium">
+            Date
+            <input class="focus-ring vault-input mt-1.5" type="datetime-local" bind:value={measurementForm.date} required />
+          </label>
+        {/if}
         <div class="grid gap-3 sm:grid-cols-2">
           {#each selected.payload.fields as field (field.id)}
             <label class="block text-sm font-medium">
@@ -427,7 +570,7 @@
           {/each}
         </div>
         <div class="flex justify-end">
-          <button class="focus-ring vault-btn-primary" type="submit">Add</button>
+          <button class="focus-ring vault-btn-primary" type="submit">{editingMeasurementId ? 'Save' : 'Add'}</button>
         </div>
       </form>
     </EntryModal>

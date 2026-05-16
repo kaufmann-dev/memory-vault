@@ -76,12 +76,18 @@ export type DiagramField = {
 export type DiagramMeasurement = {
   id: string;
   date: string;
+  x?: number | null;
   values: Record<string, number | null>;
 };
 
 export type DiagramPayload = {
   title: string;
   description: string;
+  xAxis: {
+    type: 'datetime' | 'number';
+    label: string;
+    unit: string;
+  };
   fields: DiagramField[];
   measurements: DiagramMeasurement[];
 };
