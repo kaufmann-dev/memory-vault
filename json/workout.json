@@ -1,0 +1,132 @@
+{
+    "exercises": [
+        {
+            "name": "Overhead Press",
+            "sets": 3,
+            "reps": 5,
+            "weight": 20,
+            "lastrep": 4,
+            "increase": 1.25
+        },
+        {
+            "name": "Chinups",
+            "sets": 3,
+            "reps": 5,
+            "weight": 0,
+            "lastrep": 4,
+            "increase": 0
+        },
+        {
+            "name": "Bench Press",
+            "sets": 3,
+            "reps": 5,
+            "weight": 20,
+            "lastrep": 5,
+            "increase": 1.25
+        },
+        {
+            "name": "Barbell Rows",
+            "sets": 3,
+            "reps": 5,
+            "weight": 20,
+            "lastrep": 5,
+            "increase": 1.25
+        },
+        {
+            "name": "Squats",
+            "sets": 3,
+            "reps": 5,
+            "weight": 20,
+            "lastrep": 5,
+            "increase": 2.5
+        },
+        {
+            "name": "Deadlifts",
+            "sets": 1,
+            "reps": 5,
+            "weight": 20,
+            "lastrep": 5,
+            "increase": 2.5
+        }
+    ],
+    "plan": {
+        "dailys": [
+            {
+                "number": 1,
+                "exercises": [
+                    "Overhead Press",
+                    "Chinups",
+                    "Squats"
+                ]
+            },
+            {
+                "number": 2,
+                "exercises": [
+                    "Bench Press",
+                    "Barbell Rows",
+                    "Deadlifts"
+                ]
+            },
+            {
+                "number": 3,
+                "exercises": [
+                    "Overhead Press",
+                    "Chinups",
+                    "Squats"
+                ]
+            },
+            {
+                "number": 4,
+                "exercises": [
+                    "Bench Press",
+                    "Barbell Rows",
+                    "Squats"
+                ]
+            },
+            {
+                "number": 5,
+                "exercises": [
+                    "Overhead Press",
+                    "Chinups",
+                    "Deadlifts"
+                ]
+            },
+            {
+                "number": 6,
+                "exercises": [
+                    "Bench Press",
+                    "Barbell Rows",
+                    "Squats"
+                ]
+            }
+        ]
+    },
+    "workouts": [
+        {
+            "date": "2025-05-24",
+            "daily_num": 1,
+            "reps": [
+                [
+                    5,
+                    5,
+                    5
+                ],
+                [
+                    5,
+                    5,
+                    5
+                ],
+                [
+                    5,
+                    5,
+                    5
+                ]
+            ],
+            "weight": [
+                20,
+                0,
+                20
+            ]
+        }
+    ]
+}
