@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
   import {
@@ -15,7 +16,7 @@
   import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Plus, Save, Trash2, X } from '@lucide/svelte';
+  import { Plus, Save, Trash2 } from '@lucide/svelte';
 
   type DiaryItem = {
     record: EncryptedRecord;
@@ -32,15 +33,14 @@
   });
 
   let dek: CryptoKey | null = null;
-  let locked = false;
-  let loading = true;
-  let saving = false;
-  let editingId: string | null = null;
-  let form = emptyForm();
-  let tagInput = '';
-  let entries: DiaryItem[] = [];
-
-  $: form.wordCount = wordCount(form.body);
+  let locked = $state(false);
+  let loading = $state(true);
+  let saving = $state(false);
+  let formOpen = $state(false);
+  let editingId: string | null = $state(null);
+  let form = $state(emptyForm());
+  let tagInput = $state('');
+  let entries: DiaryItem[] = $state([]);
 
   async function loadEntries() {
     if (!dek) return;
@@ -58,6 +58,11 @@
     tagInput = '';
   }
 
+  function openCreate() {
+    startCreate();
+    formOpen = true;
+  }
+
   function startEdit(item: DiaryItem) {
     editingId = item.record.id;
     form = {
@@ -65,6 +70,12 @@
       tags: [...item.payload.tags]
     };
     tagInput = item.payload.tags.join(', ');
+    formOpen = true;
+  }
+
+  function closeForm() {
+    formOpen = false;
+    startCreate();
   }
 
   async function saveEntry() {
@@ -74,6 +85,7 @@
       ...form,
       title: form.title.trim(),
       body: form.body.trim(),
+      wordCount: wordCount(form.body),
       tags: tagInput
         .split(',')
         .map((tag) => tag.trim())
@@ -87,7 +99,7 @@
     }
 
     await loadEntries();
-    startCreate();
+    closeForm();
     saving = false;
   }
 
@@ -111,7 +123,7 @@
 </script>
 
 <PageHeader title="Diary" description="One encrypted structure for diary entries, articles, notes, and ramblings.">
-  <button class="focus-ring vault-btn-primary" on:click={startCreate} type="button">
+  <button class="focus-ring vault-btn-primary" onclick={openCreate} type="button">
     <Plus size={16} />
     New
   </button>
@@ -137,8 +149,8 @@
                 </p>
               </div>
               <div class="flex gap-2">
-                <button class="focus-ring vault-btn-secondary" type="button" on:click={() => startEdit(item)}>Edit</button>
-                <button class="focus-ring vault-btn-danger" type="button" on:click={() => removeEntry(item.record.id)}>
+                <button class="focus-ring vault-btn-secondary" type="button" onclick={() => startEdit(item)}>Edit</button>
+                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeEntry(item.record.id)}>
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -155,18 +167,21 @@
         {/each}
       {/if}
     </section>
+  </div>
 
-    <aside class="vault-card p-5">
-      <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-sm font-semibold" style="color: var(--foreground)">{editingId ? 'Edit entry' : 'New entry'}</h2>
-        {#if editingId}
-          <button class="focus-ring vault-btn-ghost" type="button" on:click={startCreate}>
-            <X size={16} />
-          </button>
-        {/if}
-      </div>
-
-      <form class="space-y-4" on:submit|preventDefault={saveEntry}>
+  <EntryModal
+    open={formOpen}
+    title={editingId ? 'Edit entry' : 'New entry'}
+    description="Write privately. The content is encrypted before it leaves this browser."
+    onClose={closeForm}
+  >
+      <form
+        class="space-y-4"
+        onsubmit={(event) => {
+          event.preventDefault();
+          saveEntry();
+        }}
+      >
         <label class="block text-sm font-medium">
           Title
           <input class="focus-ring vault-input mt-1.5" bind:value={form.title} />
@@ -198,13 +213,12 @@
         </label>
 
         <div class="flex items-center justify-between">
-          <span class="text-sm" style="color: var(--muted)">{form.wordCount} words</span>
+          <span class="text-sm" style="color: var(--muted)">{wordCount(form.body)} words</span>
           <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
             <Save size={16} />
             {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </form>
-    </aside>
-  </div>
+  </EntryModal>
 {/if}

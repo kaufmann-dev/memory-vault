@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
   import {
@@ -30,14 +31,16 @@
   });
 
   let dek: CryptoKey | null = null;
-  let locked = false;
-  let loading = true;
-  let lists: ListItem[] = [];
-  let selectedId: string | null = null;
-  let form = emptyList();
-  let newTask = '';
+  let locked = $state(false);
+  let loading = $state(true);
+  let lists: ListItem[] = $state([]);
+  let selectedId: string | null = $state(null);
+  let form = $state(emptyList());
+  let newTask = $state('');
+  let listFormOpen = $state(false);
+  let taskFormOpen = $state(false);
 
-  $: selected = lists.find((list) => list.record.id === selectedId) ?? lists[0] ?? null;
+  let selected = $derived(lists.find((list) => list.record.id === selectedId) ?? lists[0] ?? null);
 
   async function loadLists() {
     if (!dek) return;
@@ -60,6 +63,7 @@
       dek
     );
     form = emptyList();
+    listFormOpen = false;
     await loadLists();
   }
 
@@ -83,6 +87,7 @@
       tasks: [...item.payload.tasks, { id: randomId(), text: newTask.trim(), done: false }]
     });
     newTask = '';
+    taskFormOpen = false;
   }
 
   async function toggleTask(item: ListItem, taskId: string) {
@@ -111,43 +116,28 @@
   });
 </script>
 
-<PageHeader title="Lists" description="Encrypted checklists and plain lists, stored as self-contained records." />
+<PageHeader title="Lists" description="Encrypted checklists and plain lists, stored as self-contained records.">
+  <button class="focus-ring vault-btn-primary" type="button" onclick={() => (listFormOpen = true)}>
+    <Plus size={16} />
+    New
+  </button>
+</PageHeader>
 
 {#if locked}
   <VaultNotice />
 {:else}
   <div class="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
     <aside class="space-y-4">
-      <form class="vault-card p-4" on:submit|preventDefault={saveList}>
-        <h2 class="mb-4 text-sm font-semibold" style="color: var(--foreground)">Create list</h2>
-        <label class="block text-sm font-medium">
-          Title
-          <input class="focus-ring vault-input mt-1.5" bind:value={form.title} required />
-        </label>
-        <label class="mt-3 block text-sm font-medium">
-          Description
-          <textarea class="focus-ring vault-input mt-1.5" bind:value={form.description}></textarea>
-        </label>
-        <label class="mt-3 flex items-center gap-2 text-sm font-medium">
-          <input type="checkbox" bind:checked={form.checklist} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
-          Checklist
-        </label>
-        <button class="focus-ring vault-btn-primary mt-4" type="submit">
-          <Plus size={16} />
-          Create
-        </button>
-      </form>
-
       {#if lists.length}
         <nav class="space-y-1">
-          {#each lists as item}
+          {#each lists as item (item.record.id)}
             <button
               class="focus-ring w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors"
               style={selected?.record.id === item.record.id
                 ? 'color: var(--foreground); background: var(--accent-light); border: 1px solid var(--border)'
                 : 'color: var(--foreground); background: transparent; border: 1px solid transparent'}
               type="button"
-              on:click={() => (selectedId = item.record.id)}
+              onclick={() => (selectedId = item.record.id)}
             >
               {item.payload.title}
             </button>
@@ -170,24 +160,22 @@
                 <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">{selected.payload.description}</p>
               {/if}
             </div>
-            <button class="focus-ring vault-btn-danger" type="button" on:click={() => removeList(selected)}>
-              <Trash2 size={16} />
-            </button>
+            <div class="flex gap-2">
+              <button class="focus-ring vault-btn-primary" type="button" onclick={() => (taskFormOpen = true)}>New task</button>
+              <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeList(selected)}>
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
 
-          <form class="mt-6 flex gap-2" on:submit|preventDefault={() => addTask(selected)}>
-            <input class="focus-ring vault-input min-w-0 flex-1" bind:value={newTask} placeholder="New task" />
-            <button class="focus-ring vault-btn-primary shrink-0" type="submit">Add</button>
-          </form>
-
           <div class="mt-5 divide-y" style="border-color: var(--border)">
-            {#each selected.payload.tasks as task}
+            {#each selected.payload.tasks as task (task.id)}
               <div class="flex items-center gap-3 py-3 group">
                 {#if selected.payload.checklist}
-                  <input type="checkbox" checked={task.done} on:change={() => toggleTask(selected, task.id)} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                  <input type="checkbox" checked={task.done} onchange={() => toggleTask(selected, task.id)} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
                 {/if}
                 <span class:line-through={task.done} class="flex-1 text-sm" style="color: var(--foreground)">{task.text}</span>
-                <button class="focus-ring vault-btn-ghost opacity-0 group-hover:opacity-100 transition-opacity" type="button" on:click={() => removeTask(selected, task.id)}>
+                <button class="focus-ring vault-btn-ghost opacity-0 group-hover:opacity-100 transition-opacity" type="button" onclick={() => removeTask(selected, task.id)}>
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -197,4 +185,66 @@
       {/if}
     </section>
   </div>
+
+  <EntryModal
+    open={listFormOpen}
+    title="New list"
+    description="Create a private list shell. Tasks can be added once the list exists."
+    onClose={() => {
+      listFormOpen = false;
+      form = emptyList();
+    }}
+  >
+    <form
+      class="space-y-4"
+      onsubmit={(event) => {
+        event.preventDefault();
+        saveList();
+      }}
+    >
+      <label class="block text-sm font-medium">
+        Title
+        <input class="focus-ring vault-input mt-1.5" bind:value={form.title} required />
+      </label>
+      <label class="block text-sm font-medium">
+        Description
+        <textarea class="focus-ring vault-input mt-1.5" bind:value={form.description}></textarea>
+      </label>
+      <label class="flex items-center gap-2 text-sm font-medium">
+        <input type="checkbox" bind:checked={form.checklist} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+        Checklist
+      </label>
+      <div class="flex justify-end">
+        <button class="focus-ring vault-btn-primary" type="submit">Create</button>
+      </div>
+    </form>
+  </EntryModal>
+
+  {#if selected}
+    <EntryModal
+      open={taskFormOpen}
+      title="New task"
+      description={`Add a task to ${selected.payload.title}.`}
+      onClose={() => {
+        taskFormOpen = false;
+        newTask = '';
+      }}
+    >
+      <form
+        class="space-y-4"
+        onsubmit={(event) => {
+          event.preventDefault();
+          addTask(selected);
+        }}
+      >
+        <label class="block text-sm font-medium">
+          Task
+          <input class="focus-ring vault-input mt-1.5" bind:value={newTask} required />
+        </label>
+        <div class="flex justify-end">
+          <button class="focus-ring vault-btn-primary" type="submit">Add</button>
+        </div>
+      </form>
+    </EntryModal>
+  {/if}
 {/if}

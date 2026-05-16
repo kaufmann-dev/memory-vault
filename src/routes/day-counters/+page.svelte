@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
   import {
@@ -14,7 +15,7 @@
   import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { RotateCcw, Trash2 } from '@lucide/svelte';
+  import { Plus, RotateCcw, Trash2 } from '@lucide/svelte';
 
   type CounterItem = {
     record: EncryptedRecord;
@@ -29,6 +30,7 @@
   let loading = $state(true);
   let counters: CounterItem[] = $state([]);
   let form = $state(emptyCounter());
+  let formOpen = $state(false);
 
   function elapsedDays(date: string) {
     const start = new Date(`${date}T00:00:00`);
@@ -50,6 +52,7 @@
     if (!dek || !form.name.trim()) return;
     await createEncryptedRecord('day_counter', { ...form, name: form.name.trim() }, dek);
     form = emptyCounter();
+    formOpen = false;
     await loadCounters();
   }
 
@@ -77,20 +80,71 @@
   });
 </script>
 
-<PageHeader title="Milestones" description="Encrypted trackers for elapsed days since an event." />
+<PageHeader title="Milestones" description="Encrypted trackers for elapsed days since an event.">
+  <button class="focus-ring vault-btn-primary" type="button" onclick={() => (formOpen = true)}>
+    <Plus size={16} />
+    New
+  </button>
+</PageHeader>
 
 {#if locked}
   <VaultNotice />
 {:else}
-  <div class="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+  <section>
+    {#if loading}
+      <p class="text-sm" style="color: var(--muted)">Decrypting milestones...</p>
+    {:else if counters.length === 0}
+      <EmptyState title="No milestones yet" description="Create a milestone to track elapsed time." />
+    {:else}
+      <div class="grid gap-4 sm:grid-cols-2">
+        {#each counters as item (item.record.id)}
+          <article class="vault-card p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-sm font-semibold" style="color: var(--foreground)">{item.payload.name}</h2>
+                <p class="mt-1 text-xs" style="color: var(--muted)">Since {item.payload.initiated}</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="focus-ring vault-btn-ghost" type="button" onclick={() => resetCounter(item)}>
+                  <RotateCcw size={15} />
+                </button>
+                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeCounter(item)}>
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </div>
+            <p class="mt-6 text-4xl font-bold tracking-tight" style="color: var(--foreground)">{elapsedDays(item.payload.initiated)}</p>
+            <p class="mt-1 text-sm font-medium" style="color: var(--muted)">days elapsed</p>
+            {#if item.payload.maxDays !== null}
+              <div class="mt-4 h-1.5 overflow-hidden" style="background: var(--border)">
+                <div
+                  class="h-full"
+                  style={`background: var(--foreground); width: ${Math.min(100, (elapsedDays(item.payload.initiated) / item.payload.maxDays) * 100)}%`}
+                ></div>
+              </div>
+            {/if}
+          </article>
+        {/each}
+      </div>
+    {/if}
+  </section>
+
+  <EntryModal
+    open={formOpen}
+    title="New milestone"
+    description="Choose the date you want to measure from. Everything stays encrypted."
+    onClose={() => {
+      formOpen = false;
+      form = emptyCounter();
+    }}
+  >
     <form
-      class="vault-card p-5 h-fit"
+      class="space-y-4"
       onsubmit={(event) => {
         event.preventDefault();
         saveCounter();
       }}
     >
-      <h2 class="mb-4 text-sm font-semibold" style="color: var(--foreground)">New milestone</h2>
       <label class="block text-sm font-medium">
         Name
         <input class="focus-ring vault-input mt-1.5" bind:value={form.name} required />
@@ -109,46 +163,9 @@
           placeholder="optional"
         />
       </label>
-      <button class="focus-ring vault-btn-primary mt-4" type="submit">Create</button>
+      <div class="flex justify-end">
+        <button class="focus-ring vault-btn-primary" type="submit">Create</button>
+      </div>
     </form>
-
-    <section>
-      {#if loading}
-        <p class="text-sm" style="color: var(--muted)">Decrypting milestones...</p>
-      {:else if counters.length === 0}
-        <EmptyState title="No milestones yet" description="Create a milestone to track elapsed time." />
-      {:else}
-        <div class="grid gap-4 sm:grid-cols-2">
-          {#each counters as item (item.record.id)}
-            <article class="vault-card p-5">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <h2 class="text-sm font-semibold" style="color: var(--foreground)">{item.payload.name}</h2>
-                  <p class="mt-1 text-xs" style="color: var(--muted)">Since {item.payload.initiated}</p>
-                </div>
-                <div class="flex gap-2">
-                  <button class="focus-ring vault-btn-ghost" type="button" onclick={() => resetCounter(item)}>
-                    <RotateCcw size={15} />
-                  </button>
-                  <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeCounter(item)}>
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-              <p class="mt-6 text-4xl font-bold tracking-tight" style="color: var(--foreground)">{elapsedDays(item.payload.initiated)}</p>
-              <p class="mt-1 text-sm font-medium" style="color: var(--muted)">days elapsed</p>
-              {#if item.payload.maxDays !== null}
-                <div class="mt-4 h-1.5 overflow-hidden" style="background: var(--border)">
-                  <div
-                    class="h-full"
-                    style={`background: var(--foreground); width: ${Math.min(100, (elapsedDays(item.payload.initiated) / item.payload.maxDays) * 100)}%`}
-                  ></div>
-                </div>
-              {/if}
-            </article>
-          {/each}
-        </div>
-      {/if}
-    </section>
-  </div>
+  </EntryModal>
 {/if}
