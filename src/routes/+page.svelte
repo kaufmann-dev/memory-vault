@@ -39,7 +39,7 @@
       href={feature.href}
     >
       <div class="mb-4 flex items-center gap-3">
-        <span style="color: var(--accent)">
+        <span style="color: var(--foreground)">
           <svelte:component this={feature.icon} size={20} />
         </span>
         <h2 class="text-sm font-semibold" style="color: var(--foreground)">{feature.label}</h2>

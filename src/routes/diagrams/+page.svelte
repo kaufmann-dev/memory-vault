@@ -289,7 +289,7 @@
               class="focus-ring w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all"
               class:vault-card={selected?.record.id === item.record.id}
               style={selected?.record.id === item.record.id
-                ? 'color: var(--accent); background: var(--accent-light); border: 1px solid rgba(37,99,235,0.15)'
+                ? 'color: var(--foreground); background: var(--accent-light); border: 1px solid var(--border)'
                 : 'color: var(--foreground); background: transparent; border: 1px solid transparent'}
               type="button"
               onclick={() => selectDiagram(item)}

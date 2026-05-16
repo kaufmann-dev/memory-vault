@@ -129,7 +129,7 @@
           <textarea class="focus-ring vault-input mt-1.5" bind:value={form.description}></textarea>
         </label>
         <label class="mt-3 flex items-center gap-2 text-sm font-medium">
-          <input type="checkbox" bind:checked={form.checklist} class="rounded border-neutral-300 text-orange-500 focus:ring-orange-500" />
+          <input type="checkbox" bind:checked={form.checklist} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
           Checklist
         </label>
         <button class="focus-ring vault-btn-primary mt-4" type="submit">
@@ -144,7 +144,7 @@
             <button
               class="focus-ring w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors"
               style={selected?.record.id === item.record.id
-                ? 'color: var(--accent); background: var(--accent-light); border: 1px solid var(--border)'
+                ? 'color: var(--foreground); background: var(--accent-light); border: 1px solid var(--border)'
                 : 'color: var(--foreground); background: transparent; border: 1px solid transparent'}
               type="button"
               on:click={() => (selectedId = item.record.id)}
@@ -184,7 +184,7 @@
             {#each selected.payload.tasks as task}
               <div class="flex items-center gap-3 py-3 group">
                 {#if selected.payload.checklist}
-                  <input type="checkbox" checked={task.done} on:change={() => toggleTask(selected, task.id)} class="rounded border-neutral-300 text-orange-500 focus:ring-orange-500" />
+                  <input type="checkbox" checked={task.done} on:change={() => toggleTask(selected, task.id)} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
                 {/if}
                 <span class:line-through={task.done} class="flex-1 text-sm" style="color: var(--foreground)">{task.text}</span>
                 <button class="focus-ring vault-btn-ghost opacity-0 group-hover:opacity-100 transition-opacity" type="button" on:click={() => removeTask(selected, task.id)}>

@@ -141,7 +141,7 @@
                 <div class="mt-4 h-1.5 overflow-hidden" style="background: var(--border)">
                   <div
                     class="h-full"
-                    style={`background: var(--accent); width: ${Math.min(100, (elapsedDays(item.payload.initiated) / item.payload.maxDays) * 100)}%`}
+                    style={`background: var(--foreground); width: ${Math.min(100, (elapsedDays(item.payload.initiated) / item.payload.maxDays) * 100)}%`}
                   ></div>
                 </div>
               {/if}
