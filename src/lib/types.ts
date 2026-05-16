@@ -46,8 +46,10 @@ export type ListPayload = {
 };
 
 export type NotePayload = {
+  title?: string;
   text: string;
   groupIds: string[];
+  pinned?: boolean;
   createdAt: string;
   updatedAt: string;
 };
