@@ -12,6 +12,7 @@
     LogOut,
     Menu,
     Settings,
+    StickyNote,
     X
   } from '@lucide/svelte';
   import { fly, fade } from 'svelte/transition';
@@ -24,6 +25,7 @@
   const nav = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/diary', label: 'Diary', icon: BookOpen },
+    { href: '/notes', label: 'Notes', icon: StickyNote },
     { href: '/lists', label: 'Lists', icon: ListChecks },
     { href: '/diagrams', label: 'Diagrams', icon: Activity },
     { href: '/day-counters', label: 'Milestones', icon: CalendarDays },

@@ -1,6 +1,6 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import { Activity, BookOpen, CalendarDays, ListChecks } from '@lucide/svelte';
+  import { Activity, BookOpen, CalendarDays, ListChecks, StickyNote } from '@lucide/svelte';
 
   const features = [
     {
@@ -8,6 +8,12 @@
       label: 'Diary',
       description: 'One encrypted place for articles, diary entries, and ramblings.',
       icon: BookOpen
+    },
+    {
+      href: '/notes',
+      label: 'Notes',
+      description: 'Quick encrypted notes with groups for triage and cleanup.',
+      icon: StickyNote
     },
     {
       href: '/lists',
@@ -33,14 +39,15 @@
 <PageHeader title="Home" description="Everything here is private and backed by encrypted records." />
 
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-  {#each features as feature}
+  {#each features as feature (feature.href)}
+    {@const Icon = feature.icon}
     <a
       class="focus-ring group vault-card vault-card-hover p-5 text-inherit hover:no-underline"
       href={feature.href}
     >
       <div class="mb-4 flex items-center gap-3">
         <span style="color: var(--foreground)">
-          <svelte:component this={feature.icon} size={20} />
+          <Icon size={20} />
         </span>
         <h2 class="text-sm font-semibold" style="color: var(--foreground)">{feature.label}</h2>
       </div>

@@ -6,6 +6,8 @@ import { and, desc, eq } from 'drizzle-orm';
 
 const recordTypes = new Set<RecordType>([
   'diary',
+  'note',
+  'note_group',
   'list',
   'diagram',
   'day_counter'
