@@ -21,11 +21,7 @@ export type RecordType =
   | 'diary'
   | 'list'
   | 'diagram'
-  | 'metric_weight'
-  | 'metric_blood'
-  | 'metric_hormone'
-  | 'day_counter'
-  | 'family_tree';
+  | 'day_counter';
 
 export type DiaryPayload = {
   title: string;
@@ -71,43 +67,4 @@ export type DiagramPayload = {
   description: string;
   fields: DiagramField[];
   measurements: DiagramMeasurement[];
-};
-
-export type WeightPayload = {
-  date: string;
-  weight: number;
-};
-
-export type BloodPayload = {
-  date: string;
-  sys: number;
-  dia: number;
-  pul: number;
-};
-
-export type HormonePayload = {
-  date: string;
-  lh: number | null;
-  fsh: number | null;
-  e2: number | null;
-  prog: number | null;
-  prl: number | null;
-  t: number | null;
-  bat: number | null;
-  shbg: number | null;
-  tsh: number | null;
-};
-
-export type FamilyPerson = {
-  id: string;
-  parentId: string | null;
-  name: string;
-  relation: string;
-  birth: string;
-  death: string;
-  notes: string;
-};
-
-export type FamilyTreePayload = {
-  people: FamilyPerson[];
 };

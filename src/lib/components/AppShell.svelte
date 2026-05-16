@@ -12,7 +12,6 @@
     LogOut,
     Menu,
     Settings,
-    UsersRound,
     X
   } from '@lucide/svelte';
   import { fly, fade } from 'svelte/transition';
@@ -27,8 +26,7 @@
     { href: '/diary', label: 'Diary', icon: BookOpen },
     { href: '/lists', label: 'Lists', icon: ListChecks },
     { href: '/diagrams', label: 'Diagrams', icon: Activity },
-    { href: '/day-counters', label: 'Day counters', icon: CalendarDays },
-    { href: '/family', label: 'Family', icon: UsersRound },
+    { href: '/day-counters', label: 'Milestones', icon: CalendarDays },
     { href: '/settings', label: 'Settings', icon: Settings }
   ];
 

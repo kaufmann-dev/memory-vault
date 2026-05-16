@@ -25,10 +25,10 @@
   const emptyCounter = (): DayCounterPayload => ({ name: '', initiated: today(), maxDays: null });
 
   let dek: CryptoKey | null = null;
-  let locked = false;
-  let loading = true;
-  let counters: CounterItem[] = [];
-  let form = emptyCounter();
+  let locked = $state(false);
+  let loading = $state(true);
+  let counters: CounterItem[] = $state([]);
+  let form = $state(emptyCounter());
 
   function elapsedDays(date: string) {
     const start = new Date(`${date}T00:00:00`);
@@ -77,14 +77,20 @@
   });
 </script>
 
-<PageHeader title="Day counters" description="Encrypted counters for elapsed days since an event." />
+<PageHeader title="Milestones" description="Encrypted trackers for elapsed days since an event." />
 
 {#if locked}
   <VaultNotice />
 {:else}
   <div class="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-    <form class="vault-card p-5 h-fit" on:submit|preventDefault={saveCounter}>
-      <h2 class="mb-4 text-sm font-semibold" style="color: var(--foreground)">New counter</h2>
+    <form
+      class="vault-card p-5 h-fit"
+      onsubmit={(event) => {
+        event.preventDefault();
+        saveCounter();
+      }}
+    >
+      <h2 class="mb-4 text-sm font-semibold" style="color: var(--foreground)">New milestone</h2>
       <label class="block text-sm font-medium">
         Name
         <input class="focus-ring vault-input mt-1.5" bind:value={form.name} required />
@@ -108,12 +114,12 @@
 
     <section>
       {#if loading}
-        <p class="text-sm" style="color: var(--muted)">Decrypting counters...</p>
+        <p class="text-sm" style="color: var(--muted)">Decrypting milestones...</p>
       {:else if counters.length === 0}
-        <EmptyState title="No day counters yet" description="Create a counter to track elapsed time." />
+        <EmptyState title="No milestones yet" description="Create a milestone to track elapsed time." />
       {:else}
         <div class="grid gap-4 sm:grid-cols-2">
-          {#each counters as item}
+          {#each counters as item (item.record.id)}
             <article class="vault-card p-5">
               <div class="flex items-start justify-between gap-3">
                 <div>
@@ -121,10 +127,10 @@
                   <p class="mt-1 text-xs" style="color: var(--muted)">Since {item.payload.initiated}</p>
                 </div>
                 <div class="flex gap-2">
-                  <button class="focus-ring vault-btn-ghost" type="button" on:click={() => resetCounter(item)}>
+                  <button class="focus-ring vault-btn-ghost" type="button" onclick={() => resetCounter(item)}>
                     <RotateCcw size={15} />
                   </button>
-                  <button class="focus-ring vault-btn-danger" type="button" on:click={() => removeCounter(item)}>
+                  <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeCounter(item)}>
                     <Trash2 size={15} />
                   </button>
                 </div>
