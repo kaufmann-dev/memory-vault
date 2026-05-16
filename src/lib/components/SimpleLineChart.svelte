@@ -44,7 +44,7 @@
   }
 </script>
 
-<div class="rounded-xl border p-4" style="border-color: var(--border); background: var(--surface)">
+<div class="rounded-2xl p-4 shadow-sm" style="background: var(--surface)">
   {#if allPoints.length}
     <svg viewBox={`0 0 ${width} ${height}`} class="h-auto w-full overflow-visible" role="img">
       <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="var(--border)" />

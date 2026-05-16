@@ -7,8 +7,8 @@
 </script>
 
 <svelte:head>
-  <title>The Second Directory</title>
-  <meta name="description" content="A private encrypted personal directory." />
+  <title>Memory Vault</title>
+  <meta name="description" content="A private encrypted personal vault." />
 </svelte:head>
 
 {#if data.user}

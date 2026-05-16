@@ -118,7 +118,7 @@
 {:else}
   <div class="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
     <aside class="space-y-4">
-      <form class="rounded-xl border p-4" style="border-color: var(--border); background: var(--surface)" on:submit|preventDefault={saveList}>
+      <form class="rounded-2xl p-4 shadow-sm" style="background: var(--surface)" on:submit|preventDefault={saveList}>
         <h2 class="mb-4 text-base font-semibold">Create list</h2>
         <label class="block text-sm font-medium">
           Title
@@ -162,7 +162,7 @@
       {:else if !selected}
         <EmptyState title="No lists yet" description="Create a list to start tracking tasks." />
       {:else}
-        <div class="rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)">
+        <div class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 class="text-xl font-semibold">{selected.payload.title}</h2>

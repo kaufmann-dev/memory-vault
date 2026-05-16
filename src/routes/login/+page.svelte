@@ -84,14 +84,14 @@
 </script>
 
 <svelte:head>
-  <title>Login | The Second Directory</title>
+  <title>Login | Memory Vault</title>
 </svelte:head>
 
 <main class="grid min-h-screen place-items-center px-4 py-10">
-  <section class="w-full max-w-md rounded-xl border p-6" style="border-color: var(--border); background: var(--surface)">
+  <section class="w-full max-w-md rounded-2xl p-8 shadow-xl" style="background: var(--surface)">
     <div class="mb-6">
       <p class="mb-2 text-sm font-medium" style="color: var(--accent)">{data.hasAdmin ? 'Private vault' : 'First setup'}</p>
-      <h1 class="text-2xl font-semibold">{data.hasAdmin ? 'Unlock The Second Directory' : 'Create the admin vault'}</h1>
+      <h1 class="text-2xl font-bold tracking-tight">{data.hasAdmin ? 'Unlock Memory Vault' : 'Create the admin vault'}</h1>
       <p class="mt-2 text-sm leading-6" style="color: var(--muted)">
         {data.hasAdmin
           ? 'Your password unlocks the in-memory encryption key for this browser tab.'
