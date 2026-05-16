@@ -19,6 +19,8 @@ export type EncryptedRecord = {
 
 export type RecordType =
   | 'diary'
+  | 'note'
+  | 'note_group'
   | 'list'
   | 'diagram'
   | 'day_counter';
@@ -41,6 +43,19 @@ export type ListPayload = {
     text: string;
     done: boolean;
   }>;
+};
+
+export type NotePayload = {
+  text: string;
+  groupIds: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NoteGroupPayload = {
+  name: string;
+  description: string;
+  color: string;
 };
 
 export type DayCounterPayload = {

@@ -1,6 +1,6 @@
-# The Second Directory
+# Memory Vault
 
-The Second Directory is a private, admin-only personal archive built with SvelteKit. It stores diary entries, lists, day counters, diagrams, and family-tree data in PostgreSQL while encrypting user-created content in the browser before it reaches the server.
+Memory Vault is a private, admin-only personal archive built with SvelteKit. It stores encrypted personal records in PostgreSQL while encrypting user-created content in the browser before it reaches the server.
 
 ## Navigation
 
@@ -16,10 +16,12 @@ The Second Directory is a private, admin-only personal archive built with Svelte
 ## Features
 
 - Admin-only access with first-run account setup from `/login`
+- Separate account password and vault passphrase
 - Client-side encryption using the browser Web Crypto API
+- Encrypted diary entries, notes, lists, diagrams, and milestones
+- Account password changes without re-encrypting vault data
+- Vault passphrase rotation by re-encrypting only the data encryption key
 - PostgreSQL persistence through Drizzle ORM
-- Encrypted diary, lists, diagrams, day counters, and family-tree records
-- Password rotation by re-encrypting only the data encryption key
 
 ## Stack
 
@@ -58,7 +60,7 @@ Choose one path: local development or deployment to Coolify.
 3. Set `DATABASE_URL` in `.env`:
 
    ```env
-   DATABASE_URL=postgres://user:password@localhost:5432/theseconddirectory
+   DATABASE_URL=postgres://user:password@localhost:5432/memory_vault
    ```
 
 4. Run database migrations:
@@ -138,27 +140,30 @@ npm run db:migrate   # Run migrations with scripts/migrate.mjs
     |   `-- types.ts         # Shared application types
     `-- routes/
         |-- api/             # Auth and encrypted record endpoints
-        |-- day-counters/    # Day counter UI
+        |-- day-counters/    # Milestone UI
         |-- diagrams/        # Diagram and measurement UI
-        |-- diary/           # Unified diary UI
-        |-- family/          # Family tree UI
+        |-- diary/           # Diary UI
         |-- lists/           # Lists UI
-        |-- login/           # Setup and login UI
-        `-- settings/        # Password settings
+        |-- login/           # Setup and account login UI
+        |-- notes/           # Quick notes and encrypted note groups
+        `-- settings/        # Account and vault settings
 ```
 
 ## Database And Encryption
 
 The database stores users, sessions, and typed encrypted records. User-created content is encrypted in the browser with a data encryption key before it is sent to `/api/records`; the server stores ciphertext and IV values only.
 
-At account setup, the browser generates a random AES-256-GCM data encryption key. The user's password derives a key encryption key with PBKDF2 and SHA-256, and that key encrypts the data encryption key for storage. During login, the decrypted data encryption key is kept only in a memory-backed Svelte store and is cleared when the tab session ends.
+At setup, the browser generates a random AES-256-GCM data encryption key. The account password is sent to the server only for account authentication and is stored as a scrypt hash. The vault passphrase is never sent to the server; it derives a key encryption key with PBKDF2 and SHA-256, and that key encrypts the data encryption key for storage.
 
-Password changes re-encrypt the data encryption key with the new password-derived key. Existing encrypted records do not need to be rewritten.
+After account login, Memory Vault shows an unlock step when the in-memory data encryption key is missing. Unlocking happens in the browser with the vault passphrase. The decrypted data encryption key is kept only in a memory-backed Svelte store and is cleared when the tab session ends.
+
+Account password changes update only the server-side password hash. Vault passphrase changes re-encrypt only the data encryption key. Existing encrypted records do not need to be rewritten.
 
 See `ARCHITECTURE.md` for the detailed encryption model.
 
 ## Usage
 
-- Visit `/login` on a fresh database to create the first admin account.
-- Use `/diary`, `/lists`, `/diagrams`, `/day-counters`, and `/family` to manage encrypted records.
-- Use `/settings` to change the admin password.
+- Visit `/login` on a fresh database to create the first admin account and vault passphrase.
+- Sign in with the account password, then unlock the vault with the separate vault passphrase.
+- Use `/diary`, `/notes`, `/lists`, `/diagrams`, and `/day-counters` to manage encrypted records.
+- Use `/settings` to change either the account password or the vault passphrase.
