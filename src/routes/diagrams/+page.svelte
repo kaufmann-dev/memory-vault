@@ -254,10 +254,13 @@
     const labels: Array<{ label: string; field: DiagramField }> = [];
     for (const field of fields) {
       const label = field.label.trim();
-      if (labels.some((entry) => entry.label === label)) {
-        throw new Error(`Series labels must be unique before batch import. "${label}" is used more than once.`);
+      const aliases = field.unit.trim() ? [label, `${label} (${field.unit.trim()})`] : [label];
+      for (const alias of aliases) {
+        if (labels.some((entry) => entry.label === alias)) {
+          throw new Error(`Series labels must be unique before batch import. "${alias}" is used more than once.`);
+        }
+        labels.push({ label: alias, field });
       }
-      labels.push({ label, field });
     }
     return labels;
   }
@@ -708,11 +711,13 @@
         {#if measurementMode === 'batch' && !editingMeasurementId}
           <div class="space-y-3 rounded-lg border p-3 text-sm" style="border-color: var(--border); color: var(--muted)">
             <p>
-              Paste a tab-separated table. The first row must be the header row. Columns must be separated with tab characters,
-              not commas. The first column must be named
-              <code>{isNumberAxis(selected.payload) ? 'x' : 'date'}</code>. Every other column name must exactly match one of this
-              diagram's series labels. Number cells use a dot for decimals. Leave a value cell empty to skip that series for that row.
+              Paste a tab-separated table with one column per series. The first row must be the header row. Columns must be
+              separated with tab characters, not commas. The first column must be named
+              <code>{isNumberAxis(selected.payload) ? 'x' : 'date'}</code>. Every other column header must match a series name in this
+              diagram, for example one column each for sys, dia, and pul. Units are taken from the diagram's series setup, so value
+              cells contain numbers only. Leave a value cell empty to skip that series for that row.
             </p>
+            <p>If a series has a unit, the header may also use <code>Name (unit)</code>, but the simpler series name is preferred.</p>
             {#if isNumberAxis(selected.payload)}
               <p>The <code>x</code> column is required for every row and must be numeric.</p>
             {:else}
