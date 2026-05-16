@@ -14,7 +14,7 @@
   import type { EncryptedRecord, NoteGroupPayload, NotePayload } from '$lib/types';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Pencil, Plus, Search, Trash2, X } from '@lucide/svelte';
+  import { Pencil, Pin, Plus, Search, Trash2, X } from '@lucide/svelte';
 
   type NoteItem = {
     record: EncryptedRecord;
@@ -30,7 +30,14 @@
 
   const groupColors = ['#2563eb', '#0f766e', '#7c3aed', '#be123c', '#64748b', '#a16207'];
   const nowIso = () => new Date().toISOString();
-  const emptyNote = (): NotePayload => ({ text: '', groupIds: [], createdAt: nowIso(), updatedAt: nowIso() });
+  const emptyNote = (): NotePayload => ({
+    title: '',
+    text: '',
+    groupIds: [],
+    pinned: false,
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  });
   const emptyGroup = (): NoteGroupPayload => ({ name: '', description: '', color: groupColors[0] });
 
   let dek: CryptoKey | null = null;
@@ -63,9 +70,10 @@
         const groupText = item.payload.groupIds
           .map((groupId) => groupById.get(groupId)?.payload.name ?? '')
           .join(' ');
-        return `${item.payload.text} ${groupText}`.toLowerCase().includes(normalizedQuery);
+        return `${item.payload.title ?? ''} ${item.payload.text} ${groupText}`.toLowerCase().includes(normalizedQuery);
       })
       .sort((a, b) => {
+        if (a.payload.pinned !== b.payload.pinned) return a.payload.pinned ? -1 : 1;
         const direction = sortOrder === 'newest' ? -1 : 1;
         return a.payload.updatedAt.localeCompare(b.payload.updatedAt) * direction;
       });
@@ -87,6 +95,17 @@
     return notes.filter((note) => note.payload.groupIds.includes(groupId)).length;
   }
 
+  function normalizeNotePayload(payload: NotePayload): NotePayload {
+    return {
+      title: payload.title ?? '',
+      text: payload.text,
+      groupIds: payload.groupIds ?? [],
+      pinned: payload.pinned ?? false,
+      createdAt: payload.createdAt,
+      updatedAt: payload.updatedAt
+    };
+  }
+
   function clearFilters() {
     query = '';
     activeGroupId = 'all';
@@ -99,12 +118,12 @@
     noteFormOpen = true;
   }
 
-  function openEditNote(item: NoteItem) {
+  function openNote(item: NoteItem) {
     editingNoteId = item.record.id;
-    noteForm = {
+    noteForm = normalizeNotePayload({
       ...item.payload,
       groupIds: [...item.payload.groupIds]
-    };
+    });
     noteFormOpen = true;
   }
 
@@ -151,7 +170,10 @@
     groups = (await decryptRecords<NoteGroupPayload>(groupRecords, dek)).sort((a, b) =>
       a.payload.name.localeCompare(b.payload.name)
     );
-    notes = await decryptRecords<NotePayload>(noteRecords, dek);
+    notes = (await decryptRecords<NotePayload>(noteRecords, dek)).map((item) => ({
+      ...item,
+      payload: normalizeNotePayload(item.payload)
+    }));
     loading = false;
   }
 
@@ -161,8 +183,10 @@
     try {
       const timestamp = nowIso();
       const payload: NotePayload = {
+        title: noteForm.title?.trim() ?? '',
         text: noteForm.text.trim(),
         groupIds: noteForm.groupIds.filter((groupId) => groupById.has(groupId)),
+        pinned: noteForm.pinned ?? false,
         createdAt: editingNoteId ? noteForm.createdAt : timestamp,
         updatedAt: timestamp
       };
@@ -180,10 +204,31 @@
     }
   }
 
-  async function removeNote(item: NoteItem) {
-    if (!confirm('Delete this note?')) return;
-    await deleteEncryptedRecord(item.record.id);
+  async function removeCurrentNote() {
+    if (!editingNoteId || !confirm('Delete this note?')) return;
+    await deleteEncryptedRecord(editingNoteId);
+    closeNoteForm();
     await loadNotes();
+  }
+
+  async function togglePinned(item: NoteItem) {
+    if (!dek || saving) return;
+    saving = true;
+    try {
+      await updateEncryptedRecord(
+        item.record.id,
+        'note',
+        {
+          ...normalizeNotePayload(item.payload),
+          pinned: !item.payload.pinned,
+          updatedAt: nowIso()
+        },
+        dek
+      );
+      await loadNotes();
+    } finally {
+      saving = false;
+    }
   }
 
   async function saveGroup() {
@@ -210,7 +255,8 @@
   }
 
   async function removeGroup(item: GroupItem) {
-    if (!dek || !confirm('Delete this group? Notes in it will become ungrouped unless they have other groups.')) return;
+    const activeDek = dek;
+    if (!activeDek || !confirm('Delete this group? Notes in it will become ungrouped unless they have other groups.')) return;
     const changedNotes = notes.filter((note) => note.payload.groupIds.includes(item.record.id));
     await Promise.all(
       changedNotes.map((note) =>
@@ -222,7 +268,7 @@
             groupIds: note.payload.groupIds.filter((groupId) => groupId !== item.record.id),
             updatedAt: nowIso()
           },
-          dek
+          activeDek
         )
       )
     );
@@ -326,28 +372,42 @@
       {:else}
         <div class="notes-list">
           {#each filteredNotes as item (item.record.id)}
-            <article class="note-card">
-              <div class="note-card__body">{item.payload.text}</div>
-              <div class="note-card__meta">
-                <time datetime={item.payload.updatedAt}>{formatDate(item.payload.updatedAt)}</time>
-                <div class="note-card__groups">
-                  {#each item.payload.groupIds as groupId (groupId)}
-                    {@const group = groupById.get(groupId)}
-                    {#if group}
-                      <span class="note-chip" style={`--chip-color: ${group.payload.color}`}>{group.payload.name}</span>
-                    {/if}
-                  {/each}
-                </div>
-              </div>
-              <div class="note-card__actions">
-                <button class="focus-ring vault-btn-secondary" type="button" onclick={() => openEditNote(item)}>
-                  <Pencil size={15} />
-                  Edit
-                </button>
-                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeNote(item)} aria-label="Delete note">
-                  <Trash2 size={15} />
-                </button>
-              </div>
+            <article class="note-card" class:note-card--pinned={item.payload.pinned}>
+              <button
+                class="focus-ring note-card__pin"
+                class:note-card__pin--active={item.payload.pinned}
+                type="button"
+                onclick={() => togglePinned(item)}
+                aria-label={item.payload.pinned ? 'Unpin note' : 'Pin note'}
+                aria-pressed={item.payload.pinned}
+                title={item.payload.pinned ? 'Unpin note' : 'Pin note'}
+              >
+                <Pin size={15} />
+              </button>
+              <button
+                class="focus-ring note-card__open"
+                type="button"
+                onclick={() => openNote(item)}
+                aria-label={item.payload.title ? `Open note: ${item.payload.title}` : 'Open note'}
+              >
+                <span class="note-card__content">
+                  {#if item.payload.title}
+                    <span class="note-card__title">{item.payload.title}</span>
+                  {/if}
+                  <span class="note-card__body">{item.payload.text}</span>
+                </span>
+                <span class="note-card__meta">
+                  <time datetime={item.payload.updatedAt}>{formatDate(item.payload.updatedAt)}</time>
+                  <span class="note-card__groups">
+                    {#each item.payload.groupIds as groupId (groupId)}
+                      {@const group = groupById.get(groupId)}
+                      {#if group}
+                        <span class="note-chip" style={`--chip-color: ${group.payload.color}`}>{group.payload.name}</span>
+                      {/if}
+                    {/each}
+                  </span>
+                </span>
+              </button>
             </article>
           {/each}
         </div>
@@ -357,8 +417,8 @@
 
   <EntryModal
     open={noteFormOpen}
-    title={editingNoteId ? 'Edit note' : 'New note'}
-    description="Keep it short. Notes are encrypted before they leave this browser."
+    title={editingNoteId ? 'Note details' : 'New note'}
+    description={editingNoteId ? 'View, update, pin, or delete this encrypted note.' : 'Notes are encrypted before they leave this browser.'}
     onClose={closeNoteForm}
   >
     <form
@@ -369,8 +429,18 @@
       }}
     >
       <label class="block text-sm font-medium">
+        Title <span style="color: var(--muted); font-weight: 500">(optional)</span>
+        <input class="focus-ring vault-input mt-1.5" bind:value={noteForm.title} maxlength="120" />
+      </label>
+
+      <label class="block text-sm font-medium">
         Note
         <textarea class="focus-ring vault-input mt-1.5 min-h-36" bind:value={noteForm.text} maxlength="1200" required></textarea>
+      </label>
+
+      <label class="note-pin-toggle">
+        <input type="checkbox" bind:checked={noteForm.pinned} />
+        <span><Pin size={15} /> Pinned</span>
       </label>
 
       <div>
@@ -393,11 +463,19 @@
         {/if}
       </div>
 
-      <div class="flex items-center justify-between gap-3">
+      <div class="note-form-footer">
         <span class="text-sm" style="color: var(--muted)">{noteForm.text.length}/1200</span>
-        <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
-          {saving ? 'Saving...' : 'Save'}
-        </button>
+        <div class="note-form-actions">
+          {#if editingNoteId}
+            <button class="focus-ring vault-btn-danger" type="button" onclick={removeCurrentNote} disabled={saving}>
+              <Trash2 size={15} />
+              Delete
+            </button>
+          {/if}
+          <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
+            {saving ? 'Saving...' : editingNoteId ? 'Save changes' : 'Create'}
+          </button>
+        </div>
       </div>
     </form>
   </EntryModal>
@@ -575,27 +653,68 @@
   }
 
   .note-card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.75rem 1rem;
-    align-items: start;
+    position: relative;
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 1rem;
     background: var(--background);
   }
 
+  .note-card--pinned {
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+    background: var(--accent-light);
+  }
+
+  .note-card__open {
+    display: grid;
+    gap: 0.85rem;
+    width: 100%;
+    min-height: 10rem;
+    border: 0;
+    border-radius: 8px;
+    padding: 1rem;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+  }
+
+  .note-card__open:hover {
+    background: color-mix(in srgb, var(--accent-light) 72%, transparent);
+  }
+
+  .note-card__content {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  .note-card__title {
+    display: block;
+    max-width: calc(100% - 2rem);
+    overflow: hidden;
+    color: var(--foreground);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .note-card__body {
-    white-space: pre-wrap;
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
     color: var(--foreground);
     font-size: 0.9375rem;
     line-height: 1.55;
     overflow-wrap: anywhere;
+    white-space: pre-wrap;
   }
 
   .note-card__meta {
     display: flex;
-    grid-column: 1 / 2;
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
@@ -610,18 +729,35 @@
     gap: 0.35rem;
   }
 
-  .note-card__actions {
-    display: flex;
-    grid-column: 2 / 3;
-    grid-row: 1 / 3;
-    gap: 0.4rem;
-    opacity: 0.72;
-    transition: opacity 0.15s ease;
+  .note-card__pin {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    z-index: 2;
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    background: var(--background);
+    opacity: 0.88;
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease,
+      opacity 0.15s ease;
   }
 
-  .note-card:hover .note-card__actions,
-  .note-card:focus-within .note-card__actions {
+  .note-card__pin:hover,
+  .note-card__pin--active {
+    border-color: var(--accent);
+    color: var(--accent);
     opacity: 1;
+  }
+
+  .note-card__pin--active :global(svg) {
+    fill: currentColor;
   }
 
   .note-chip,
@@ -649,6 +785,42 @@
     align-items: center;
   }
 
+  .note-pin-toggle {
+    display: inline-flex;
+    gap: 0.45rem;
+    align-items: center;
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .note-pin-toggle span {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+  }
+
+  .note-form-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .note-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
+  @media (min-width: 1100px) {
+    .notes-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   @media (max-width: 760px) {
     .notes-layout {
       grid-template-columns: 1fr;
@@ -663,18 +835,14 @@
       grid-template-columns: 1fr;
     }
 
-    .note-card {
-      grid-template-columns: 1fr;
+    .note-form-footer,
+    .note-form-actions {
+      align-items: stretch;
+      flex-direction: column;
     }
 
-    .note-card__actions,
-    .note-card__meta {
-      grid-column: auto;
-      grid-row: auto;
-    }
-
-    .note-card__actions {
-      opacity: 1;
+    .note-form-actions :global(button) {
+      justify-content: center;
     }
   }
 </style>
