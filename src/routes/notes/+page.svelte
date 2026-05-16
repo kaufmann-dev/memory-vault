@@ -649,6 +649,7 @@
   .notes-list {
     display: grid;
     gap: 0.65rem;
+    align-items: start;
     margin-top: 1rem;
   }
 
@@ -668,7 +669,6 @@
     display: grid;
     gap: 0.85rem;
     width: 100%;
-    min-height: 10rem;
     border: 0;
     border-radius: 8px;
     padding: 1rem;
