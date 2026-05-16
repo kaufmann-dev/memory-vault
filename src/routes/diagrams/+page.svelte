@@ -7,115 +7,203 @@
     createEncryptedRecord,
     decryptRecords,
     deleteEncryptedRecord,
-    fetchEncryptedRecords
+    fetchEncryptedRecords,
+    randomId,
+    updateEncryptedRecord
   } from '$lib/client/records';
   import { sessionDEK } from '$lib/stores/cryptoKey';
-  import type { BloodPayload, EncryptedRecord, HormonePayload, WeightPayload } from '$lib/types';
+  import type { DiagramField, DiagramMeasurement, DiagramPayload, EncryptedRecord } from '$lib/types';
   import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Trash2 } from '@lucide/svelte';
+  import { Pencil, Plus, Trash2, X } from '@lucide/svelte';
 
-  type MetricItem<T> = {
+  type DiagramItem = {
     record: EncryptedRecord;
-    payload: T;
+    payload: DiagramPayload;
   };
 
+  type MeasurementForm = {
+    date: string;
+    values: Record<string, number | null>;
+  };
+
+  const colors = ['#2563eb', '#0f172a', '#64748b', '#94a3b8', '#dc2626'];
   const todayDateTime = () => new Date().toISOString().slice(0, 16);
-  const todayDate = () => new Date().toISOString().slice(0, 10);
+  const emptyField = (): DiagramField => ({ id: randomId(), label: '', unit: '', color: colors[0] });
+  const emptyDiagram = (): DiagramPayload => ({
+    title: '',
+    description: '',
+    fields: [{ ...emptyField(), label: 'Value' }],
+    measurements: []
+  });
+  const emptyMeasurement = (fields: DiagramField[] = []): MeasurementForm => ({
+    date: todayDateTime(),
+    values: Object.fromEntries(fields.map((field) => [field.id, null]))
+  });
 
   let dek: CryptoKey | null = null;
-  let locked = false;
-  let loading = true;
+  let locked = $state(false);
+  let loading = $state(true);
+  let diagrams: DiagramItem[] = $state([]);
+  let selectedId: string | null = $state(null);
+  let editingId: string | null = $state(null);
+  let diagramForm = $state(emptyDiagram());
+  let measurementForm = $state(emptyMeasurement());
 
-  let weights: MetricItem<WeightPayload>[] = [];
-  let blood: MetricItem<BloodPayload>[] = [];
-  let hormones: MetricItem<HormonePayload>[] = [];
+  let selected = $derived(diagrams.find((diagram) => diagram.record.id === selectedId) ?? diagrams[0] ?? null);
 
-  let weightForm: WeightPayload = { date: todayDateTime(), weight: 0 };
-  let bloodForm: BloodPayload = { date: todayDateTime(), sys: 0, dia: 0, pul: 0 };
-  let hormoneForm: HormonePayload = {
-    date: todayDate(),
-    lh: null,
-    fsh: null,
-    e2: null,
-    prog: null,
-    prl: null,
-    t: null,
-    bat: null,
-    shbg: null,
-    tsh: null
-  };
-  const hormoneKeys: Array<Exclude<keyof HormonePayload, 'date'>> = [
-    'lh',
-    'fsh',
-    'e2',
-    'prog',
-    'prl',
-    't',
-    'bat',
-    'shbg',
-    'tsh'
-  ];
+  function sortedMeasurements(measurements: DiagramMeasurement[]) {
+    return [...measurements].sort((a, b) => a.date.localeCompare(b.date));
+  }
 
-  const sortByDate = <T extends { date: string }>(items: MetricItem<T>[]) =>
-    [...items].sort((a, b) => a.payload.date.localeCompare(b.payload.date));
+  function resetMeasurement(payload: DiagramPayload | null = selected?.payload ?? null) {
+    measurementForm = emptyMeasurement(payload?.fields ?? []);
+  }
 
-  async function loadMetrics() {
+  function selectDiagram(item: DiagramItem) {
+    selectedId = item.record.id;
+    resetMeasurement(item.payload);
+  }
+
+  function startEdit(item: DiagramItem) {
+    editingId = item.record.id;
+    diagramForm = {
+      ...item.payload,
+      fields: item.payload.fields.map((field) => ({ ...field })),
+      measurements: item.payload.measurements.map((measurement) => ({
+        ...measurement,
+        values: { ...measurement.values }
+      }))
+    };
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    diagramForm = emptyDiagram();
+  }
+
+  function addFormField() {
+    diagramForm.fields = [
+      ...diagramForm.fields,
+      { ...emptyField(), color: colors[diagramForm.fields.length % colors.length] }
+    ];
+  }
+
+  function removeFormField(fieldId: string) {
+    if (diagramForm.fields.length === 1) return;
+    diagramForm.fields = diagramForm.fields.filter((field) => field.id !== fieldId);
+    diagramForm.measurements = diagramForm.measurements.map((measurement) => {
+      const { [fieldId]: _removed, ...values } = measurement.values;
+      return { ...measurement, values };
+    });
+  }
+
+  async function loadDiagrams() {
     if (!dek) return;
     loading = true;
-    const [weightRecords, bloodRecords, hormoneRecords] = await Promise.all([
-      fetchEncryptedRecords('metric_weight'),
-      fetchEncryptedRecords('metric_blood'),
-      fetchEncryptedRecords('metric_hormone')
-    ]);
-
-    weights = sortByDate(await decryptRecords<WeightPayload>(weightRecords, dek));
-    blood = sortByDate(await decryptRecords<BloodPayload>(bloodRecords, dek));
-    hormones = sortByDate(await decryptRecords<HormonePayload>(hormoneRecords, dek));
+    const records = await fetchEncryptedRecords('diagram');
+    diagrams = await decryptRecords<DiagramPayload>(records, dek);
+    if (!selectedId && diagrams[0]) {
+      selectedId = diagrams[0].record.id;
+      resetMeasurement(diagrams[0].payload);
+    }
     loading = false;
   }
 
-  async function saveWeight() {
-    if (!dek || weightForm.weight <= 0) return;
-    await createEncryptedRecord('metric_weight', weightForm, dek);
-    weightForm = { date: todayDateTime(), weight: 0 };
-    await loadMetrics();
-  }
+  async function saveDiagram() {
+    if (!dek || !diagramForm.title.trim()) return;
 
-  async function saveBlood() {
-    if (!dek || bloodForm.sys <= 0 || bloodForm.dia <= 0 || bloodForm.pul <= 0) return;
-    await createEncryptedRecord('metric_blood', bloodForm, dek);
-    bloodForm = { date: todayDateTime(), sys: 0, dia: 0, pul: 0 };
-    await loadMetrics();
-  }
+    const fields = diagramForm.fields
+      .map((field, index) => ({
+        ...field,
+        label: field.label.trim(),
+        unit: field.unit.trim(),
+        color: field.color || colors[index % colors.length]
+      }))
+      .filter((field) => field.label);
+    if (fields.length === 0) return;
 
-  async function saveHormone() {
-    if (!dek) return;
-    await createEncryptedRecord('metric_hormone', hormoneForm, dek);
-    hormoneForm = {
-      date: todayDate(),
-      lh: null,
-      fsh: null,
-      e2: null,
-      prog: null,
-      prl: null,
-      t: null,
-      bat: null,
-      shbg: null,
-      tsh: null
+    const payload: DiagramPayload = {
+      ...diagramForm,
+      title: diagramForm.title.trim(),
+      description: diagramForm.description.trim(),
+      fields
     };
-    await loadMetrics();
+
+    if (editingId) {
+      await updateEncryptedRecord(editingId, 'diagram', payload, dek);
+      selectedId = editingId;
+    } else {
+      const record = await createEncryptedRecord('diagram', payload, dek);
+      selectedId = record.id;
+    }
+
+    cancelEdit();
+    await loadDiagrams();
   }
 
-  async function removeMetric(id: string) {
-    if (!confirm('Delete this measurement?')) return;
-    await deleteEncryptedRecord(id);
-    await loadMetrics();
+  async function removeDiagram(item: DiagramItem) {
+    if (!confirm('Delete this diagram?')) return;
+    await deleteEncryptedRecord(item.record.id);
+    selectedId = null;
+    cancelEdit();
+    await loadDiagrams();
   }
 
-  const points = <T extends { date: string }>(items: MetricItem<T>[], key: keyof T) =>
-    items.map((item) => ({ x: item.payload.date, y: Number(item.payload[key]) || null }));
+  async function addMeasurement(item: DiagramItem) {
+    if (!dek) return;
+    const values = Object.fromEntries(
+      item.payload.fields.map((field) => {
+        const value = measurementForm.values[field.id];
+        return [field.id, value === undefined || value === null || Number.isNaN(value) ? null : value];
+      })
+    );
+    if (!Object.values(values).some((value) => value !== null)) return;
+
+    await updateEncryptedRecord(
+      item.record.id,
+      'diagram',
+      {
+        ...item.payload,
+        measurements: [...item.payload.measurements, { id: randomId(), date: measurementForm.date, values }]
+      },
+      dek
+    );
+    resetMeasurement(item.payload);
+    await loadDiagrams();
+  }
+
+  async function removeMeasurement(item: DiagramItem, measurementId: string) {
+    if (!dek) return;
+    await updateEncryptedRecord(
+      item.record.id,
+      'diagram',
+      {
+        ...item.payload,
+        measurements: item.payload.measurements.filter((measurement) => measurement.id !== measurementId)
+      },
+      dek
+    );
+    await loadDiagrams();
+  }
+
+  function points(item: DiagramItem, field: DiagramField) {
+    return sortedMeasurements(item.payload.measurements).map((measurement) => ({
+      x: measurement.date,
+      y: measurement.values[field.id] ?? null
+    }));
+  }
+
+  function measurementValue(payload: DiagramPayload, measurement: DiagramMeasurement) {
+    return payload.fields
+      .map((field) => {
+        const value = measurement.values[field.id];
+        return value === null || value === undefined ? '' : `${field.label}: ${value}${field.unit ? ` ${field.unit}` : ''}`;
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
 
   onMount(async () => {
     dek = get(sessionDEK);
@@ -125,131 +213,187 @@
       await goto('/login');
       return;
     }
-    await loadMetrics();
+    await loadDiagrams();
   });
 </script>
 
-<PageHeader title="Diagrams" description="Encrypted measurements, decrypted in the browser and rendered locally." />
+<PageHeader title="Diagrams" description="Encrypted custom measurements, decrypted in the browser and rendered locally." />
 
 {#if locked}
   <VaultNotice />
-{:else if loading}
-  <p class="text-sm" style="color: var(--muted)">Decrypting metrics...</p>
 {:else}
-  <div class="space-y-6">
-    <section class="vault-card p-5">
-      <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 class="text-lg font-semibold" style="color: var(--foreground)">Weight</h2>
-          <p class="mt-1 text-sm" style="color: var(--muted)">Body weight over time.</p>
+  <div class="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+    <aside class="space-y-4">
+      <form
+        class="vault-card p-5"
+        onsubmit={(event) => {
+          event.preventDefault();
+          saveDiagram();
+        }}
+      >
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h2 class="text-base font-semibold" style="color: var(--foreground)">
+            {editingId ? 'Edit diagram' : 'Create diagram'}
+          </h2>
+          {#if editingId}
+            <button class="focus-ring vault-btn-ghost" type="button" onclick={cancelEdit} aria-label="Cancel edit">
+              <X size={15} />
+            </button>
+          {/if}
         </div>
-        <form class="flex flex-col gap-2 sm:flex-row" on:submit|preventDefault={saveWeight}>
-          <input class="focus-ring vault-input text-sm" type="datetime-local" bind:value={weightForm.date} required />
-          <input class="focus-ring vault-input text-sm" type="number" step="0.01" min="0" bind:value={weightForm.weight} placeholder="kg" required />
-          <button class="focus-ring vault-btn-primary shrink-0" type="submit">Add</button>
-        </form>
-      </div>
-      <SimpleLineChart series={[{ label: 'Weight', points: points(weights, 'weight'), color: 'var(--accent)' }]} />
-      {#if weights.length === 0}
-        <div class="mt-4"><EmptyState title="No weight data" description="Add a measurement to start this chart." /></div>
-      {/if}
-    </section>
 
-    <section class="vault-card p-5">
-      <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 class="text-lg font-semibold" style="color: var(--foreground)">Blood</h2>
-          <p class="mt-1 text-sm" style="color: var(--muted)">Blood pressure and pulse.</p>
+        <label class="block text-sm font-medium">
+          Title
+          <input class="focus-ring vault-input mt-1.5" bind:value={diagramForm.title} required />
+        </label>
+        <label class="mt-3 block text-sm font-medium">
+          Description
+          <textarea class="focus-ring vault-input mt-1.5" bind:value={diagramForm.description}></textarea>
+        </label>
+
+        <div class="mt-4 space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="text-sm font-semibold" style="color: var(--foreground)">Series</h3>
+            <button class="focus-ring vault-btn-ghost" type="button" onclick={addFormField} aria-label="Add series">
+              <Plus size={15} />
+            </button>
+          </div>
+
+          {#each diagramForm.fields as field (field.id)}
+            <div class="grid grid-cols-[2.25rem_minmax(0,1fr)_4.5rem_2.25rem] gap-2">
+              <input class="focus-ring h-9 w-9 rounded-lg border-0 p-1" type="color" bind:value={field.color} aria-label="Series color" />
+              <input class="focus-ring vault-input min-w-0" bind:value={field.label} placeholder="Name" required />
+              <input class="focus-ring vault-input min-w-0" bind:value={field.unit} placeholder="Unit" />
+              <button
+                class="focus-ring vault-btn-ghost"
+                type="button"
+                onclick={() => removeFormField(field.id)}
+                aria-label="Remove series"
+                disabled={diagramForm.fields.length === 1}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          {/each}
         </div>
-        <form class="grid gap-2 sm:grid-cols-5" on:submit|preventDefault={saveBlood}>
-          <input class="focus-ring vault-input text-sm sm:col-span-2" type="datetime-local" bind:value={bloodForm.date} required />
-          <input class="focus-ring vault-input text-sm" type="number" min="0" bind:value={bloodForm.sys} placeholder="SYS" required />
-          <input class="focus-ring vault-input text-sm" type="number" min="0" bind:value={bloodForm.dia} placeholder="DIA" required />
-          <input class="focus-ring vault-input text-sm" type="number" min="0" bind:value={bloodForm.pul} placeholder="PUL" required />
-          <button class="focus-ring vault-btn-primary sm:col-span-5" type="submit">Add</button>
-        </form>
-      </div>
-      <SimpleLineChart
-        series={[
-          { label: 'SYS', points: points(blood, 'sys'), color: 'var(--accent)' },
-          { label: 'DIA', points: points(blood, 'dia'), color: 'var(--foreground)' },
-          { label: 'PUL', points: points(blood, 'pul'), color: 'var(--muted)' }
-        ]}
-      />
-    </section>
 
-    <section class="vault-card p-5">
-      <div class="mb-4">
-        <h2 class="text-lg font-semibold" style="color: var(--foreground)">Hormones</h2>
-        <p class="mt-1 text-sm" style="color: var(--muted)">Lab values with optional fields.</p>
-      </div>
-      <form class="mb-4 grid gap-2 sm:grid-cols-5" on:submit|preventDefault={saveHormone}>
-        <input class="focus-ring vault-input text-sm" type="date" bind:value={hormoneForm.date} required />
-        {#each hormoneKeys as key}
-          <input
-            class="focus-ring vault-input text-sm"
-            type="number"
-            step="0.001"
-            min="0"
-            bind:value={hormoneForm[key]}
-            placeholder={key.toUpperCase()}
-          />
-        {/each}
-        <button class="focus-ring vault-btn-primary sm:col-span-5" type="submit">Add</button>
+        <button class="focus-ring vault-btn-primary mt-4" type="submit">
+          {editingId ? 'Save' : 'Create'}
+        </button>
       </form>
-      <SimpleLineChart
-        series={[
-          { label: 'LH', points: points(hormones, 'lh'), color: 'var(--accent)' },
-          { label: 'FSH', points: points(hormones, 'fsh'), color: 'var(--foreground)' },
-          { label: 'E2', points: points(hormones, 'e2'), color: 'var(--muted)' },
-          { label: 'T', points: points(hormones, 't'), color: 'var(--border-strong)' },
-          { label: 'TSH', points: points(hormones, 'tsh'), color: '#A3A3A3' }
-        ]}
-      />
-    </section>
+
+      {#if diagrams.length}
+        <nav class="space-y-2">
+          {#each diagrams as item (item.record.id)}
+            <button
+              class="focus-ring w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all"
+              class:vault-card={selected?.record.id === item.record.id}
+              style={selected?.record.id === item.record.id
+                ? 'color: var(--accent); background: var(--accent-light); border: 1px solid rgba(37,99,235,0.15)'
+                : 'color: var(--foreground); background: transparent; border: 1px solid transparent'}
+              type="button"
+              onclick={() => selectDiagram(item)}
+            >
+              {item.payload.title}
+            </button>
+          {/each}
+        </nav>
+      {/if}
+    </aside>
 
     <section>
-      <h2 class="mb-3 text-lg font-semibold" style="color: var(--foreground)">Recent measurements</h2>
-      {#if weights.length + blood.length + hormones.length === 0}
-        <EmptyState title="No measurements yet" description="Add measurements above to populate this area." />
+      {#if loading}
+        <p class="text-sm" style="color: var(--muted)">Decrypting diagrams...</p>
+      {:else if !selected}
+        <EmptyState title="No diagrams yet" description="Create a diagram to start tracking measurements." />
       {:else}
-        <div class="overflow-hidden vault-card">
-          <table class="w-full text-left text-sm">
-            <thead>
-              <tr style="background: var(--surface)">
-                <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Type</th>
-                <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Date</th>
-                <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Value</th>
-                <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)"></th>
-              </tr>
-            </thead>
-            <tbody class="divide-y" style="border-color: var(--border)">
-              {#each weights as item}
-                <tr class="transition-colors hover:bg-neutral-50/50">
-                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Weight</td>
-                  <td class="px-4 py-3 text-sm" style="color: var(--muted)">{item.payload.date}</td>
-                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">{item.payload.weight} kg</td>
-                  <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
-                </tr>
+        <div class="space-y-6">
+          <section class="vault-card p-5">
+            <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 class="text-lg font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
+                {#if selected.payload.description}
+                  <p class="mt-1 text-sm" style="color: var(--muted)">{selected.payload.description}</p>
+                {/if}
+              </div>
+              <div class="flex gap-2">
+                <button class="focus-ring vault-btn-secondary" type="button" onclick={() => startEdit(selected)}>
+                  <Pencil size={15} />
+                  Edit
+                </button>
+                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeDiagram(selected)}>
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </div>
+
+            <form
+              class="mb-4 grid gap-2 sm:grid-cols-4"
+              onsubmit={(event) => {
+                event.preventDefault();
+                addMeasurement(selected);
+              }}
+            >
+              <input class="focus-ring vault-input text-sm" type="datetime-local" bind:value={measurementForm.date} required />
+              {#each selected.payload.fields as field (field.id)}
+                <input
+                  class="focus-ring vault-input text-sm"
+                  type="number"
+                  step="0.001"
+                  bind:value={measurementForm.values[field.id]}
+                  placeholder={field.unit ? `${field.label} (${field.unit})` : field.label}
+                />
               {/each}
-              {#each blood as item}
-                <tr class="transition-colors hover:bg-neutral-50/50">
-                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Blood</td>
-                  <td class="px-4 py-3 text-sm" style="color: var(--muted)">{item.payload.date}</td>
-                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">{item.payload.sys}/{item.payload.dia}, {item.payload.pul}</td>
-                  <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
-                </tr>
-              {/each}
-              {#each hormones as item}
-                <tr class="transition-colors hover:bg-neutral-50/50">
-                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Hormones</td>
-                  <td class="px-4 py-3 text-sm" style="color: var(--muted)">{item.payload.date}</td>
-                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Lab record</td>
-                  <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
+              <button class="focus-ring vault-btn-primary sm:col-span-4" type="submit">Add measurement</button>
+            </form>
+
+            <SimpleLineChart
+              series={selected.payload.fields.map((field) => ({
+                label: field.unit ? `${field.label} (${field.unit})` : field.label,
+                points: points(selected, field),
+                color: field.color
+              }))}
+            />
+          </section>
+
+          <section>
+            <h2 class="mb-3 text-lg font-semibold" style="color: var(--foreground)">Measurements</h2>
+            {#if selected.payload.measurements.length === 0}
+              <EmptyState title="No measurements yet" description="Add a measurement above to populate this chart." />
+            {:else}
+              <div class="overflow-hidden vault-card">
+                <table class="w-full text-left text-sm">
+                  <thead>
+                    <tr style="background: var(--surface)">
+                      <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Date</th>
+                      <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Value</th>
+                      <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)"></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y" style="border-color: var(--border)">
+                    {#each sortedMeasurements(selected.payload.measurements) as measurement (measurement.id)}
+                      <tr class="transition-colors hover:bg-neutral-50/50">
+                        <td class="px-4 py-3 text-sm" style="color: var(--muted)">{measurement.date}</td>
+                        <td class="px-4 py-3 font-medium" style="color: var(--foreground)">
+                          {measurementValue(selected.payload, measurement)}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                          <button
+                            class="focus-ring vault-btn-ghost"
+                            type="button"
+                            onclick={() => removeMeasurement(selected, measurement.id)}
+                            aria-label="Delete measurement"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              </div>
+            {/if}
+          </section>
         </div>
       {/if}
     </section>

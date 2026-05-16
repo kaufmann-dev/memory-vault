@@ -20,6 +20,7 @@ export type EncryptedRecord = {
 export type RecordType =
   | 'diary'
   | 'list'
+  | 'diagram'
   | 'metric_weight'
   | 'metric_blood'
   | 'metric_hormone'
@@ -50,6 +51,26 @@ export type DayCounterPayload = {
   name: string;
   initiated: string;
   maxDays: number | null;
+};
+
+export type DiagramField = {
+  id: string;
+  label: string;
+  unit: string;
+  color: string;
+};
+
+export type DiagramMeasurement = {
+  id: string;
+  date: string;
+  values: Record<string, number | null>;
+};
+
+export type DiagramPayload = {
+  title: string;
+  description: string;
+  fields: DiagramField[];
+  measurements: DiagramMeasurement[];
 };
 
 export type WeightPayload = {
