@@ -116,7 +116,7 @@ Open `/settings` while logged in. Password changes re-encrypt the data encryptio
 
 ```bash
 npm run build
-node build
+npm start
 ```
 
 ## Project Structure
@@ -173,9 +173,11 @@ For Coolify:
 - Configure the app as a Node service.
 - Add a PostgreSQL service in the same Coolify project.
 - Set `DATABASE_URL` to the internal PostgreSQL connection URL.
-- Run `npm run db:migrate` before starting the app against a fresh database.
+- Run `npm run db:migrate` manually when needed, or let `npm start` run pending migrations before the server starts.
 - Use `npm run build` as the build command.
-- Use `node build` as the start command.
+- Use `npm start` as the start command.
+
+`npm run db:migrate` uses the production-safe Node migrator in `scripts/migrate.mjs`. The raw Drizzle Kit CLI remains available as `npm run db:migrate:kit` for local debugging.
 
 ## License
 

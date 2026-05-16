@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+--> statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS "users" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS "users" (
   "updated_at" timestamp DEFAULT now() NOT NULL,
   CONSTRAINT "users_email_unique" UNIQUE("email")
 );
+--> statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS "sessions" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -22,6 +24,7 @@ CREATE TABLE IF NOT EXISTS "sessions" (
   "created_at" timestamp DEFAULT now() NOT NULL,
   CONSTRAINT "sessions_token_hash_unique" UNIQUE("token_hash")
 );
+--> statement-breakpoint
 
 CREATE TABLE IF NOT EXISTS "encrypted_records" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -32,6 +35,8 @@ CREATE TABLE IF NOT EXISTS "encrypted_records" (
   "created_at" timestamp DEFAULT now() NOT NULL,
   "updated_at" timestamp DEFAULT now() NOT NULL
 );
+--> statement-breakpoint
 
 CREATE INDEX IF NOT EXISTS "encrypted_records_user_type_idx" ON "encrypted_records" ("user_id", "type");
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "sessions_user_idx" ON "sessions" ("user_id");
