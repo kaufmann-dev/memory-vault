@@ -1,13 +1,17 @@
 <script lang="ts">
+  import { loadRememberedDEK, saveRememberedDEK } from '$lib/client/rememberedDevice';
   import { sessionDEK, unlockVault } from '$lib/stores/cryptoKey';
   import type { SafeUser } from '$lib/types';
   import type { Snippet } from 'svelte';
+  import { onMount } from 'svelte';
   import { KeyRound, Shield } from '@lucide/svelte';
 
   let { user, children }: { user: SafeUser; children: Snippet } = $props();
 
   let vaultPassphrase = $state('');
+  let rememberThisDevice = $state(false);
   let loading = $state(false);
+  let restoring = $state(true);
   let message = $state('');
 
   async function unlock() {
@@ -19,7 +23,12 @@
 
     loading = true;
     try {
-      await unlockVault(vaultPassphrase, user.kekSalt, user.encryptedDEK, user.dekIV);
+      const dek = await unlockVault(vaultPassphrase, user.kekSalt, user.encryptedDEK, user.dekIV);
+      if (rememberThisDevice) {
+        await saveRememberedDEK(user.email, dek).catch(() => {
+          message = 'Vault unlocked, but this browser could not remember it.';
+        });
+      }
       vaultPassphrase = '';
     } catch {
       message = 'Vault passphrase could not unlock this vault.';
@@ -27,6 +36,21 @@
       loading = false;
     }
   }
+
+  onMount(() => {
+    (async () => {
+      try {
+        const rememberedDEK = await loadRememberedDEK(user.email);
+        if (rememberedDEK) {
+          sessionDEK.set(rememberedDEK);
+        }
+      } catch {
+        message = 'Remembered device unlock is unavailable. Enter the vault passphrase.';
+      } finally {
+        restoring = false;
+      }
+    })();
+  });
 </script>
 
 {#if $sessionDEK}
@@ -45,33 +69,45 @@
         </p>
       </div>
 
-      <form
-        class="vault-unlock__form"
-        onsubmit={(event) => {
-          event.preventDefault();
-          unlock();
-        }}
-      >
-        <label class="block text-sm font-medium">
-          Vault passphrase
-          <input
-            class="focus-ring vault-input mt-1.5"
-            type="password"
-            bind:value={vaultPassphrase}
-            autocomplete="current-password"
-            required
-          />
-        </label>
+      {#if restoring}
+        <p class="vault-unlock__copy">Checking this device...</p>
+      {:else}
+        <form
+          class="vault-unlock__form"
+          onsubmit={(event) => {
+            event.preventDefault();
+            unlock();
+          }}
+        >
+          <label class="block text-sm font-medium">
+            Vault passphrase
+            <input
+              class="focus-ring vault-input mt-1.5"
+              type="password"
+              bind:value={vaultPassphrase}
+              autocomplete="current-password"
+              required
+            />
+          </label>
 
-        {#if message}
-          <p class="vault-unlock__message">{message}</p>
-        {/if}
+          <label class="vault-unlock__remember">
+            <input type="checkbox" bind:checked={rememberThisDevice} />
+            <span>
+              <strong>Remember this device</strong>
+              <small>Unlock automatically after reloads on this browser.</small>
+            </span>
+          </label>
 
-        <button class="focus-ring vault-btn-primary w-full" type="submit" disabled={loading}>
-          <Shield size={16} />
-          {loading ? 'Unlocking...' : 'Unlock vault'}
-        </button>
-      </form>
+          {#if message}
+            <p class="vault-unlock__message">{message}</p>
+          {/if}
+
+          <button class="focus-ring vault-btn-primary w-full" type="submit" disabled={loading}>
+            <Shield size={16} />
+            {loading ? 'Unlocking...' : 'Unlock vault'}
+          </button>
+        </form>
+      {/if}
     </div>
   </section>
 {/if}
@@ -131,6 +167,34 @@
     display: grid;
     gap: 1rem;
     margin-top: 1.5rem;
+  }
+
+  .vault-unlock__remember {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.875rem;
+    color: var(--foreground);
+    background: var(--surface);
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .vault-unlock__remember input {
+    margin-top: 0.125rem;
+  }
+
+  .vault-unlock__remember span {
+    display: grid;
+    gap: 0.125rem;
+  }
+
+  .vault-unlock__remember small {
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
   }
 
   .vault-unlock__message {

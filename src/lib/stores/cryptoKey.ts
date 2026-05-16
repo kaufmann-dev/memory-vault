@@ -7,6 +7,7 @@ export async function unlockVault(password: string, kekSalt: string, encryptedDE
   const kek = await deriveKEK(password, kekSalt);
   const dek = await decryptDEK(kek, encryptedDEK, dekIV);
   sessionDEK.set(dek);
+  return dek;
 }
 
 export function lockVault() {

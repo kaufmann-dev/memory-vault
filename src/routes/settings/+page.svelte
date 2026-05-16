@@ -1,5 +1,10 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import {
+    forgetRememberedDEK,
+    hasRememberedDEK,
+    saveRememberedDEK
+  } from '$lib/client/rememberedDevice';
   import { decryptDEK, deriveKEK, encryptDEK } from '$lib/crypto';
   import { sessionDEK } from '$lib/stores/cryptoKey';
   import { invalidateAll } from '$app/navigation';
@@ -29,6 +34,10 @@
   let vaultMessage = $state('');
   let vaultSuccess = $state(false);
   let savingVault = $state(false);
+  let rememberedDevice = $state(false);
+  let savingRememberedDevice = $state(false);
+  let deviceMessage = $state('');
+  let deviceSuccess = $state(false);
 
   function randomBase64(bytes: number) {
     const values = crypto.getRandomValues(new Uint8Array(bytes));
@@ -129,7 +138,53 @@
 
   onMount(() => {
     dek = get(sessionDEK);
+    (async () => {
+      if (!data.user) return;
+      rememberedDevice = await hasRememberedDEK(data.user.email).catch(() => false);
+    })();
   });
+
+  async function rememberDevice() {
+    deviceMessage = '';
+    deviceSuccess = false;
+
+    const activeDEK = dek ?? get(sessionDEK);
+    if (!data.user || !activeDEK) {
+      deviceMessage = 'Unlock the vault before remembering this device.';
+      return;
+    }
+
+    savingRememberedDevice = true;
+    try {
+      await saveRememberedDEK(data.user.email, activeDEK);
+      dek = activeDEK;
+      rememberedDevice = true;
+      deviceSuccess = true;
+      deviceMessage = 'This device will unlock after reloads.';
+    } catch {
+      deviceMessage = 'This browser could not remember the vault key.';
+    } finally {
+      savingRememberedDevice = false;
+    }
+  }
+
+  async function forgetDevice() {
+    deviceMessage = '';
+    deviceSuccess = false;
+    if (!data.user) return;
+
+    savingRememberedDevice = true;
+    try {
+      await forgetRememberedDEK(data.user.email);
+      rememberedDevice = false;
+      deviceSuccess = true;
+      deviceMessage = 'This device has been forgotten.';
+    } catch {
+      deviceMessage = 'This browser could not forget the vault key.';
+    } finally {
+      savingRememberedDevice = false;
+    }
+  }
 </script>
 
 <PageHeader title="Settings" description="Account security and vault controls." />
@@ -213,6 +268,37 @@
         {savingVault ? 'Saving...' : 'Save vault passphrase'}
       </button>
     </form>
+  </section>
+
+  <section class="vault-card p-6">
+    <div class="settings-card__header">
+      <div class="settings-card__icon">
+        <Shield size={18} />
+      </div>
+      <div>
+        <h2>Remembered device</h2>
+        <p>Store a browser-local vault key so reloads unlock automatically on this device.</p>
+      </div>
+    </div>
+
+    <div class="mt-6 space-y-4">
+      <p class="text-sm font-medium" style="color: var(--foreground)">
+        Status: {rememberedDevice ? 'Enabled' : 'Disabled'}
+      </p>
+      {#if deviceMessage}
+        <p class="text-sm font-medium" style="color: {deviceSuccess ? 'var(--success)' : 'var(--danger)'}">{deviceMessage}</p>
+      {/if}
+      {#if rememberedDevice}
+        <button class="focus-ring vault-btn-secondary" type="button" disabled={savingRememberedDevice} onclick={forgetDevice}>
+          {savingRememberedDevice ? 'Working...' : 'Forget this device'}
+        </button>
+      {:else}
+        <button class="focus-ring vault-btn-primary" type="button" disabled={savingRememberedDevice} onclick={rememberDevice}>
+          <Save size={16} />
+          {savingRememberedDevice ? 'Working...' : 'Remember this device'}
+        </button>
+      {/if}
+    </div>
   </section>
 </div>
 
