@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --background: #FAFAFA;
+  --foreground: #111111;
+  --accent: #2F6FEB;
+  --muted: #6B6B6B;
+  --border: #E5E5E5;
+  --surface: #FFFFFF;
+  --success: #17A34A;
+  --warn: #EAB308;
+  --danger: #DC2626;
+}
+
+html {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--background);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
