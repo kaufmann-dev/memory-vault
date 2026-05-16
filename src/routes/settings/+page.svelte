@@ -7,6 +7,7 @@
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
+  import { Save } from '@lucide/svelte';
 
   let { data }: PageProps = $props();
 
@@ -82,13 +83,13 @@
 {#if locked}
   <VaultNotice />
 {:else}
-  <section class="max-w-xl rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)">
-    <h2 class="text-base font-semibold">Change password</h2>
-    <p class="mt-2 text-sm leading-6" style="color: var(--muted)">
+  <section class="max-w-xl vault-card p-6">
+    <h2 class="text-base font-semibold" style="color: var(--foreground)">Change password</h2>
+    <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">
       This re-encrypts the data key in the browser. Existing encrypted records do not need to be rewritten.
     </p>
     <form
-      class="mt-5 space-y-4"
+      class="mt-6 space-y-4"
       onsubmit={(event) => {
         event.preventDefault();
         changePassword();
@@ -96,20 +97,21 @@
     >
       <label class="block text-sm font-medium">
         Current password
-        <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" type="password" bind:value={currentPassword} required />
+        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={currentPassword} required />
       </label>
       <label class="block text-sm font-medium">
         New password
-        <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" type="password" bind:value={newPassword} required />
+        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={newPassword} required />
       </label>
       <label class="block text-sm font-medium">
         Confirm new password
-        <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" type="password" bind:value={confirmPassword} required />
+        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={confirmPassword} required />
       </label>
       {#if message}
-        <p class="text-sm" style="color: {message === 'Password changed.' ? 'var(--success)' : 'var(--danger)'}">{message}</p>
+        <p class="text-sm font-medium" style="color: {message === 'Password changed.' ? 'var(--success)' : 'var(--danger)'}">{message}</p>
       {/if}
-      <button class="focus-ring rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" type="submit" disabled={saving}>
+      <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
+        <Save size={16} />
         {saving ? 'Saving...' : 'Save password'}
       </button>
     </form>

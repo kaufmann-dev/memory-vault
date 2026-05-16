@@ -57,12 +57,9 @@
 
 <div class="min-h-screen">
   <!-- Desktop Sidebar -->
-  <aside
-    class="fixed inset-y-0 left-0 hidden w-64 lg:block"
-    style="background: var(--surface); box-shadow: 1px 0 3px rgba(0,0,0,0.05)"
-  >
+  <aside class="fixed inset-y-0 left-0 hidden w-64 lg:block" style="background: var(--surface); box-shadow: 1px 0 3px rgba(0,0,0,0.04)">
     <div class="flex h-full flex-col px-4 py-5">
-      <a href="/" class="focus-ring flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-semibold text-inherit hover:no-underline">
+      <a href="/" class="focus-ring flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-bold text-inherit hover:no-underline">
         <span class="grid h-9 w-9 place-items-center rounded-xl text-base font-bold text-white" style="background: var(--accent)">M</span>
         Memory Vault
       </a>
@@ -71,15 +68,7 @@
         {#each nav as item (item.href)}
           {@const Icon = item.icon}
           {@const isActive = page.url.pathname === item.href}
-          <a
-            href={item.href}
-            class="focus-ring relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:no-underline transition-colors"
-            class:bg-neutral-100={isActive}
-            style={isActive ? 'color: var(--foreground)' : 'color: var(--muted)'}
-          >
-            {#if isActive}
-              <span class="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full" style="background: var(--accent)"></span>
-            {/if}
+          <a href={item.href} class="focus-ring vault-nav-item" data-active={isActive}>
             <Icon size={18} />
             {item.label}
           </a>
@@ -88,12 +77,7 @@
 
       <div class="mt-auto border-t pt-4" style="border-color: var(--border)">
         <p class="truncate text-xs" style="color: var(--muted)">{user.email}</p>
-        <button
-          class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
-          style="border-color: var(--border)"
-          type="button"
-          onclick={logout}
-        >
+        <button class="focus-ring vault-btn-secondary mt-3 w-full" type="button" onclick={logout}>
           <LogOut size={16} />
           Logout
         </button>
@@ -104,17 +88,11 @@
   <!-- Mobile Header -->
   <header class="sticky top-0 z-10 border-b px-4 py-3 lg:hidden" style="border-color: var(--border); background: var(--surface)">
     <div class="flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2.5 font-semibold text-inherit hover:no-underline">
+      <a href="/" class="flex items-center gap-2.5 font-bold text-inherit hover:no-underline">
         <span class="grid h-8 w-8 place-items-center rounded-lg text-sm font-bold text-white" style="background: var(--accent)">M</span>
         Memory Vault
       </a>
-      <button
-        class="focus-ring rounded-lg border p-2.5 transition-colors hover:bg-neutral-50"
-        style="border-color: var(--border)"
-        type="button"
-        onclick={toggleDrawer}
-        aria-label="Open menu"
-      >
+      <button class="focus-ring vault-btn-ghost" type="button" onclick={toggleDrawer} aria-label="Open menu">
         <Menu size={20} />
       </button>
     </div>
@@ -132,19 +110,13 @@
         onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') closeDrawer(); }}
       ></div>
       <aside
-        class="absolute right-0 top-0 h-full w-72 shadow-2xl"
-        style="background: var(--surface)"
+        class="absolute right-0 top-0 h-full w-72"
+        style="background: var(--surface); box-shadow: -4px 0 24px rgba(0,0,0,0.08)"
         transition:fly={{ x: 300, duration: 300, easing: cubicOut }}
       >
         <div class="flex items-center justify-between border-b px-4 py-3" style="border-color: var(--border)">
-          <span class="font-semibold text-sm">Menu</span>
-          <button
-            class="focus-ring rounded-lg border p-2 transition-colors hover:bg-neutral-50"
-            style="border-color: var(--border)"
-            type="button"
-            onclick={closeDrawer}
-            aria-label="Close menu"
-          >
+          <span class="font-bold text-sm">Menu</span>
+          <button class="focus-ring vault-btn-ghost" type="button" onclick={closeDrawer} aria-label="Close menu">
             <X size={18} />
           </button>
         </div>
@@ -153,13 +125,7 @@
           {#each nav as item (item.href)}
             {@const Icon = item.icon}
             {@const isActive = page.url.pathname === item.href}
-            <a
-              href={item.href}
-              class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:no-underline transition-colors"
-              class:bg-neutral-100={isActive}
-              style={isActive ? 'color: var(--foreground)' : 'color: var(--muted)'}
-              onclick={closeDrawer}
-            >
+            <a href={item.href} class="focus-ring vault-nav-item" data-active={isActive} onclick={closeDrawer}>
               <Icon size={18} />
               {item.label}
             </a>
@@ -168,12 +134,7 @@
 
         <div class="absolute bottom-0 left-0 right-0 border-t p-4" style="border-color: var(--border)">
           <p class="truncate text-xs" style="color: var(--muted)">{user.email}</p>
-          <button
-            class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
-            style="border-color: var(--border)"
-            type="button"
-            onclick={() => { closeDrawer(); logout(); }}
-          >
+          <button class="focus-ring vault-btn-secondary mt-3 w-full" type="button" onclick={() => { closeDrawer(); logout(); }}>
             <LogOut size={16} />
             Logout
           </button>
