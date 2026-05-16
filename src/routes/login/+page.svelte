@@ -96,8 +96,8 @@
 <main class="grid min-h-screen place-items-center px-4 py-10" style="background: var(--background)">
   <section class="w-full max-w-md vault-card p-8">
     <div class="mb-8 text-center">
-      <div class="mx-auto mb-4 grid h-12 w-12 place-items-center text-2xl font-extrabold text-white" style="background: var(--accent)">M</div>
-      <p class="text-xs font-semibold uppercase tracking-widest" style="color: var(--accent)">{data.hasAdmin ? 'Private vault' : 'First setup'}</p>
+      <img src="/favicon.svg" alt="" class="mx-auto mb-4 h-12 w-12" />
+      <p class="text-xs font-semibold uppercase tracking-widest" style="color: var(--foreground)">{data.hasAdmin ? 'Private vault' : 'First setup'}</p>
       <h1 class="mt-2 text-2xl font-bold tracking-tight" style="color: var(--foreground)">{data.hasAdmin ? 'Unlock Memory Vault' : 'Create the admin vault'}</h1>
       <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">
         {data.hasAdmin

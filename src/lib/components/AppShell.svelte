@@ -58,7 +58,7 @@
   <aside class="fixed inset-y-0 left-0 hidden w-64 lg:block" style="background: var(--background); border-right: 1px solid var(--border)">
     <div class="flex h-full flex-col px-4 py-5">
       <a href="/" class="focus-ring flex items-center gap-3 px-2 py-2 text-sm font-bold text-inherit hover:no-underline">
-        <span class="grid h-8 w-8 place-items-center text-base font-bold text-white" style="background: var(--accent)">M</span>
+        <img src="/favicon.svg" alt="" class="h-8 w-8" />
         Memory Vault
       </a>
 
@@ -87,7 +87,7 @@
   <header class="sticky top-0 z-10 border-b px-4 py-3 lg:hidden" style="border-color: var(--border); background: var(--background)">
     <div class="flex items-center justify-between">
       <a href="/" class="flex items-center gap-2.5 font-bold text-inherit hover:no-underline">
-        <span class="grid h-8 w-8 place-items-center text-sm font-bold text-white" style="background: var(--accent)">M</span>
+        <img src="/favicon.svg" alt="" class="h-8 w-8" />
         Memory Vault
       </a>
       <button class="focus-ring vault-btn-ghost" type="button" onclick={toggleDrawer} aria-label="Open menu">

@@ -16,7 +16,7 @@
 
 <header class="mb-8">
   {#if eyebrow}
-    <p class="mb-2 text-xs font-semibold uppercase tracking-widest" style="color: var(--accent)">{eyebrow}</p>
+    <p class="mb-2 text-xs font-semibold uppercase tracking-widest" style="color: var(--foreground)">{eyebrow}</p>
   {/if}
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>

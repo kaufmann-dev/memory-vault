@@ -1,14 +1,14 @@
 ---
 version: alpha
 name: Memory Vault
-description: A serious, technical encrypted personal vault. Stark black-and-white palette with a single orange accent. Clean lines, flat surfaces, and precise geometry.
+description: A serious, technical encrypted personal vault. Purely black and white. No accent color. Clean lines, flat surfaces, and precise geometry.
 colors:
   background: "#FFFFFF"
-  foreground: "#171717"
-  primary: "#F97316"
-  primary-hover: "#EA580C"
-  primary-light: "#FFF7ED"
-  primary-glow: "rgba(249, 115, 22, 0.15)"
+  foreground: "#000000"
+  accent: "#000000"
+  accent-hover: "#000000"
+  accent-light: "#F5F5F5"
+  accent-glow: "rgba(0, 0, 0, 0.08)"
   muted: "#525252"
   border: "#E5E5E5"
   border-strong: "#D4D4D4"
@@ -17,7 +17,7 @@ colors:
   warn: "#CA8A04"
   danger: "#DC2626"
   danger-subtle: "rgba(220, 38, 38, 0.06)"
-  ring: "rgba(249, 115, 22, 0.25)"
+  ring: "rgba(0, 0, 0, 0.12)"
 typography:
   headline-xl:
     fontFamily: Inter
@@ -88,14 +88,14 @@ components:
   card-hover:
     borderColor: "{colors.border-strong}"
   button-primary:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.foreground}"
     textColor: "#FFFFFF"
     rounded: "{rounded.md}"
     padding: "10px 16px"
     typography: "{typography.label-md}"
   button-primary-hover:
-    backgroundColor: "{colors.primary-hover}"
-    borderColor: "{colors.primary-hover}"
+    backgroundColor: "{colors.foreground}"
+    borderColor: "{colors.foreground}"
   button-secondary:
     backgroundColor: "transparent"
     textColor: "{colors.foreground}"
@@ -127,30 +127,29 @@ components:
     padding: "10px 12px"
     typography: "{typography.label-md}"
   nav-item-active:
-    backgroundColor: "{colors.primary-light}"
-    textColor: "{colors.primary-hover}"
-    borderLeft: "2px solid {colors.primary}"
+    backgroundColor: "{colors.accent-light}"
+    textColor: "{colors.foreground}"
+    borderLeft: "2px solid {colors.foreground}"
 ---
 
 ## Overview
 
-Memory Vault is a serious, technical encrypted personal vault. The visual identity is stark and precise: pure black and white with a single vivid orange accent. Every surface is flat, every corner is sharp, and every interaction is deliberate. The design communicates security, precision, and zero ornamentation.
+Memory Vault is a serious, technical encrypted personal vault. The visual identity is stark and precise: purely black and white with no accent color. Every surface is flat, every corner is sharp, and every interaction is deliberate. The design communicates security, precision, and zero ornamentation.
 
-The philosophy is "form follows function." There are no decorative gradients, no blurred orbs, no playful hover lifts. Whitespace is generous. Borders are thin and gray. The orange accent is reserved exclusively for primary actions, active navigation, and focus states.
+The philosophy is "form follows function." There are no decorative gradients, no blurred orbs, no playful hover lifts. Whitespace is generous. Borders are thin and gray. The black color is reserved exclusively for primary actions, active navigation, and focus states.
 
 ## Colors
 
-The palette is strictly monochromatic with one functional accent.
+The palette is strictly monochromatic. Black, white, and grays only.
 
 - **Background ({colors.background}):** Pure white. Maximum contrast for content.
-- **Foreground ({colors.foreground}):** Near-black for all text. Heavy and authoritative.
-- **Primary ({colors.primary}):** Vivid orange — the only color allowed for CTAs, active states, and focus rings.
-- **Primary Hover ({colors.primary-hover}):** Deeper orange for pressed and hover states.
-- **Primary Light ({colors.primary-light}):** Very pale orange tint for active navigation backgrounds.
+- **Foreground ({colors.foreground}):** Pure black for all text and primary actions.
+- **Accent ({colors.accent}):** Pure black — identical to foreground. Used for CTAs, active states, and focus rings.
+- **Accent Light ({colors.accent-light}):** Very light gray for active navigation backgrounds.
 - **Muted ({colors.muted}):** Neutral gray for captions, descriptions, and secondary text.
 - **Border ({colors.border}):** Light gray for dividing lines, card borders, and input outlines.
 - **Border Strong ({colors.border-strong}):** Slightly darker gray for hovered card borders.
-- **Surface ({colors.surface}):** Off-white for card backgrounds, creating a subtle elevation without shadow.
+- **Surface ({colors.surface}):** Off-white for card backgrounds, creating subtle elevation without shadow.
 - **Success ({colors.success}):** Emerald green for functional positive states only.
 - **Danger ({colors.danger}):** Red for destructive actions and errors only.
 
@@ -184,9 +183,9 @@ Elevation is expressed almost exclusively through borders, not shadows. The desi
 - **Flat:** Default state. No shadow.
 - **Card:** {colors.surface} background with a 1px {colors.border} border and {rounded.md} corners.
 - **Card Hover:** Border darkens to {colors.border-strong}. No lift, no shadow change.
-- **Button Primary Hover:** Background darkens to {colors.primary-hover}. No shadow.
+- **Button Primary Hover:** No color change — pure black is already the maximum. The cursor implies interactivity.
 - **Modal / Drawer:** 1px left border for the mobile slide-out drawer. No blur, no backdrop dim beyond black at 50% opacity.
-- **Focus Ring ({colors.ring}):** A 3px orange glow for accessible focus states.
+- **Focus Ring ({colors.ring}):** A 3px black glow for accessible focus states.
 
 ## Shapes
 
@@ -202,7 +201,7 @@ Corners are sharp and consistent. The aesthetic is geometric and technical.
 The fundamental building block. A flat {colors.surface} surface with a 1px {colors.border} border and {rounded.md} corners. No shadow. On hover, the border darkens to {colors.border-strong}.
 
 ### Button Primary
-Solid orange fill with white text. {rounded.md} corners. No border, no shadow. On hover, background shifts to {colors.primary-hover}. Used sparingly — one per screen.
+Solid black fill with white text. {rounded.md} corners. No border, no shadow. On hover, no color change. Used sparingly — one per screen.
 
 ### Button Secondary
 Transparent background with a 1px {colors.border} outline and black text. {rounded.md} corners. On hover, fills with {colors.background} and darkens the border.
@@ -214,20 +213,20 @@ Transparent background with a subtle red-tinted border. On hover, fills with {co
 No border by default. Gray text. On hover, reveals a background and border. Used for icon-only actions.
 
 ### Input
-White background, 1px {colors.border} border, {rounded.md} corners. Focus state shifts the border to {colors.primary} and adds a 3px orange ring.
+White background, 1px {colors.border} border, {rounded.md} corners. Focus state shifts the border to {colors.foreground} and adds a 3px black ring.
 
 ### Tag / Chip
 Small rectangular pill with a gray border and muted text. {rounded.sm} corners. Functional, not decorative.
 
 ### Navigation Item
-Horizontal row with an icon and label. Default: muted text, transparent background, 2px transparent left border. Active: orange left border, pale orange background tint, orange text. No filled pills.
+Horizontal row with an icon and label. Default: muted text, transparent background, 2px transparent left border. Active: black left border, light gray background tint, black text. No filled pills.
 
 ### Table
 Headers use {typography.label-xs} (uppercase, tracked). Rows have a subtle hover background. The table is wrapped in a bordered card.
 
 ## Do's and Don'ts
 
-- Do use the orange accent sparingly — one primary action and one active element per screen.
+- Do use black sparingly — one primary action and one active element per screen.
 - Do rely on borders and whitespace for separation, not shadows.
 - Do use sentence-case for all headings and labels.
 - Do keep corners at {rounded.md} (8px) for consistency.
@@ -238,3 +237,4 @@ Headers use {typography.label-xs} (uppercase, tracked). Rows have a subtle hover
 - Don't add more than three type sizes on a single screen.
 - Don't invent colors outside the defined palette.
 - Don't use hover lifts, scale transforms, or playful animations.
+- Don't use any accent color. Black is the only non-gray color allowed.

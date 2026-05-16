@@ -6,7 +6,7 @@
 <div class="vault-card p-6">
   <div class="flex items-start gap-4">
     <div class="grid h-10 w-10 shrink-0 place-items-center" style="background: var(--accent-light)">
-      <Shield size={20} color="var(--accent)" />
+      <Shield size={20} color="var(--foreground)" />
     </div>
     <div>
       <h2 class="text-base font-semibold" style="color: var(--foreground)">Vault locked</h2>

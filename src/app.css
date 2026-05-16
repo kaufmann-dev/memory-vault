@@ -3,10 +3,10 @@
 :root {
   --background: #FFFFFF;
   --foreground: #171717;
-  --accent: #F97316;
-  --accent-hover: #EA580C;
-  --accent-light: #FFF7ED;
-  --accent-glow: rgba(249, 115, 22, 0.15);
+  --accent: #000000;
+  --accent-hover: #000000;
+  --accent-light: #F5F5F5;
+  --accent-glow: rgba(0, 0, 0, 0.08);
   --muted: #525252;
   --border: #E5E5E5;
   --border-strong: #D4D4D4;
@@ -14,7 +14,7 @@
   --success: #16A34A;
   --warn: #CA8A04;
   --danger: #DC2626;
-  --ring: rgba(249, 115, 22, 0.25);
+  --ring: rgba(0, 0, 0, 0.12);
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 6px rgba(0,0,0,0.04);
 }
