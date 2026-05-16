@@ -1,6 +1,6 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import { Activity, BookOpen, CalendarDays, ListChecks, UsersRound } from '@lucide/svelte';
+  import { Activity, BookOpen, CalendarDays, ListChecks } from '@lucide/svelte';
 
   const features = [
     {
@@ -23,15 +23,9 @@
     },
     {
       href: '/day-counters',
-      label: 'Day counters',
+      label: 'Milestones',
       description: 'Track elapsed time since important dates.',
       icon: CalendarDays
-    },
-    {
-      href: '/family',
-      label: 'Family tree',
-      description: 'A cleaner encrypted tree editor and viewer.',
-      icon: UsersRound
     }
   ];
 </script>

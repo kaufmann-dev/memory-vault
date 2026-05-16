@@ -8,11 +8,7 @@ const recordTypes = new Set<RecordType>([
   'diary',
   'list',
   'diagram',
-  'metric_weight',
-  'metric_blood',
-  'metric_hormone',
-  'day_counter',
-  'family_tree'
+  'day_counter'
 ]);
 
 function assertRecordType(value: unknown): RecordType {
