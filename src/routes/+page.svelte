@@ -41,12 +41,14 @@
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
   {#each features as feature}
     <a
-      class="focus-ring rounded-xl border p-5 text-inherit hover:no-underline"
-      style="border-color: var(--border); background: var(--surface)"
+      class="focus-ring group relative overflow-hidden rounded-2xl p-6 text-inherit shadow-sm transition-all duration-300 hover:shadow-lg hover:no-underline hover:-translate-y-1"
+      style="background: var(--surface)"
       href={feature.href}
     >
-      <svelte:component this={feature.icon} size={22} color="var(--accent)" />
-      <h2 class="mt-4 text-base font-semibold">{feature.label}</h2>
+      <div class="mb-5 grid h-10 w-10 place-items-center rounded-xl" style="background: var(--accent)">
+        <svelte:component this={feature.icon} size={20} color="white" />
+      </div>
+      <h2 class="text-base font-semibold">{feature.label}</h2>
       <p class="mt-2 text-sm leading-6" style="color: var(--muted)">{feature.description}</p>
     </a>
   {/each}

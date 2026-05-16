@@ -214,7 +214,7 @@
       {#if weights.length + blood.length + hormones.length === 0}
         <EmptyState title="No measurements yet" description="Add measurements above to populate this area." />
       {:else}
-        <div class="overflow-hidden rounded-xl border" style="border-color: var(--border); background: var(--surface)">
+        <div class="overflow-hidden rounded-2xl shadow-sm" style="background: var(--surface)">
           <table class="w-full text-left text-sm">
             <thead style="background: var(--background)">
               <tr>

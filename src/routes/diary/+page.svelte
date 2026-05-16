@@ -128,7 +128,7 @@
         <EmptyState title="No diary entries yet" description="Create the first encrypted entry when you are ready." />
       {:else}
         {#each entries as item}
-          <article class="rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)">
+          <article class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 class="text-lg font-semibold">{item.payload.title || 'Untitled'}</h2>
@@ -156,7 +156,7 @@
       {/if}
     </section>
 
-    <aside class="rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)">
+    <aside class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
       <div class="mb-4 flex items-center justify-between">
         <h2 class="text-base font-semibold">{editingId ? 'Edit entry' : 'New entry'}</h2>
         {#if editingId}

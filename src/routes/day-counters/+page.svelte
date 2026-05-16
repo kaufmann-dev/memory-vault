@@ -83,7 +83,7 @@
   <VaultNotice />
 {:else}
   <div class="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-    <form class="rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)" on:submit|preventDefault={saveCounter}>
+    <form class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)" on:submit|preventDefault={saveCounter}>
       <h2 class="mb-4 text-base font-semibold">New counter</h2>
       <label class="block text-sm font-medium">
         Name
@@ -115,7 +115,7 @@
       {:else}
         <div class="grid gap-4 sm:grid-cols-2">
           {#each counters as item}
-            <article class="rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)">
+            <article class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <h2 class="text-base font-semibold">{item.payload.name}</h2>

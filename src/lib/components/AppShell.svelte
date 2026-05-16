@@ -10,11 +10,17 @@
     Home,
     ListChecks,
     LogOut,
+    Menu,
     Settings,
-    UsersRound
+    UsersRound,
+    X
   } from '@lucide/svelte';
+  import { fly, fade } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
 
   let { user, children }: { user: SafeUser; children: Snippet } = $props();
+
+  let drawerOpen = $state(false);
 
   const nav = [
     { href: '/', label: 'Home', icon: Home },
@@ -31,68 +37,150 @@
     lockVault();
     location.href = '/login';
   }
+
+  function toggleDrawer() {
+    drawerOpen = !drawerOpen;
+  }
+
+  function closeDrawer() {
+    drawerOpen = false;
+  }
+
+  $effect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = drawerOpen ? 'hidden' : '';
+    }
+  });
 </script>
 
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') closeDrawer(); }} />
+
 <div class="min-h-screen">
+  <!-- Desktop Sidebar -->
   <aside
-    class="fixed inset-y-0 left-0 hidden w-64 border-r px-4 py-5 lg:block"
-    style="border-color: var(--border); background: var(--surface)"
+    class="fixed inset-y-0 left-0 hidden w-64 lg:block"
+    style="background: var(--surface); box-shadow: 1px 0 3px rgba(0,0,0,0.05)"
   >
-    <a href="/" class="focus-ring flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-semibold text-inherit hover:no-underline">
-      <span class="grid h-8 w-8 place-items-center rounded-lg text-white" style="background: var(--accent)">T</span>
-      The Second Directory
-    </a>
+    <div class="flex h-full flex-col px-4 py-5">
+      <a href="/" class="focus-ring flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-semibold text-inherit hover:no-underline">
+        <span class="grid h-9 w-9 place-items-center rounded-xl text-base font-bold text-white" style="background: var(--accent)">M</span>
+        Memory Vault
+      </a>
 
-    <nav class="mt-8 space-y-1">
-      {#each nav as item (item.href)}
-        {@const Icon = item.icon}
-        <a
-          href={item.href}
-          class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:no-underline"
-          class:bg-neutral-100={page.url.pathname === item.href}
-          style={page.url.pathname === item.href ? 'color: var(--foreground)' : 'color: var(--muted)'}
+      <nav class="mt-8 space-y-1">
+        {#each nav as item (item.href)}
+          {@const Icon = item.icon}
+          {@const isActive = page.url.pathname === item.href}
+          <a
+            href={item.href}
+            class="focus-ring relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:no-underline transition-colors"
+            class:bg-neutral-100={isActive}
+            style={isActive ? 'color: var(--foreground)' : 'color: var(--muted)'}
+          >
+            {#if isActive}
+              <span class="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full" style="background: var(--accent)"></span>
+            {/if}
+            <Icon size={18} />
+            {item.label}
+          </a>
+        {/each}
+      </nav>
+
+      <div class="mt-auto border-t pt-4" style="border-color: var(--border)">
+        <p class="truncate text-xs" style="color: var(--muted)">{user.email}</p>
+        <button
+          class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
+          style="border-color: var(--border)"
+          type="button"
+          onclick={logout}
         >
-          <Icon size={18} />
-          {item.label}
-        </a>
-      {/each}
-    </nav>
-
-    <div class="absolute bottom-5 left-4 right-4">
-      <p class="truncate text-xs" style="color: var(--muted)">{user.email}</p>
-      <button
-        class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium"
-        style="border-color: var(--border)"
-        type="button"
-        onclick={logout}
-      >
-        <LogOut size={16} />
-        Logout
-      </button>
+          <LogOut size={16} />
+          Logout
+        </button>
+      </div>
     </div>
   </aside>
 
+  <!-- Mobile Header -->
   <header class="sticky top-0 z-10 border-b px-4 py-3 lg:hidden" style="border-color: var(--border); background: var(--surface)">
     <div class="flex items-center justify-between">
-      <a href="/" class="font-semibold text-inherit hover:no-underline">The Second Directory</a>
-      <button class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--border)" type="button" onclick={logout}>
-        Logout
+      <a href="/" class="flex items-center gap-2.5 font-semibold text-inherit hover:no-underline">
+        <span class="grid h-8 w-8 place-items-center rounded-lg text-sm font-bold text-white" style="background: var(--accent)">M</span>
+        Memory Vault
+      </a>
+      <button
+        class="focus-ring rounded-lg border p-2.5 transition-colors hover:bg-neutral-50"
+        style="border-color: var(--border)"
+        type="button"
+        onclick={toggleDrawer}
+        aria-label="Open menu"
+      >
+        <Menu size={20} />
       </button>
     </div>
-    <nav class="mt-3 flex gap-2 overflow-x-auto pb-1">
-      {#each nav as item (item.href)}
-        <a
-          href={item.href}
-          class="focus-ring whitespace-nowrap rounded-lg border px-3 py-2 text-sm hover:no-underline"
-          style={page.url.pathname === item.href
-            ? 'border-color: var(--accent); color: var(--accent)'
-            : 'border-color: var(--border); color: var(--muted)'}
-        >
-          {item.label}
-        </a>
-      {/each}
-    </nav>
   </header>
+
+  <!-- Mobile Drawer -->
+  {#if drawerOpen}
+    <div class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" transition:fade={{ duration: 200 }}>
+      <div
+        class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        role="button"
+        tabindex="-1"
+        aria-label="Close menu"
+        onclick={closeDrawer}
+        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') closeDrawer(); }}
+      ></div>
+      <aside
+        class="absolute right-0 top-0 h-full w-72 shadow-2xl"
+        style="background: var(--surface)"
+        transition:fly={{ x: 300, duration: 300, easing: cubicOut }}
+      >
+        <div class="flex items-center justify-between border-b px-4 py-3" style="border-color: var(--border)">
+          <span class="font-semibold text-sm">Menu</span>
+          <button
+            class="focus-ring rounded-lg border p-2 transition-colors hover:bg-neutral-50"
+            style="border-color: var(--border)"
+            type="button"
+            onclick={closeDrawer}
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <nav class="p-3 space-y-0.5">
+          {#each nav as item (item.href)}
+            {@const Icon = item.icon}
+            {@const isActive = page.url.pathname === item.href}
+            <a
+              href={item.href}
+              class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:no-underline transition-colors"
+              class:bg-neutral-100={isActive}
+              style={isActive ? 'color: var(--foreground)' : 'color: var(--muted)'}
+              onclick={closeDrawer}
+            >
+              <Icon size={18} />
+              {item.label}
+            </a>
+          {/each}
+        </nav>
+
+        <div class="absolute bottom-0 left-0 right-0 border-t p-4" style="border-color: var(--border)">
+          <p class="truncate text-xs" style="color: var(--muted)">{user.email}</p>
+          <button
+            class="focus-ring mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
+            style="border-color: var(--border)"
+            type="button"
+            onclick={() => { closeDrawer(); logout(); }}
+          >
+            <LogOut size={16} />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </div>
+  {/if}
 
   <main class="mx-auto max-w-6xl px-4 py-8 lg:ml-64 lg:px-8">
     {@render children()}

@@ -129,7 +129,7 @@
   <p class="text-sm" style="color: var(--muted)">Decrypting family tree...</p>
 {:else}
   <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-    <section class="min-h-96 overflow-auto rounded-xl border p-6" style="border-color: var(--border); background: var(--surface)">
+    <section class="min-h-96 overflow-auto rounded-2xl p-6 shadow-sm" style="background: var(--surface)">
       {#if people.length === 0}
         <EmptyState title="No family tree yet" description="Create a root person to begin." />
       {:else}
@@ -143,7 +143,7 @@
       {/if}
     </section>
 
-    <aside class="rounded-xl border p-5" style="border-color: var(--border); background: var(--surface)">
+    <aside class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
       <h2 class="mb-4 text-base font-semibold">{form.id ? 'Edit person' : 'Add person'}</h2>
       <form
         class="space-y-4"
