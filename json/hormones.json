@@ -1,0 +1,136 @@
+{
+    "levels": [
+        {
+            "date": "2021-07-16",
+            "lh": 0,
+            "fsh": 1,
+            "e2": 110,
+            "prog": 0.5,
+            "prl": null,
+            "t": 0.19,
+            "bat": 0.06,
+            "shbg": 52.8,
+            "tsh": null
+        },
+        {
+            "date": "2021-08-09",
+            "lh": null,
+            "fsh": null,
+            "e2": 48.5,
+            "prog": null,
+            "prl": null,
+            "t": 1.17,
+            "bat": null,
+            "shbg": null,
+            "tsh": null
+        },
+        {
+            "date": "2021-08-18",
+            "lh": null,
+            "fsh": null,
+            "e2": 45.5,
+            "prog": null,
+            "prl": null,
+            "t": 8.6,
+            "bat": null,
+            "shbg": null,
+            "tsh": null
+        },
+        {
+            "date": "2021-09-02",
+            "lh": 5.7,
+            "fsh": 1.5,
+            "e2": 32.4,
+            "prog": null,
+            "prl": 8.4,
+            "t": 5.76,
+            "bat": null,
+            "shbg": 30.3,
+            "tsh": 1
+        },
+        {
+            "date": "2021-10-11",
+            "lh": 3.5,
+            "fsh": 1.37,
+            "e2": 39.3,
+            "prog": 0.64,
+            "prl": 17.89,
+            "t": 5.15,
+            "bat": 3.405,
+            "shbg": 18.06,
+            "tsh": 1.23
+        },
+        {
+            "date": "2022-01-27",
+            "lh": 5.8,
+            "fsh": 3.01,
+            "e2": 35.8,
+            "prog": 0.64,
+            "prl": 16.14,
+            "t": 5.61,
+            "bat": 3.712,
+            "shbg": 18.57,
+            "tsh": 0.9
+        },
+        {
+            "date": "2022-07-27",
+            "lh": 5.6,
+            "fsh": 2.59,
+            "e2": 34.6,
+            "prog": 0.64,
+            "prl": 34,
+            "t": 6.65,
+            "bat": 4.652,
+            "shbg": 17,
+            "tsh": 3.12
+        },
+        {
+            "date": "2022-10-03",
+            "lh": null,
+            "fsh": null,
+            "e2": 94.4,
+            "prog": null,
+            "prl": null,
+            "t": null,
+            "bat": null,
+            "shbg": null,
+            "tsh": null
+        },
+        {
+            "date": "2022-10-07",
+            "lh": null,
+            "fsh": null,
+            "e2": 194,
+            "prog": null,
+            "prl": null,
+            "t": null,
+            "bat": null,
+            "shbg": null,
+            "tsh": null
+        },
+        {
+            "date": "2023-01-10",
+            "lh": 4.2,
+            "fsh": 1.96,
+            "e2": 39.6,
+            "prog": 0.41,
+            "prl": 6.18,
+            "t": 6.65,
+            "bat": 4.297,
+            "shbg": 21,
+            "tsh": 1.1
+        },
+        {
+            "date": "2023-04-26",
+            "lh": null,
+            "fsh": null,
+            "e2": null,
+            "prog": null,
+            "prl": 7,
+            "t": null,
+            "bat": null,
+            "shbg": null,
+            "tsh": 1.07
+        }
+    ]
+}
