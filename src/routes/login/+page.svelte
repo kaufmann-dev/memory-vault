@@ -70,10 +70,15 @@
 
   async function login() {
     message = '';
+    if (!email.trim()) {
+      message = 'Enter the admin email address.';
+      return;
+    }
+
     loading = true;
     try {
       await unlockVault(password, data.kekSalt, data.encryptedDEK, data.dekIV);
-      await postJson('/api/auth/login', { email: data.adminEmail, password });
+      await postJson('/api/auth/login', { email, password });
       await goto('/');
     } catch {
       lockVault();
@@ -115,17 +120,10 @@
         </label>
       {/if}
 
-      {#if data.hasAdmin}
-        <label class="block text-sm font-medium">
-          Email
-          <input class="focus-ring vault-input mt-1.5" type="email" value={data.adminEmail} readonly required />
-        </label>
-      {:else}
-        <label class="block text-sm font-medium">
-          Email
-          <input class="focus-ring vault-input mt-1.5" type="email" bind:value={email} required />
-        </label>
-      {/if}
+      <label class="block text-sm font-medium">
+        Email
+        <input class="focus-ring vault-input mt-1.5" type="email" bind:value={email} autocomplete="username" required />
+      </label>
 
       <label class="block text-sm font-medium">
         Password
