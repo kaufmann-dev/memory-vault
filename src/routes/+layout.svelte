@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import AppShell from '$lib/components/AppShell.svelte';
+  import VaultUnlockGate from '$lib/components/VaultUnlockGate.svelte';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();
@@ -13,7 +14,9 @@
 
 {#if data.user}
   <AppShell user={data.user}>
-    {@render children()}
+    <VaultUnlockGate user={data.user}>
+      {@render children()}
+    </VaultUnlockGate>
   </AppShell>
 {:else}
   {@render children()}

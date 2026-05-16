@@ -13,7 +13,6 @@
   } from '$lib/client/records';
   import { sessionDEK } from '$lib/stores/cryptoKey';
   import type { DiaryPayload, EncryptedRecord } from '$lib/types';
-  import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { Pencil, Plus, Save, Search, Trash2, X } from '@lucide/svelte';
@@ -224,7 +223,6 @@
     if (!dek) {
       locked = true;
       loading = false;
-      await goto('/login');
       return;
     }
     await loadEntries();

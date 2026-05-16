@@ -1,12 +1,14 @@
 import { getAdminUser } from '$lib/server/auth';
+import { redirect } from '@sveltejs/kit';
 
-export async function load() {
+export async function load({ locals }) {
+  if (locals.user) {
+    redirect(303, '/');
+  }
+
   const admin = await getAdminUser();
 
   return {
-    hasAdmin: Boolean(admin),
-    kekSalt: admin?.kekSalt ?? '',
-    encryptedDEK: admin?.encryptedDek ?? '',
-    dekIV: admin?.dekIv ?? ''
+    hasAdmin: Boolean(admin)
   };
 }
