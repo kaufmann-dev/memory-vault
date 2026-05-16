@@ -44,7 +44,7 @@
   }
 </script>
 
-<div class="rounded-2xl p-4 shadow-sm" style="background: var(--surface)">
+<div class="vault-card p-4">
   {#if allPoints.length}
     <svg viewBox={`0 0 ${width} ${height}`} class="h-auto w-full overflow-visible" role="img">
       <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="var(--border)" />
@@ -53,7 +53,7 @@
         <polyline
           fill="none"
           stroke={item.color}
-          stroke-width="2"
+          stroke-width="2.5"
           stroke-linecap="round"
           stroke-linejoin="round"
           points={pathFor(item.points)}

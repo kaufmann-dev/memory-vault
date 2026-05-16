@@ -111,7 +111,7 @@
 </script>
 
 <PageHeader title="Diary" description="One encrypted structure for diary entries, articles, notes, and ramblings.">
-  <button class="focus-ring inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" on:click={startCreate} type="button">
+  <button class="focus-ring vault-btn-primary" on:click={startCreate} type="button">
     <Plus size={16} />
     New
   </button>
@@ -128,17 +128,17 @@
         <EmptyState title="No diary entries yet" description="Create the first encrypted entry when you are ready." />
       {:else}
         {#each entries as item}
-          <article class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
+          <article class="vault-card p-5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 class="text-lg font-semibold">{item.payload.title || 'Untitled'}</h2>
+                <h2 class="text-lg font-semibold" style="color: var(--foreground)">{item.payload.title || 'Untitled'}</h2>
                 <p class="mt-1 text-sm" style="color: var(--muted)">
                   {item.payload.occurredAt} · {item.payload.language} · {item.payload.wordCount} words
                 </p>
               </div>
               <div class="flex gap-2">
-                <button class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--border)" type="button" on:click={() => startEdit(item)}>Edit</button>
-                <button class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--danger); color: var(--danger)" type="button" on:click={() => removeEntry(item.record.id)}>
+                <button class="focus-ring vault-btn-secondary" type="button" on:click={() => startEdit(item)}>Edit</button>
+                <button class="focus-ring vault-btn-danger" type="button" on:click={() => removeEntry(item.record.id)}>
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -146,21 +146,21 @@
             {#if item.payload.tags.length}
               <div class="mt-3 flex flex-wrap gap-2">
                 {#each item.payload.tags as tag}
-                  <span class="rounded-lg border px-2 py-1 text-xs" style="border-color: var(--border); color: var(--muted)">{tag}</span>
+                  <span class="vault-tag">{tag}</span>
                 {/each}
               </div>
             {/if}
-            <p class="mt-4 whitespace-pre-wrap text-sm leading-6">{item.payload.body}</p>
+            <p class="mt-4 whitespace-pre-wrap text-sm leading-relaxed" style="color: var(--foreground)">{item.payload.body}</p>
           </article>
         {/each}
       {/if}
     </section>
 
-    <aside class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
+    <aside class="vault-card p-5">
       <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-base font-semibold">{editingId ? 'Edit entry' : 'New entry'}</h2>
+        <h2 class="text-base font-semibold" style="color: var(--foreground)">{editingId ? 'Edit entry' : 'New entry'}</h2>
         {#if editingId}
-          <button class="focus-ring rounded-lg border p-2" style="border-color: var(--border)" type="button" on:click={startCreate}>
+          <button class="focus-ring vault-btn-ghost" type="button" on:click={startCreate}>
             <X size={16} />
           </button>
         {/if}
@@ -169,17 +169,17 @@
       <form class="space-y-4" on:submit|preventDefault={saveEntry}>
         <label class="block text-sm font-medium">
           Title
-          <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.title} />
+          <input class="focus-ring vault-input mt-1.5" bind:value={form.title} />
         </label>
 
         <div class="grid grid-cols-2 gap-3">
           <label class="block text-sm font-medium">
             Date
-            <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" type="date" bind:value={form.occurredAt} required />
+            <input class="focus-ring vault-input mt-1.5" type="date" bind:value={form.occurredAt} required />
           </label>
           <label class="block text-sm font-medium">
             Language
-            <select class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.language}>
+            <select class="focus-ring vault-input mt-1.5" bind:value={form.language}>
               <option>English</option>
               <option>German</option>
               <option>Other</option>
@@ -189,17 +189,17 @@
 
         <label class="block text-sm font-medium">
           Tags
-          <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={tagInput} placeholder="comma, separated" />
+          <input class="focus-ring vault-input mt-1.5" bind:value={tagInput} placeholder="comma, separated" />
         </label>
 
         <label class="block text-sm font-medium">
           Body
-          <textarea class="focus-ring mt-1 min-h-64 w-full rounded-lg border px-3 py-2 leading-6" style="border-color: var(--border)" bind:value={form.body} required></textarea>
+          <textarea class="focus-ring vault-input mt-1.5 min-h-64 leading-relaxed" bind:value={form.body} required></textarea>
         </label>
 
         <div class="flex items-center justify-between">
           <span class="text-sm" style="color: var(--muted)">{form.wordCount} words</span>
-          <button class="focus-ring inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" type="submit" disabled={saving}>
+          <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
             <Save size={16} />
             {saving ? 'Saving...' : 'Save'}
           </button>

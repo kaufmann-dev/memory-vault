@@ -83,28 +83,27 @@
   <VaultNotice />
 {:else}
   <div class="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-    <form class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)" on:submit|preventDefault={saveCounter}>
-      <h2 class="mb-4 text-base font-semibold">New counter</h2>
+    <form class="vault-card p-5 h-fit" on:submit|preventDefault={saveCounter}>
+      <h2 class="mb-4 text-base font-semibold" style="color: var(--foreground)">New counter</h2>
       <label class="block text-sm font-medium">
         Name
-        <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.name} required />
+        <input class="focus-ring vault-input mt-1.5" bind:value={form.name} required />
       </label>
       <label class="mt-3 block text-sm font-medium">
         Initiated
-        <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" type="date" bind:value={form.initiated} required />
+        <input class="focus-ring vault-input mt-1.5" type="date" bind:value={form.initiated} required />
       </label>
       <label class="mt-3 block text-sm font-medium">
         Max days
         <input
-          class="focus-ring mt-1 w-full rounded-lg border px-3 py-2"
-          style="border-color: var(--border)"
+          class="focus-ring vault-input mt-1.5"
           type="number"
           min="0"
           bind:value={form.maxDays}
           placeholder="optional"
         />
       </label>
-      <button class="focus-ring mt-4 rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" type="submit">Create</button>
+      <button class="focus-ring vault-btn-primary mt-4" type="submit">Create</button>
     </form>
 
     <section>
@@ -115,23 +114,23 @@
       {:else}
         <div class="grid gap-4 sm:grid-cols-2">
           {#each counters as item}
-            <article class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
-              <div class="flex items-start justify-between gap-3">
+            <article class="vault-card p-5 relative overflow-hidden">
+              <div class="flex items-start justify-between gap-3 relative">
                 <div>
-                  <h2 class="text-base font-semibold">{item.payload.name}</h2>
+                  <h2 class="text-base font-semibold" style="color: var(--foreground)">{item.payload.name}</h2>
                   <p class="mt-1 text-sm" style="color: var(--muted)">Since {item.payload.initiated}</p>
                 </div>
                 <div class="flex gap-2">
-                  <button class="focus-ring rounded-lg border p-2" style="border-color: var(--border)" type="button" on:click={() => resetCounter(item)}>
+                  <button class="focus-ring vault-btn-ghost" type="button" on:click={() => resetCounter(item)}>
                     <RotateCcw size={15} />
                   </button>
-                  <button class="focus-ring rounded-lg border p-2" style="border-color: var(--danger); color: var(--danger)" type="button" on:click={() => removeCounter(item)}>
+                  <button class="focus-ring vault-btn-danger" type="button" on:click={() => removeCounter(item)}>
                     <Trash2 size={15} />
                   </button>
                 </div>
               </div>
-              <p class="mt-6 text-4xl font-semibold">{elapsedDays(item.payload.initiated)}</p>
-              <p class="mt-1 text-sm" style="color: var(--muted)">days elapsed</p>
+              <p class="mt-6 text-5xl font-extrabold tracking-tight" style="color: var(--foreground)">{elapsedDays(item.payload.initiated)}</p>
+              <p class="mt-1 text-sm font-medium" style="color: var(--muted)">days elapsed</p>
               {#if item.payload.maxDays !== null}
                 <div class="mt-4 h-2 overflow-hidden rounded-full" style="background: var(--border)">
                   <div

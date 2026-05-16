@@ -118,21 +118,21 @@
 {:else}
   <div class="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
     <aside class="space-y-4">
-      <form class="rounded-2xl p-4 shadow-sm" style="background: var(--surface)" on:submit|preventDefault={saveList}>
-        <h2 class="mb-4 text-base font-semibold">Create list</h2>
+      <form class="vault-card p-4" on:submit|preventDefault={saveList}>
+        <h2 class="mb-4 text-base font-semibold" style="color: var(--foreground)">Create list</h2>
         <label class="block text-sm font-medium">
           Title
-          <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.title} required />
+          <input class="focus-ring vault-input mt-1.5" bind:value={form.title} required />
         </label>
         <label class="mt-3 block text-sm font-medium">
           Description
-          <textarea class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.description}></textarea>
+          <textarea class="focus-ring vault-input mt-1.5" bind:value={form.description}></textarea>
         </label>
-        <label class="mt-3 flex items-center gap-2 text-sm">
-          <input type="checkbox" bind:checked={form.checklist} />
+        <label class="mt-3 flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" bind:checked={form.checklist} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
           Checklist
         </label>
-        <button class="focus-ring mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" type="submit">
+        <button class="focus-ring vault-btn-primary mt-4" type="submit">
           <Plus size={16} />
           Create
         </button>
@@ -142,10 +142,11 @@
         <nav class="space-y-2">
           {#each lists as item}
             <button
-              class="focus-ring w-full rounded-lg border px-3 py-2 text-left text-sm"
+              class="focus-ring w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all"
+              class:vault-card={selected?.record.id === item.record.id}
               style={selected?.record.id === item.record.id
-                ? 'border-color: var(--accent); color: var(--accent); background: var(--surface)'
-                : 'border-color: var(--border); color: var(--foreground); background: var(--surface)'}
+                ? 'color: var(--accent); background: var(--accent-light); border: 1px solid rgba(37,99,235,0.15)'
+                : 'color: var(--foreground); background: transparent; border: 1px solid transparent'}
               type="button"
               on:click={() => (selectedId = item.record.id)}
             >
@@ -162,32 +163,32 @@
       {:else if !selected}
         <EmptyState title="No lists yet" description="Create a list to start tracking tasks." />
       {:else}
-        <div class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
+        <div class="vault-card p-5">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 class="text-xl font-semibold">{selected.payload.title}</h2>
+              <h2 class="text-xl font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
               {#if selected.payload.description}
-                <p class="mt-2 text-sm leading-6" style="color: var(--muted)">{selected.payload.description}</p>
+                <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">{selected.payload.description}</p>
               {/if}
             </div>
-            <button class="focus-ring rounded-lg border p-2" style="border-color: var(--danger); color: var(--danger)" type="button" on:click={() => removeList(selected)}>
+            <button class="focus-ring vault-btn-danger" type="button" on:click={() => removeList(selected)}>
               <Trash2 size={16} />
             </button>
           </div>
 
           <form class="mt-6 flex gap-2" on:submit|preventDefault={() => addTask(selected)}>
-            <input class="focus-ring min-w-0 flex-1 rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={newTask} placeholder="New task" />
-            <button class="focus-ring rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" type="submit">Add</button>
+            <input class="focus-ring vault-input min-w-0 flex-1" bind:value={newTask} placeholder="New task" />
+            <button class="focus-ring vault-btn-primary shrink-0" type="submit">Add</button>
           </form>
 
           <div class="mt-5 divide-y" style="border-color: var(--border)">
             {#each selected.payload.tasks as task}
-              <div class="flex items-center gap-3 py-3">
+              <div class="flex items-center gap-3 py-3 group">
                 {#if selected.payload.checklist}
-                  <input type="checkbox" checked={task.done} on:change={() => toggleTask(selected, task.id)} />
+                  <input type="checkbox" checked={task.done} on:change={() => toggleTask(selected, task.id)} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 {/if}
-                <span class:line-through={task.done} class="flex-1 text-sm">{task.text}</span>
-                <button class="focus-ring rounded-lg border p-2" style="border-color: var(--border)" type="button" on:click={() => removeTask(selected, task.id)}>
+                <span class:line-through={task.done} class="flex-1 text-sm" style="color: var(--foreground)">{task.text}</span>
+                <button class="focus-ring vault-btn-ghost opacity-0 group-hover:opacity-100 transition-opacity" type="button" on:click={() => removeTask(selected, task.id)}>
                   <Trash2 size={15} />
                 </button>
               </div>

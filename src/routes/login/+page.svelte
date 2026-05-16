@@ -3,6 +3,7 @@
   import { lockVault, sessionDEK, unlockVault } from '$lib/stores/cryptoKey';
   import { goto } from '$app/navigation';
   import type { PageProps } from './$types';
+  import { Shield } from '@lucide/svelte';
 
   let { data }: PageProps = $props();
 
@@ -87,12 +88,15 @@
   <title>Login | Memory Vault</title>
 </svelte:head>
 
-<main class="grid min-h-screen place-items-center px-4 py-10">
-  <section class="w-full max-w-md rounded-2xl p-8 shadow-xl" style="background: var(--surface)">
-    <div class="mb-6">
-      <p class="mb-2 text-sm font-medium" style="color: var(--accent)">{data.hasAdmin ? 'Private vault' : 'First setup'}</p>
-      <h1 class="text-2xl font-bold tracking-tight">{data.hasAdmin ? 'Unlock Memory Vault' : 'Create the admin vault'}</h1>
-      <p class="mt-2 text-sm leading-6" style="color: var(--muted)">
+<main class="grid min-h-screen place-items-center px-4 py-10 relative overflow-hidden" style="background: radial-gradient(ellipse 80% 60% at 50% -10%, var(--accent-light) 0%, var(--background) 60%)">
+  <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, var(--border-strong) 1px, transparent 0); background-size: 32px 32px;"></div>
+
+  <section class="relative w-full max-w-md rounded-2xl p-8 vault-card" style="box-shadow: var(--shadow-lg)">
+    <div class="mb-8 text-center">
+      <div class="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl text-2xl font-extrabold text-white" style="background: var(--accent); box-shadow: 0 8px 24px rgba(37,99,235,0.3)">M</div>
+      <p class="text-xs font-semibold uppercase tracking-widest" style="color: var(--accent)">{data.hasAdmin ? 'Private vault' : 'First setup'}</p>
+      <h1 class="mt-2 text-2xl font-extrabold tracking-tight">{data.hasAdmin ? 'Unlock Memory Vault' : 'Create the admin vault'}</h1>
+      <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">
         {data.hasAdmin
           ? 'Your password unlocks the in-memory encryption key for this browser tab.'
           : 'This creates the only admin account and the client-side data encryption key.'}
@@ -109,40 +113,26 @@
       {#if !data.hasAdmin}
         <label class="block text-sm font-medium">
           Name
-          <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={name} required />
+          <input class="focus-ring vault-input mt-1.5" bind:value={name} required />
         </label>
       {/if}
 
       {#if data.hasAdmin}
         <label class="block text-sm font-medium">
           Email
-          <input
-            class="focus-ring mt-1 w-full rounded-lg border px-3 py-2"
-            style="border-color: var(--border)"
-            type="email"
-            value={data.adminEmail}
-            readonly
-            required
-          />
+          <input class="focus-ring vault-input mt-1.5" type="email" value={data.adminEmail} readonly required />
         </label>
       {:else}
         <label class="block text-sm font-medium">
           Email
-          <input
-            class="focus-ring mt-1 w-full rounded-lg border px-3 py-2"
-            style="border-color: var(--border)"
-            type="email"
-            bind:value={email}
-            required
-          />
+          <input class="focus-ring vault-input mt-1.5" type="email" bind:value={email} required />
         </label>
       {/if}
 
       <label class="block text-sm font-medium">
         Password
         <input
-          class="focus-ring mt-1 w-full rounded-lg border px-3 py-2"
-          style="border-color: var(--border)"
+          class="focus-ring vault-input mt-1.5"
           type="password"
           bind:value={password}
           autocomplete={data.hasAdmin ? 'current-password' : 'new-password'}
@@ -154,8 +144,7 @@
         <label class="block text-sm font-medium">
           Confirm password
           <input
-            class="focus-ring mt-1 w-full rounded-lg border px-3 py-2"
-            style="border-color: var(--border)"
+            class="focus-ring vault-input mt-1.5"
             type="password"
             bind:value={confirmPassword}
             autocomplete="new-password"
@@ -165,15 +154,11 @@
       {/if}
 
       {#if message}
-        <p class="rounded-lg border px-3 py-2 text-sm" style="border-color: var(--danger); color: var(--danger)">{message}</p>
+        <p class="rounded-lg px-3 py-2 text-sm font-medium" style="background: rgba(220,38,38,0.06); color: var(--danger)">{message}</p>
       {/if}
 
-      <button
-        class="focus-ring w-full rounded-lg px-4 py-2 text-sm font-medium text-white"
-        style="background: var(--accent)"
-        type="submit"
-        disabled={loading}
-      >
+      <button class="focus-ring vault-btn-primary w-full mt-2" type="submit" disabled={loading}>
+        <Shield size={16} />
         {loading ? 'Working...' : data.hasAdmin ? 'Unlock' : 'Create vault'}
       </button>
     </form>

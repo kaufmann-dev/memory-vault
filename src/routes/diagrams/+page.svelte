@@ -137,16 +137,16 @@
   <p class="text-sm" style="color: var(--muted)">Decrypting metrics...</p>
 {:else}
   <div class="space-y-10">
-    <section>
+    <section class="vault-card p-5">
       <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 class="text-xl font-semibold">Weight</h2>
+          <h2 class="text-xl font-semibold" style="color: var(--foreground)">Weight</h2>
           <p class="mt-1 text-sm" style="color: var(--muted)">Body weight over time.</p>
         </div>
         <form class="flex flex-col gap-2 sm:flex-row" on:submit|preventDefault={saveWeight}>
-          <input class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--border)" type="datetime-local" bind:value={weightForm.date} required />
-          <input class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--border)" type="number" step="0.01" min="0" bind:value={weightForm.weight} placeholder="kg" required />
-          <button class="focus-ring rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" type="submit">Add</button>
+          <input class="focus-ring vault-input text-sm" type="datetime-local" bind:value={weightForm.date} required />
+          <input class="focus-ring vault-input text-sm" type="number" step="0.01" min="0" bind:value={weightForm.weight} placeholder="kg" required />
+          <button class="focus-ring vault-btn-primary shrink-0" type="submit">Add</button>
         </form>
       </div>
       <SimpleLineChart series={[{ label: 'Weight', points: points(weights, 'weight'), color: 'var(--accent)' }]} />
@@ -155,18 +155,18 @@
       {/if}
     </section>
 
-    <section>
+    <section class="vault-card p-5">
       <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 class="text-xl font-semibold">Blood</h2>
+          <h2 class="text-xl font-semibold" style="color: var(--foreground)">Blood</h2>
           <p class="mt-1 text-sm" style="color: var(--muted)">Blood pressure and pulse.</p>
         </div>
         <form class="grid gap-2 sm:grid-cols-5" on:submit|preventDefault={saveBlood}>
-          <input class="focus-ring rounded-lg border px-3 py-2 text-sm sm:col-span-2" style="border-color: var(--border)" type="datetime-local" bind:value={bloodForm.date} required />
-          <input class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--border)" type="number" min="0" bind:value={bloodForm.sys} placeholder="SYS" required />
-          <input class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--border)" type="number" min="0" bind:value={bloodForm.dia} placeholder="DIA" required />
-          <input class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--border)" type="number" min="0" bind:value={bloodForm.pul} placeholder="PUL" required />
-          <button class="focus-ring rounded-lg px-4 py-2 text-sm font-medium text-white sm:col-span-5" style="background: var(--accent)" type="submit">Add</button>
+          <input class="focus-ring vault-input text-sm sm:col-span-2" type="datetime-local" bind:value={bloodForm.date} required />
+          <input class="focus-ring vault-input text-sm" type="number" min="0" bind:value={bloodForm.sys} placeholder="SYS" required />
+          <input class="focus-ring vault-input text-sm" type="number" min="0" bind:value={bloodForm.dia} placeholder="DIA" required />
+          <input class="focus-ring vault-input text-sm" type="number" min="0" bind:value={bloodForm.pul} placeholder="PUL" required />
+          <button class="focus-ring vault-btn-primary sm:col-span-5" type="submit">Add</button>
         </form>
       </div>
       <SimpleLineChart
@@ -178,17 +178,16 @@
       />
     </section>
 
-    <section>
+    <section class="vault-card p-5">
       <div class="mb-4">
-        <h2 class="text-xl font-semibold">Hormones</h2>
+        <h2 class="text-xl font-semibold" style="color: var(--foreground)">Hormones</h2>
         <p class="mt-1 text-sm" style="color: var(--muted)">Lab values with optional fields.</p>
       </div>
       <form class="mb-4 grid gap-2 sm:grid-cols-5" on:submit|preventDefault={saveHormone}>
-        <input class="focus-ring rounded-lg border px-3 py-2 text-sm" style="border-color: var(--border)" type="date" bind:value={hormoneForm.date} required />
+        <input class="focus-ring vault-input text-sm" type="date" bind:value={hormoneForm.date} required />
         {#each hormoneKeys as key}
           <input
-            class="focus-ring rounded-lg border px-3 py-2 text-sm"
-            style="border-color: var(--border)"
+            class="focus-ring vault-input text-sm"
             type="number"
             step="0.001"
             min="0"
@@ -196,7 +195,7 @@
             placeholder={key.toUpperCase()}
           />
         {/each}
-        <button class="focus-ring rounded-lg px-4 py-2 text-sm font-medium text-white sm:col-span-5" style="background: var(--accent)" type="submit">Add</button>
+        <button class="focus-ring vault-btn-primary sm:col-span-5" type="submit">Add</button>
       </form>
       <SimpleLineChart
         series={[
@@ -210,43 +209,43 @@
     </section>
 
     <section>
-      <h2 class="mb-3 text-xl font-semibold">Recent measurements</h2>
+      <h2 class="mb-3 text-xl font-semibold" style="color: var(--foreground)">Recent measurements</h2>
       {#if weights.length + blood.length + hormones.length === 0}
         <EmptyState title="No measurements yet" description="Add measurements above to populate this area." />
       {:else}
-        <div class="overflow-hidden rounded-2xl shadow-sm" style="background: var(--surface)">
+        <div class="overflow-hidden vault-card">
           <table class="w-full text-left text-sm">
-            <thead style="background: var(--background)">
-              <tr>
-                <th class="px-4 py-3 font-medium">Type</th>
-                <th class="px-4 py-3 font-medium">Date</th>
-                <th class="px-4 py-3 font-medium">Value</th>
-                <th class="px-4 py-3 font-medium"></th>
+            <thead>
+              <tr style="background: var(--background)">
+                <th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--muted)">Type</th>
+                <th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--muted)">Date</th>
+                <th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--muted)">Value</th>
+                <th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--muted)"></th>
               </tr>
             </thead>
             <tbody class="divide-y" style="border-color: var(--border)">
               {#each weights as item}
-                <tr>
-                  <td class="px-4 py-3">Weight</td>
-                  <td class="px-4 py-3">{item.payload.date}</td>
-                  <td class="px-4 py-3">{item.payload.weight} kg</td>
-                  <td class="px-4 py-3 text-right"><button class="focus-ring rounded-lg border p-2" style="border-color: var(--border)" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
+                <tr class="transition-colors hover:bg-slate-50/50">
+                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Weight</td>
+                  <td class="px-4 py-3" style="color: var(--muted)">{item.payload.date}</td>
+                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">{item.payload.weight} kg</td>
+                  <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
                 </tr>
               {/each}
               {#each blood as item}
-                <tr>
-                  <td class="px-4 py-3">Blood</td>
-                  <td class="px-4 py-3">{item.payload.date}</td>
-                  <td class="px-4 py-3">{item.payload.sys}/{item.payload.dia}, {item.payload.pul}</td>
-                  <td class="px-4 py-3 text-right"><button class="focus-ring rounded-lg border p-2" style="border-color: var(--border)" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
+                <tr class="transition-colors hover:bg-slate-50/50">
+                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Blood</td>
+                  <td class="px-4 py-3" style="color: var(--muted)">{item.payload.date}</td>
+                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">{item.payload.sys}/{item.payload.dia}, {item.payload.pul}</td>
+                  <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
                 </tr>
               {/each}
               {#each hormones as item}
-                <tr>
-                  <td class="px-4 py-3">Hormones</td>
-                  <td class="px-4 py-3">{item.payload.date}</td>
-                  <td class="px-4 py-3">Lab record</td>
-                  <td class="px-4 py-3 text-right"><button class="focus-ring rounded-lg border p-2" style="border-color: var(--border)" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
+                <tr class="transition-colors hover:bg-slate-50/50">
+                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Hormones</td>
+                  <td class="px-4 py-3" style="color: var(--muted)">{item.payload.date}</td>
+                  <td class="px-4 py-3 font-medium" style="color: var(--foreground)">Lab record</td>
+                  <td class="px-4 py-3 text-right"><button class="focus-ring vault-btn-ghost" on:click={() => removeMetric(item.record.id)}><Trash2 size={15} /></button></td>
                 </tr>
               {/each}
             </tbody>

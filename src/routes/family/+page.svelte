@@ -117,7 +117,7 @@
 </script>
 
 <PageHeader title="Family tree" description="An encrypted tree editor with a clearer visual hierarchy and quick person editing.">
-  <button class="focus-ring inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" type="button" onclick={() => newPerson(null)}>
+  <button class="focus-ring vault-btn-primary" type="button" onclick={() => newPerson(null)}>
     <Plus size={16} />
     Root person
   </button>
@@ -129,7 +129,7 @@
   <p class="text-sm" style="color: var(--muted)">Decrypting family tree...</p>
 {:else}
   <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-    <section class="min-h-96 overflow-auto rounded-2xl p-6 shadow-sm" style="background: var(--surface)">
+    <section class="min-h-96 overflow-auto vault-card p-6">
       {#if people.length === 0}
         <EmptyState title="No family tree yet" description="Create a root person to begin." />
       {:else}
@@ -143,8 +143,8 @@
       {/if}
     </section>
 
-    <aside class="rounded-2xl p-5 shadow-sm" style="background: var(--surface)">
-      <h2 class="mb-4 text-base font-semibold">{form.id ? 'Edit person' : 'Add person'}</h2>
+    <aside class="vault-card p-5 h-fit">
+      <h2 class="mb-4 text-base font-semibold" style="color: var(--foreground)">{form.id ? 'Edit person' : 'Add person'}</h2>
       <form
         class="space-y-4"
         onsubmit={(event) => {
@@ -154,7 +154,7 @@
       >
         <label class="block text-sm font-medium">
           Parent
-          <select class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.parentId}>
+          <select class="focus-ring vault-input mt-1.5" bind:value={form.parentId}>
             <option value="">No parent</option>
             {#each people.filter((person) => person.id !== form.id) as person (person.id)}
               <option value={person.id}>{person.name}</option>
@@ -163,27 +163,27 @@
         </label>
         <label class="block text-sm font-medium">
           Name
-          <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.name} required />
+          <input class="focus-ring vault-input mt-1.5" bind:value={form.name} required />
         </label>
         <label class="block text-sm font-medium">
           Relation
-          <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.relation} placeholder="mother, grandfather, sibling" />
+          <input class="focus-ring vault-input mt-1.5" bind:value={form.relation} placeholder="mother, grandfather, sibling" />
         </label>
         <div class="grid grid-cols-2 gap-3">
           <label class="block text-sm font-medium">
             Birth
-            <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" type="date" bind:value={form.birth} />
+            <input class="focus-ring vault-input mt-1.5" type="date" bind:value={form.birth} />
           </label>
           <label class="block text-sm font-medium">
             Death
-            <input class="focus-ring mt-1 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" type="date" bind:value={form.death} />
+            <input class="focus-ring vault-input mt-1.5" type="date" bind:value={form.death} />
           </label>
         </div>
         <label class="block text-sm font-medium">
           Notes
-          <textarea class="focus-ring mt-1 min-h-28 w-full rounded-lg border px-3 py-2" style="border-color: var(--border)" bind:value={form.notes}></textarea>
+          <textarea class="focus-ring vault-input mt-1.5 min-h-28" bind:value={form.notes}></textarea>
         </label>
-        <button class="focus-ring inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white" style="background: var(--accent)" type="submit">
+        <button class="focus-ring vault-btn-primary" type="submit">
           <Save size={16} />
           Save
         </button>
@@ -195,22 +195,22 @@
 {#snippet TreeNode(person: FamilyPerson, depth: number)}
   <div class="flex items-start gap-4">
     <article
-      class="w-64 rounded-xl border p-4"
+      class="w-64 vault-card p-4 transition-shadow"
       class:ring-2={selected?.id === person.id}
-      style="border-color: var(--border); background: var(--background); --tw-ring-color: var(--accent)"
+      style="--tw-ring-color: var(--accent)"
     >
       <div class="flex items-start justify-between gap-3">
         <button class="text-left hover:no-underline" type="button" onclick={() => editPerson(person)}>
-          <h3 class="font-semibold">{person.name}</h3>
+          <h3 class="font-semibold" style="color: var(--foreground)">{person.name}</h3>
           {#if person.relation}
             <p class="mt-1 text-sm" style="color: var(--muted)">{person.relation}</p>
           {/if}
         </button>
         <div class="flex gap-1">
-          <button class="focus-ring rounded-lg border p-2" style="border-color: var(--border)" type="button" onclick={() => newPerson(person.id)}>
+          <button class="focus-ring vault-btn-ghost p-1.5" type="button" onclick={() => newPerson(person.id)}>
             <Plus size={14} />
           </button>
-          <button class="focus-ring rounded-lg border p-2" style="border-color: var(--danger); color: var(--danger)" type="button" onclick={() => removePerson(person)}>
+          <button class="focus-ring vault-btn-danger p-1.5" type="button" onclick={() => removePerson(person)}>
             <Trash2 size={14} />
           </button>
         </div>
