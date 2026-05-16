@@ -444,10 +444,11 @@
   function batchExample(payload: DiagramPayload) {
     const firstHeader = isNumberAxis(payload) ? 'x' : 'date';
     const header = [firstHeader, ...payload.fields.map((field) => field.label)].join('\t');
-    const firstRowStart = isNumberAxis(payload) ? '0' : '2026-05-16 14:30';
-    const secondRowStart = isNumberAxis(payload) ? '30' : '2026-05-17 08:00';
-    const values = payload.fields.map(() => '0').join('\t');
-    return [header, `${firstRowStart}\t${values}`, `${secondRowStart}\t${values}`].join('\n');
+    const firstRowStart = isNumberAxis(payload) ? '0' : '2022-09-24 16:22';
+    const secondRowStart = isNumberAxis(payload) ? '30' : '2022-09-26 03:34';
+    const firstValues = payload.fields.map((_, index) => String(120 - index * 20)).join('\t');
+    const secondValues = payload.fields.map((_, index) => String(125 - index * 18)).join('\t');
+    return [header, `${firstRowStart}\t${firstValues}`, `${secondRowStart}\t${secondValues}`].join('\n');
   }
 
   onMount(async () => {
@@ -711,18 +712,16 @@
         {#if measurementMode === 'batch' && !editingMeasurementId}
           <div class="space-y-3 rounded-lg border p-3 text-sm" style="border-color: var(--border); color: var(--muted)">
             <p>
-              Paste a tab-separated table with one column per series. The first row must be the header row. Columns must be
-              separated with tab characters, not commas. The first column must be named
-              <code>{isNumberAxis(selected.payload) ? 'x' : 'date'}</code>. Every other column header must match a series name in this
-              diagram, for example one column each for sys, dia, and pul. Units are taken from the diagram's series setup, so value
-              cells contain numbers only. Leave a value cell empty to skip that series for that row.
+              Paste exactly one tab-separated table: row 1 is the header, every later non-empty row is one measurement, columns are
+              separated by real tab characters and not commas, every row must have the same number of columns as the header, the
+              first header must be <code>{isNumberAxis(selected.payload) ? 'x' : 'date'}</code>, {isNumberAxis(selected.payload)
+                ? 'the x column must contain a plain finite number such as 0, 30, or 120'
+                : 'the date column must contain YYYY-MM-DD HH:mm text such as 2022-09-24 16:22 and must not contain Unix timestamps'},
+              every other header must exactly match one existing series name in this diagram such as sys, dia, or pul, or
+              <code>Name (unit)</code> when that series has a unit, units are read from the diagram setup and must not be written in
+              value cells, value cells must be plain finite numbers using dot decimals, and an empty value cell skips only that series
+              for that row.
             </p>
-            <p>If a series has a unit, the header may also use <code>Name (unit)</code>, but the simpler series name is preferred.</p>
-            {#if isNumberAxis(selected.payload)}
-              <p>The <code>x</code> column is required for every row and must be numeric.</p>
-            {:else}
-              <p>The <code>date</code> column is required for every row and must use <code>YYYY-MM-DD HH:mm</code>.</p>
-            {/if}
           </div>
           <label class="block text-sm font-medium">
             Batch measurements
