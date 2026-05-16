@@ -57,14 +57,14 @@
 
 <div class="min-h-screen">
   <!-- Desktop Sidebar -->
-  <aside class="fixed inset-y-0 left-0 hidden w-64 lg:block" style="background: var(--surface); box-shadow: 1px 0 3px rgba(0,0,0,0.04)">
+  <aside class="fixed inset-y-0 left-0 hidden w-64 lg:block" style="background: var(--background); border-right: 1px solid var(--border)">
     <div class="flex h-full flex-col px-4 py-5">
-      <a href="/" class="focus-ring flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-bold text-inherit hover:no-underline">
-        <span class="grid h-9 w-9 place-items-center rounded-xl text-base font-bold text-white" style="background: var(--accent)">M</span>
+      <a href="/" class="focus-ring flex items-center gap-3 px-2 py-2 text-sm font-bold text-inherit hover:no-underline">
+        <span class="grid h-8 w-8 place-items-center text-base font-bold text-white" style="background: var(--accent)">M</span>
         Memory Vault
       </a>
 
-      <nav class="mt-8 space-y-1">
+      <nav class="mt-8 space-y-0.5">
         {#each nav as item (item.href)}
           {@const Icon = item.icon}
           {@const isActive = page.url.pathname === item.href}
@@ -86,10 +86,10 @@
   </aside>
 
   <!-- Mobile Header -->
-  <header class="sticky top-0 z-10 border-b px-4 py-3 lg:hidden" style="border-color: var(--border); background: var(--surface)">
+  <header class="sticky top-0 z-10 border-b px-4 py-3 lg:hidden" style="border-color: var(--border); background: var(--background)">
     <div class="flex items-center justify-between">
       <a href="/" class="flex items-center gap-2.5 font-bold text-inherit hover:no-underline">
-        <span class="grid h-8 w-8 place-items-center rounded-lg text-sm font-bold text-white" style="background: var(--accent)">M</span>
+        <span class="grid h-8 w-8 place-items-center text-sm font-bold text-white" style="background: var(--accent)">M</span>
         Memory Vault
       </a>
       <button class="focus-ring vault-btn-ghost" type="button" onclick={toggleDrawer} aria-label="Open menu">
@@ -102,7 +102,7 @@
   {#if drawerOpen}
     <div class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" transition:fade={{ duration: 200 }}>
       <div
-        class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        class="absolute inset-0 bg-black/50"
         role="button"
         tabindex="-1"
         aria-label="Close menu"
@@ -111,7 +111,7 @@
       ></div>
       <aside
         class="absolute right-0 top-0 h-full w-72"
-        style="background: var(--surface); box-shadow: -4px 0 24px rgba(0,0,0,0.08)"
+        style="background: var(--background); border-left: 1px solid var(--border)"
         transition:fly={{ x: 300, duration: 300, easing: cubicOut }}
       >
         <div class="flex items-center justify-between border-b px-4 py-3" style="border-color: var(--border)">
@@ -121,7 +121,7 @@
           </button>
         </div>
 
-        <nav class="p-3 space-y-0.5">
+        <nav class="p-2 space-y-0.5">
           {#each nav as item (item.href)}
             {@const Icon = item.icon}
             {@const isActive = page.url.pathname === item.href}

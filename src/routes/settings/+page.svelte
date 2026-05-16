@@ -84,7 +84,7 @@
   <VaultNotice />
 {:else}
   <section class="max-w-xl vault-card p-6">
-    <h2 class="text-base font-semibold" style="color: var(--foreground)">Change password</h2>
+    <h2 class="text-sm font-semibold" style="color: var(--foreground)">Change password</h2>
     <p class="mt-2 text-sm leading-relaxed" style="color: var(--muted)">
       This re-encrypts the data key in the browser. Existing encrypted records do not need to be rewritten.
     </p>

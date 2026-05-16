@@ -84,7 +84,7 @@
 {:else}
   <div class="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
     <form class="vault-card p-5 h-fit" on:submit|preventDefault={saveCounter}>
-      <h2 class="mb-4 text-base font-semibold" style="color: var(--foreground)">New counter</h2>
+      <h2 class="mb-4 text-sm font-semibold" style="color: var(--foreground)">New counter</h2>
       <label class="block text-sm font-medium">
         Name
         <input class="focus-ring vault-input mt-1.5" bind:value={form.name} required />
@@ -114,11 +114,11 @@
       {:else}
         <div class="grid gap-4 sm:grid-cols-2">
           {#each counters as item}
-            <article class="vault-card p-5 relative overflow-hidden">
-              <div class="flex items-start justify-between gap-3 relative">
+            <article class="vault-card p-5">
+              <div class="flex items-start justify-between gap-3">
                 <div>
-                  <h2 class="text-base font-semibold" style="color: var(--foreground)">{item.payload.name}</h2>
-                  <p class="mt-1 text-sm" style="color: var(--muted)">Since {item.payload.initiated}</p>
+                  <h2 class="text-sm font-semibold" style="color: var(--foreground)">{item.payload.name}</h2>
+                  <p class="mt-1 text-xs" style="color: var(--muted)">Since {item.payload.initiated}</p>
                 </div>
                 <div class="flex gap-2">
                   <button class="focus-ring vault-btn-ghost" type="button" on:click={() => resetCounter(item)}>
@@ -129,12 +129,12 @@
                   </button>
                 </div>
               </div>
-              <p class="mt-6 text-5xl font-extrabold tracking-tight" style="color: var(--foreground)">{elapsedDays(item.payload.initiated)}</p>
+              <p class="mt-6 text-4xl font-bold tracking-tight" style="color: var(--foreground)">{elapsedDays(item.payload.initiated)}</p>
               <p class="mt-1 text-sm font-medium" style="color: var(--muted)">days elapsed</p>
               {#if item.payload.maxDays !== null}
-                <div class="mt-4 h-2 overflow-hidden rounded-full" style="background: var(--border)">
+                <div class="mt-4 h-1.5 overflow-hidden" style="background: var(--border)">
                   <div
-                    class="h-full rounded-full"
+                    class="h-full"
                     style={`background: var(--accent); width: ${Math.min(100, (elapsedDays(item.payload.initiated) / item.payload.maxDays) * 100)}%`}
                   ></div>
                 </div>

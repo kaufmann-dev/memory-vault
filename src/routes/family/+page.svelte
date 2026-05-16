@@ -144,7 +144,7 @@
     </section>
 
     <aside class="vault-card p-5 h-fit">
-      <h2 class="mb-4 text-base font-semibold" style="color: var(--foreground)">{form.id ? 'Edit person' : 'Add person'}</h2>
+      <h2 class="mb-4 text-sm font-semibold" style="color: var(--foreground)">{form.id ? 'Edit person' : 'Add person'}</h2>
       <form
         class="space-y-4"
         onsubmit={(event) => {
@@ -201,9 +201,9 @@
     >
       <div class="flex items-start justify-between gap-3">
         <button class="text-left hover:no-underline" type="button" onclick={() => editPerson(person)}>
-          <h3 class="font-semibold" style="color: var(--foreground)">{person.name}</h3>
+          <h3 class="font-semibold text-sm" style="color: var(--foreground)">{person.name}</h3>
           {#if person.relation}
-            <p class="mt-1 text-sm" style="color: var(--muted)">{person.relation}</p>
+            <p class="mt-1 text-xs" style="color: var(--muted)">{person.relation}</p>
           {/if}
         </button>
         <div class="flex gap-1">

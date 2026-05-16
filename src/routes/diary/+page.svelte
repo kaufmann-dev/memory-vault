@@ -131,8 +131,8 @@
           <article class="vault-card p-5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 class="text-lg font-semibold" style="color: var(--foreground)">{item.payload.title || 'Untitled'}</h2>
-                <p class="mt-1 text-sm" style="color: var(--muted)">
+                <h2 class="text-base font-semibold" style="color: var(--foreground)">{item.payload.title || 'Untitled'}</h2>
+                <p class="mt-1 text-xs" style="color: var(--muted)">
                   {item.payload.occurredAt} · {item.payload.language} · {item.payload.wordCount} words
                 </p>
               </div>
@@ -158,7 +158,7 @@
 
     <aside class="vault-card p-5">
       <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-base font-semibold" style="color: var(--foreground)">{editingId ? 'Edit entry' : 'New entry'}</h2>
+        <h2 class="text-sm font-semibold" style="color: var(--foreground)">{editingId ? 'Edit entry' : 'New entry'}</h2>
         {#if editingId}
           <button class="focus-ring vault-btn-ghost" type="button" on:click={startCreate}>
             <X size={16} />
