@@ -65,7 +65,7 @@
   let minYRaw = $derived(yValues.length ? Math.min(...yValues) : 0);
   let maxYRaw = $derived(yValues.length ? Math.max(...yValues) : 1);
   let yPadding = $derived(Math.max((maxYRaw - minYRaw) * 0.08, maxYRaw === minYRaw ? 1 : 0));
-  let minY = $derived(Math.min(0, minYRaw - yPadding));
+  let minY = $derived(minYRaw - yPadding);
   let maxY = $derived(maxYRaw + yPadding);
   let xRange = $derived(maxX - minX || 1);
   let yRange = $derived(maxY - minY || 1);
