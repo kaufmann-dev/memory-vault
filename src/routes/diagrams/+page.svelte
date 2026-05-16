@@ -29,6 +29,8 @@
     values: Record<string, number | null>;
   };
 
+  type MeasurementMode = 'single' | 'batch';
+
   const colors = ['#2563eb', '#dc2626', '#0f766e', '#ca8a04', '#9333ea', '#0891b2'];
   const todayDateTime = () => new Date().toISOString().slice(0, 16);
   const defaultXAxis = () => ({ type: 'datetime' as const, label: 'Date', unit: '' });
@@ -55,6 +57,9 @@
   let editingMeasurementId: string | null = $state(null);
   let diagramForm = $state(emptyDiagram());
   let measurementForm = $state(emptyMeasurement());
+  let measurementMode: MeasurementMode = $state('single');
+  let batchText = $state('');
+  let batchError = $state('');
   let diagramFormOpen = $state(false);
   let measurementFormOpen = $state(false);
 
@@ -90,7 +95,10 @@
 
   function resetMeasurement(payload: DiagramPayload | null = selected?.payload ?? null) {
     measurementForm = emptyMeasurement(payload?.fields ?? []);
+    measurementMode = 'single';
     editingMeasurementId = null;
+    batchText = '';
+    batchError = '';
   }
 
   function selectDiagram(item: DiagramItem) {
@@ -218,17 +226,112 @@
   function openCreateMeasurement(item: DiagramItem) {
     editingMeasurementId = null;
     measurementForm = emptyMeasurement(item.payload.fields);
+    measurementMode = 'single';
+    batchText = '';
+    batchError = '';
     measurementFormOpen = true;
   }
 
   function openEditMeasurement(item: DiagramItem, measurement: DiagramMeasurement) {
     editingMeasurementId = measurement.id;
+    measurementMode = 'single';
+    batchText = '';
+    batchError = '';
     measurementForm = {
       date: measurement.date,
       x: measurement.x ?? null,
       values: Object.fromEntries(item.payload.fields.map((field) => [field.id, measurement.values[field.id] ?? null]))
     };
     measurementFormOpen = true;
+  }
+
+  function setMeasurementMode(mode: MeasurementMode) {
+    measurementMode = mode;
+    batchError = '';
+  }
+
+  function fieldByLabel(fields: DiagramField[]) {
+    const labels: Array<{ label: string; field: DiagramField }> = [];
+    for (const field of fields) {
+      const label = field.label.trim();
+      if (labels.some((entry) => entry.label === label)) {
+        throw new Error(`Series labels must be unique before batch import. "${label}" is used more than once.`);
+      }
+      labels.push({ label, field });
+    }
+    return labels;
+  }
+
+  function normalizeBatchDate(value: string, rowNumber: number) {
+    const match = value.trim().match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$/);
+    if (!match) throw new Error(`Row ${rowNumber}: the date must use YYYY-MM-DD HH:mm.`);
+    const normalized = `${match[1]}T${match[2]}`;
+    if (Number.isNaN(new Date(normalized).getTime())) throw new Error(`Row ${rowNumber}: the date is not valid.`);
+    return normalized;
+  }
+
+  function parseBatchNumber(value: string, rowNumber: number, column: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) throw new Error(`Row ${rowNumber}: "${column}" must be a number.`);
+    return parsed;
+  }
+
+  function parseBatchMeasurements(item: DiagramItem) {
+    const lines = batchText
+      .split('\n')
+      .map((line) => line.replace(/\r$/, ''))
+      .filter((line) => line.trim());
+    if (lines.length < 2) throw new Error('Paste one header row and at least one measurement row.');
+
+    const header = lines[0].split('\t').map((column) => column.trim());
+    const expectedFirstColumn = isNumberAxis(item.payload) ? 'x' : 'date';
+    if (header[0] !== expectedFirstColumn) throw new Error(`The first column header must be "${expectedFirstColumn}".`);
+    if (header.length < 2) throw new Error('Add at least one series column after the first column.');
+
+    const labels = fieldByLabel(item.payload.fields);
+    const fields = header.slice(1).map((label) => {
+      const field = labels.find((entry) => entry.label === label)?.field;
+      if (!field) throw new Error(`The column "${label}" does not match any series label.`);
+      return field;
+    });
+    if (fields.some((field, index) => fields.findIndex((candidate) => candidate.id === field.id) !== index)) {
+      throw new Error('Each series label can only appear once in the header row.');
+    }
+
+    return lines.slice(1).map((line, index): DiagramMeasurement => {
+      const rowNumber = index + 2;
+      const cells = line.split('\t');
+      if (cells.length !== header.length) {
+        throw new Error(`Row ${rowNumber}: expected ${header.length} tab-separated columns, got ${cells.length}.`);
+      }
+      const values: Record<string, number | null> = Object.fromEntries(item.payload.fields.map((field) => [field.id, null]));
+      for (const [cellIndex, field] of fields.entries()) {
+        values[field.id] = parseBatchNumber(cells[cellIndex + 1], rowNumber, field.label);
+      }
+      if (!Object.values(values).some((value) => value !== null)) {
+        throw new Error(`Row ${rowNumber}: at least one series value is required.`);
+      }
+
+      if (isNumberAxis(item.payload)) {
+        const xValue = parseBatchNumber(cells[0], rowNumber, 'x');
+        if (xValue === null) throw new Error(`Row ${rowNumber}: "x" is required.`);
+        return {
+          id: randomId(),
+          date: todayDateTime(),
+          x: xValue,
+          values
+        };
+      }
+
+      return {
+        id: randomId(),
+        date: normalizeBatchDate(cells[0], rowNumber),
+        x: null,
+        values
+      };
+    });
   }
 
   function closeMeasurementForm(item: DiagramItem) {
@@ -264,6 +367,31 @@
       {
         ...item.payload,
         measurements
+      },
+      dek
+    );
+    resetMeasurement(item.payload);
+    measurementFormOpen = false;
+    await loadDiagrams();
+  }
+
+  async function saveBatchMeasurements(item: DiagramItem) {
+    if (!dek) return;
+    batchError = '';
+    let imported: DiagramMeasurement[];
+    try {
+      imported = parseBatchMeasurements(item);
+    } catch (error) {
+      batchError = error instanceof Error ? error.message : 'The batch text could not be imported.';
+      return;
+    }
+
+    await updateEncryptedRecord(
+      item.record.id,
+      'diagram',
+      {
+        ...item.payload,
+        measurements: [...item.payload.measurements, ...imported]
       },
       dek
     );
@@ -308,6 +436,15 @@
       })
       .filter(Boolean)
       .join(', ');
+  }
+
+  function batchExample(payload: DiagramPayload) {
+    const firstHeader = isNumberAxis(payload) ? 'x' : 'date';
+    const header = [firstHeader, ...payload.fields.map((field) => field.label)].join('\t');
+    const firstRowStart = isNumberAxis(payload) ? '0' : '2026-05-16 14:30';
+    const secondRowStart = isNumberAxis(payload) ? '30' : '2026-05-17 08:00';
+    const values = payload.fields.map(() => '0').join('\t');
+    return [header, `${firstRowStart}\t${values}`, `${secondRowStart}\t${values}`].join('\n');
   }
 
   onMount(async () => {
@@ -532,7 +669,7 @@
   {#if selected}
     <EntryModal
       open={measurementFormOpen}
-      title={editingMeasurementId ? 'Edit measurement' : 'New measurement'}
+      title={editingMeasurementId ? 'Edit measurement' : measurementMode === 'batch' ? 'Batch add measurements' : 'New measurement'}
       description={`${editingMeasurementId ? 'Update' : 'Add'} values to ${selected.payload.title}. Empty series are skipped.`}
       onClose={() => closeMeasurementForm(selected)}
     >
@@ -540,37 +677,91 @@
         class="space-y-4"
         onsubmit={(event) => {
           event.preventDefault();
-          saveMeasurement(selected);
+          if (measurementMode === 'batch' && !editingMeasurementId) {
+            saveBatchMeasurements(selected);
+          } else {
+            saveMeasurement(selected);
+          }
         }}
       >
-        {#if isNumberAxis(selected.payload)}
-          <label class="block text-sm font-medium">
-            {xAxis(selected.payload).unit
-              ? `${xAxis(selected.payload).label} (${xAxis(selected.payload).unit})`
-              : xAxis(selected.payload).label}
-            <input class="focus-ring vault-input mt-1.5" type="number" step="0.001" bind:value={measurementForm.x} required />
-          </label>
-        {:else}
-          <label class="block text-sm font-medium">
-            Date
-            <input class="focus-ring vault-input mt-1.5" type="datetime-local" bind:value={measurementForm.date} required />
-          </label>
+        {#if !editingMeasurementId}
+          <div class="inline-flex rounded-lg border p-1" style="border-color: var(--border)">
+            <button
+              class="focus-ring rounded-md px-3 py-1.5 text-sm font-medium"
+              class:vault-btn-primary={measurementMode === 'single'}
+              type="button"
+              onclick={() => setMeasurementMode('single')}
+            >
+              Single
+            </button>
+            <button
+              class="focus-ring rounded-md px-3 py-1.5 text-sm font-medium"
+              class:vault-btn-primary={measurementMode === 'batch'}
+              type="button"
+              onclick={() => setMeasurementMode('batch')}
+            >
+              Batch
+            </button>
+          </div>
         {/if}
-        <div class="grid gap-3 sm:grid-cols-2">
-          {#each selected.payload.fields as field (field.id)}
+
+        {#if measurementMode === 'batch' && !editingMeasurementId}
+          <div class="space-y-3 rounded-lg border p-3 text-sm" style="border-color: var(--border); color: var(--muted)">
+            <p>
+              Paste a tab-separated table. The first row must be the header row. Columns must be separated with tab characters,
+              not commas. The first column must be named
+              <code>{isNumberAxis(selected.payload) ? 'x' : 'date'}</code>. Every other column name must exactly match one of this
+              diagram's series labels. Number cells use a dot for decimals. Leave a value cell empty to skip that series for that row.
+            </p>
+            {#if isNumberAxis(selected.payload)}
+              <p>The <code>x</code> column is required for every row and must be numeric.</p>
+            {:else}
+              <p>The <code>date</code> column is required for every row and must use <code>YYYY-MM-DD HH:mm</code>.</p>
+            {/if}
+          </div>
+          <label class="block text-sm font-medium">
+            Batch measurements
+            <textarea class="focus-ring vault-input mt-1.5 min-h-60 font-mono text-xs" bind:value={batchText} spellcheck="false"></textarea>
+          </label>
+          <div class="rounded-lg border p-3" style="border-color: var(--border)">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted)">Example</p>
+            <pre class="overflow-auto whitespace-pre-wrap text-xs" style="color: var(--foreground)">{batchExample(selected.payload)}</pre>
+          </div>
+          {#if batchError}
+            <p class="text-sm font-medium" style="color: var(--danger)">{batchError}</p>
+          {/if}
+        {:else}
+          {#if isNumberAxis(selected.payload)}
             <label class="block text-sm font-medium">
-              {field.unit ? `${field.label} (${field.unit})` : field.label}
-              <input
-                class="focus-ring vault-input mt-1.5"
-                type="number"
-                step="0.001"
-                bind:value={measurementForm.values[field.id]}
-              />
+              {xAxis(selected.payload).unit
+                ? `${xAxis(selected.payload).label} (${xAxis(selected.payload).unit})`
+                : xAxis(selected.payload).label}
+              <input class="focus-ring vault-input mt-1.5" type="number" step="0.001" bind:value={measurementForm.x} required />
             </label>
-          {/each}
-        </div>
+          {:else}
+            <label class="block text-sm font-medium">
+              Date
+              <input class="focus-ring vault-input mt-1.5" type="datetime-local" bind:value={measurementForm.date} required />
+            </label>
+          {/if}
+          <div class="grid gap-3 sm:grid-cols-2">
+            {#each selected.payload.fields as field (field.id)}
+              <label class="block text-sm font-medium">
+                {field.unit ? `${field.label} (${field.unit})` : field.label}
+                <input
+                  class="focus-ring vault-input mt-1.5"
+                  type="number"
+                  step="0.001"
+                  bind:value={measurementForm.values[field.id]}
+                />
+              </label>
+            {/each}
+          </div>
+        {/if}
         <div class="flex justify-end">
-          <button class="focus-ring vault-btn-primary" type="submit">{editingMeasurementId ? 'Save' : 'Add'}</button>
+          <button class="focus-ring vault-btn-primary" type="submit">
+            {editingMeasurementId ? 'Save' : measurementMode === 'batch' ? 'Add measurements' : 'Add'}
+          </button>
         </div>
       </form>
     </EntryModal>
