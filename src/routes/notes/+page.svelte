@@ -435,7 +435,7 @@
 
       <label class="block text-sm font-medium">
         Note
-        <textarea class="focus-ring vault-input mt-1.5 min-h-36" bind:value={noteForm.text} maxlength="1200" required></textarea>
+        <textarea class="focus-ring vault-input mt-1.5 min-h-36" bind:value={noteForm.text} maxlength="20000" required></textarea>
       </label>
 
       <label class="note-pin-toggle">
@@ -464,7 +464,7 @@
       </div>
 
       <div class="note-form-footer">
-        <span class="text-sm" style="color: var(--muted)">{noteForm.text.length}/1200</span>
+        <span class="text-sm" style="color: var(--muted)">{noteForm.text.length}/20000</span>
         <div class="note-form-actions">
           {#if editingNoteId}
             <button class="focus-ring vault-btn-danger" type="button" onclick={removeCurrentNote} disabled={saving}>
