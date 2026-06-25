@@ -7,13 +7,13 @@
 ## UI & Styling
 - tailwindcss
 - shadcn-svelte
-- @iconify/tailwind4
 - mode-watcher
+- @lucide/svelte
 
 ## Data & Auth
 - postgresql
 - drizzle
-- better-auth
+- Custom session-based auth (token hash, httpOnly cookie)
 
 ---
 
@@ -53,7 +53,7 @@ Additional principles:
 - **PBKDF2:** 310,000 iterations, SHA-256
 - **Salt:** 16 random bytes, generated at account creation, stored in plaintext (not secret)
 - **IV:** 12 random bytes, generated fresh for every encrypt call, stored alongside ciphertext
-- **Key lifetime:** DEK held in a memory-only Svelte store, never written to `localStorage`, `sessionStorage`, a cookie, or the DOM. Gone when the tab closes.
+- **Key lifetime:** DEK held in a memory-only Svelte store, never written to `localStorage`, `sessionStorage`, a cookie, or the DOM. Gone when the tab closes. As an optional convenience, a non-extractable copy of the DEK may be persisted to IndexedDB for "remember this device" functionality (see `src/lib/client/rememberedDevice.ts`).
 - **SSR:** Decryption must always happen client-side (e.g. `onMount`), never during server-side rendering
 
 ### What to store in the database
@@ -93,6 +93,11 @@ export async function deriveKEK(password: string, saltB64: string): Promise<Cryp
 
 export async function generateDEK(): Promise<CryptoKey> {
   return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+}
+
+export async function makeDEKNonExtractable(dek: CryptoKey): Promise<CryptoKey> {
+  const raw = await crypto.subtle.exportKey('raw', dek);
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
 export async function encryptDEK(kek: CryptoKey, dek: CryptoKey) {
@@ -154,6 +159,7 @@ export async function unlockVault(password: string, kekSalt: string, encryptedDE
   const kek = await deriveKEK(password, kekSalt);
   const dek = await decryptDEK(kek, encryptedDEK, dekIV);
   sessionDEK.set(dek);
+  return dek;
 }
 
 export function lockVault() {
@@ -177,23 +183,31 @@ the plaintext DEK or KEK — only the encrypted DEK and the salt arrive in the p
 
 ### Login flow
 
-The salt and encrypted DEK are already available on the login page via SvelteKit's `load`
-function — no API call or session required, since neither value is secret.
+Account authentication and vault unlocking are two separate steps.
 
-```ts
-// src/routes/login/+page.server.ts
-export const load = async () => {
-  const user = await db.query.users.findFirst();
-  return { kekSalt: user.kekSalt, encryptedDEK: user.encryptedDek, dekIV: user.dekIv };
-};
-```
+**Step 1 — Account login:**
+The login page (`src/routes/login/+page.server.ts`) only checks whether an admin user exists and
+returns `{ hasAdmin }`. No crypto fields are exposed at this stage.
 
-```
-1. load() returns { kekSalt, encryptedDEK, dekIV } before the page renders
-2. User submits login form (password in scope)
-3. unlockVault(password, kekSalt, encryptedDEK, dekIV)  →  DEK stored in sessionDEK
-4. Proceed with auth library sign-in as normal
-```
+- If `hasAdmin` is true: the user submits email + account password → POST `/api/auth/login` →
+  server validates credentials, creates a session cookie → redirect to `/`.
+- If `hasAdmin` is false (first setup): the user fills in name, email, account password, and vault
+  passphrase → client-side key generation (see Account Creation above) → POST `/api/auth/setup` →
+  server creates the user and session → DEK stored in `sessionDEK` → redirect to `/`.
+
+**Step 2 — Vault unlock:**
+After account login, the app renders `VaultUnlockGate` (`src/lib/components/VaultUnlockGate.svelte`).
+This component gates all content behind the in-memory DEK:
+
+1. On mount, try `loadRememberedDEK(email)` from IndexedDB. If found, restore it to `sessionDEK`.
+2. If no remembered key, prompt for the vault passphrase.
+3. User enters vault passphrase → `unlockVault(passphrase, user.kekSalt, user.encryptedDEK, user.dekIV)`
+   → DEK stored in `sessionDEK`.
+4. If "remember this device" is checked, `saveRememberedDEK(email, dek)` persists the raw DEK to IndexedDB.
+
+The `SafeUser` type (returned by `toSafeUser` in `src/lib/server/auth.ts`) carries `kekSalt`,
+`encryptedDEK`, and `dekIV` alongside the user identity fields, so they are available everywhere
+after authentication without additional API calls.
 
 ### Encrypting content (write path)
 
