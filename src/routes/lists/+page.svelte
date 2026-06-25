@@ -197,17 +197,17 @@
           {#if selected.payload.description}
             <Card.Description>{selected.payload.description}</Card.Description>
           {/if}
-          <Card.Action class="flex gap-2">
-            <Button size="sm" onclick={() => (taskFormOpen = true)}>
-              <Plus class="size-4" /> Add
+          <Card.Action class="flex gap-1">
+            <Button variant="ghost" size="icon" onclick={() => (taskFormOpen = true)} aria-label="Add task">
+              <Plus class="size-4" />
             </Button>
-            <Button variant="outline" size="sm" onclick={() => openEditList(selected)}>
-              <Pencil class="size-4" /> Edit
+            <Button variant="ghost" size="icon" onclick={() => openEditList(selected)} aria-label="Edit list">
+              <Pencil class="size-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              class="text-destructive hover:text-destructive size-8"
+              class="text-destructive hover:text-destructive"
               onclick={() => removeList(selected)}
               aria-label="Delete list"
             >
