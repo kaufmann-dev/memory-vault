@@ -79,6 +79,7 @@
       <LineChart
         x="x"
         y="y"
+        yBaseline={null}
         series={seriesDefs}
         props={{
           spline: { motion: 'none', class: 'stroke-2' },
