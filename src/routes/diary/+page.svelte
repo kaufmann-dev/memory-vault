@@ -127,7 +127,7 @@
     {:else if $diaryEntries.length === 0}
       <EmptyState title="No diary entries yet" description="Create the first encrypted entry when you are ready." />
     {:else}
-      <div class="bg-background sticky top-14 z-[5] flex flex-col gap-3 border-y py-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <div class="flex flex-col gap-3 border-y py-3 sm:flex-row sm:flex-wrap sm:items-end">
         <div class="relative min-w-0 flex-1">
           <Search class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input bind:value={query} placeholder="Search entries, tags, languages" class="pl-9" aria-label="Search diary entries" />
