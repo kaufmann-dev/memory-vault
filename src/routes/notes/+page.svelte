@@ -15,6 +15,13 @@
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { Pencil, Pin, Plus, Search, Trash2, X } from '@lucide/svelte';
+  import * as Card from '$lib/components/ui/card/index.js';
+  import * as Select from '$lib/components/ui/select/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import { Label } from '$lib/components/ui/label/index.js';
+  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 
   type NoteItem = {
     record: EncryptedRecord;
@@ -295,129 +302,132 @@
 </script>
 
 <PageHeader title="Notes" description="Short encrypted notes for quick capture and cleanup.">
-  <button class="focus-ring vault-btn-primary" onclick={openCreateNote} type="button">
-    <Plus size={16} />
+  <Button onclick={openCreateNote}>
+    <Plus class="size-4" />
     New
-  </button>
+  </Button>
 </PageHeader>
 
 {#if locked}
   <VaultNotice />
 {:else}
-  <div class="notes-layout">
-    <aside class="notes-groups" aria-label="Note groups">
-      <div class="notes-groups__header">
-        <h2>Groups</h2>
-        <button class="focus-ring vault-btn-ghost" type="button" onclick={openCreateGroup} aria-label="New group">
-          <Plus size={15} />
-        </button>
+  {#snippet groupButton(id: string, label: string, count: number, color: string, editable: boolean, group: GroupItem | null)}
+    <div class="flex items-center gap-1">
+      <Button
+        variant={activeGroupId === id ? 'secondary' : 'ghost'}
+        class="h-9 flex-1 justify-start gap-2 px-2.5"
+        onclick={() => (activeGroupId = id)}
+      >
+        <span class="size-2.5 shrink-0 rounded-full" style="background: {color}"></span>
+        <span class="flex-1 truncate text-left">{label}</span>
+        <span class="text-muted-foreground text-xs font-semibold">{count}</span>
+      </Button>
+      {#if editable && group}
+        <Button variant="ghost" size="icon" class="size-8" onclick={() => openEditGroup(group)} aria-label="Edit group">
+          <Pencil class="size-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          class="text-muted-foreground hover:text-destructive size-8"
+          onclick={() => removeGroup(group)}
+          aria-label="Delete group"
+        >
+          <Trash2 class="size-3.5" />
+        </Button>
+      {/if}
+    </div>
+  {/snippet}
+
+  <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
+    <aside class="grid content-start gap-1" aria-label="Note groups">
+      <div class="mb-1 flex items-center justify-between">
+        <h2 class="text-sm font-semibold">Groups</h2>
+        <Button variant="ghost" size="icon" class="size-8" onclick={openCreateGroup} aria-label="New group">
+          <Plus class="size-4" />
+        </Button>
       </div>
 
-      <button class="focus-ring notes-group" class:notes-group--active={activeGroupId === 'all'} type="button" onclick={() => (activeGroupId = 'all')}>
-        <span class="notes-group__dot" style="background: var(--foreground)"></span>
-        <span>All notes</span>
-        <strong>{notes.length}</strong>
-      </button>
-      <button class="focus-ring notes-group" class:notes-group--active={activeGroupId === 'ungrouped'} type="button" onclick={() => (activeGroupId = 'ungrouped')}>
-        <span class="notes-group__dot" style="background: var(--border-strong)"></span>
-        <span>Ungrouped</span>
-        <strong>{ungroupedCount}</strong>
-      </button>
+      {@render groupButton('all', 'All notes', notes.length, 'var(--foreground)', false, null)}
+      {@render groupButton('ungrouped', 'Ungrouped', ungroupedCount, 'var(--border)', false, null)}
 
-      <div class="notes-groups__list">
-        {#each groups as group (group.record.id)}
-          <div class="notes-group-row">
-            <button
-              class="focus-ring notes-group"
-              class:notes-group--active={activeGroupId === group.record.id}
-              type="button"
-              onclick={() => (activeGroupId = group.record.id)}
-            >
-              <span class="notes-group__dot" style={`background: ${group.payload.color}`}></span>
-              <span>{group.payload.name}</span>
-              <strong>{groupCount(group.record.id)}</strong>
-            </button>
-            <button class="focus-ring vault-btn-ghost" type="button" onclick={() => openEditGroup(group)} aria-label="Edit group">
-              <Pencil size={14} />
-            </button>
-            <button class="focus-ring vault-btn-ghost" type="button" onclick={() => removeGroup(group)} aria-label="Delete group">
-              <Trash2 size={14} />
-            </button>
-          </div>
-        {/each}
-      </div>
+      {#each groups as group (group.record.id)}
+        {@render groupButton(group.record.id, group.payload.name, groupCount(group.record.id), group.payload.color, true, group)}
+      {/each}
     </aside>
 
-    <section class="notes-main">
-      <div class="notes-tools" aria-label="Note filters">
-        <label class="notes-search">
-          <span class="sr-only">Search notes</span>
-          <Search size={16} />
-          <input bind:value={query} placeholder="Search notes and groups" />
-        </label>
-
-        <select class="focus-ring vault-input notes-sort" bind:value={sortOrder} aria-label="Sort notes">
-          <option value="newest">Newest updated</option>
-          <option value="oldest">Oldest updated</option>
-        </select>
-
+    <section class="min-w-0">
+      <div class="bg-background sticky top-14 z-[5] flex flex-wrap items-center gap-3 border-y py-3">
+        <div class="relative min-w-0 flex-1">
+          <Search class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <Input bind:value={query} placeholder="Search notes and groups" class="pl-9" aria-label="Search notes" />
+        </div>
+        <Select.Root type="single" value={sortOrder} onValueChange={(value) => (sortOrder = value as SortOrder)}>
+          <Select.Trigger class="w-44">{sortOrder === 'newest' ? 'Newest updated' : 'Oldest updated'}</Select.Trigger>
+          <Select.Content>
+            <Select.Item value="newest" label="Newest updated">Newest updated</Select.Item>
+            <Select.Item value="oldest" label="Oldest updated">Oldest updated</Select.Item>
+          </Select.Content>
+        </Select.Root>
         {#if hasFilters}
-          <button class="focus-ring vault-btn-ghost" type="button" onclick={clearFilters}>
-            <X size={15} />
-            Clear
-          </button>
+          <Button variant="ghost" size="sm" onclick={clearFilters}>
+            <X class="size-4" /> Clear
+          </Button>
         {/if}
       </div>
 
-      {#if loading}
-        <p class="text-sm" style="color: var(--muted)">Decrypting notes...</p>
-      {:else if notes.length === 0}
-        <EmptyState title="No notes yet" description="Create a short encrypted note when something needs a temporary place." />
-      {:else if filteredNotes.length === 0}
-        <EmptyState title="No matching notes" description="Clear filters or search for a different note." />
-      {:else}
-        <div class="notes-list">
-          {#each filteredNotes as item (item.record.id)}
-            <article class="note-card" class:note-card--pinned={item.payload.pinned}>
-              <button
-                class="focus-ring note-card__pin"
-                class:note-card__pin--active={item.payload.pinned}
-                type="button"
-                onclick={() => togglePinned(item)}
-                aria-label={item.payload.pinned ? 'Unpin note' : 'Pin note'}
-                aria-pressed={item.payload.pinned}
-                title={item.payload.pinned ? 'Unpin note' : 'Pin note'}
-              >
-                <Pin size={15} />
-              </button>
-              <button
-                class="focus-ring note-card__open"
-                type="button"
-                onclick={() => openNote(item)}
-                aria-label={item.payload.title ? `Open note: ${item.payload.title}` : 'Open note'}
-              >
-                <span class="note-card__content">
-                  {#if item.payload.title}
-                    <span class="note-card__title">{item.payload.title}</span>
-                  {/if}
-                  <span class="note-card__body">{item.payload.text}</span>
-                </span>
-                <span class="note-card__meta">
-                  <time datetime={item.payload.updatedAt}>{formatDate(item.payload.updatedAt)}</time>
-                  <span class="note-card__groups">
+      <div class="mt-4">
+        {#if loading}
+          <p class="text-muted-foreground text-sm">Decrypting notes…</p>
+        {:else if notes.length === 0}
+          <EmptyState title="No notes yet" description="Create a short encrypted note when something needs a temporary place." />
+        {:else if filteredNotes.length === 0}
+          <EmptyState title="No matching notes" description="Clear filters or search for a different note." />
+        {:else}
+          <div class="grid gap-3 xl:grid-cols-2">
+            {#each filteredNotes as item (item.record.id)}
+              <Card.Root class="relative gap-0 py-0 {item.payload.pinned ? 'border-primary/40 bg-muted/40' : ''}">
+                <button
+                  type="button"
+                  onclick={() => togglePinned(item)}
+                  aria-label={item.payload.pinned ? 'Unpin note' : 'Pin note'}
+                  aria-pressed={item.payload.pinned}
+                  class="bg-background hover:border-primary hover:text-primary absolute top-2.5 right-2.5 z-[2] grid size-8 place-items-center rounded-full border transition-colors {item.payload.pinned ? 'border-primary text-primary' : 'text-muted-foreground'}"
+                >
+                  <Pin class="size-3.5 {item.payload.pinned ? 'fill-current' : ''}" />
+                </button>
+                <button
+                  type="button"
+                  onclick={() => openNote(item)}
+                  aria-label={item.payload.title ? `Open note: ${item.payload.title}` : 'Open note'}
+                  class="hover:bg-muted/40 grid w-full gap-3 rounded-xl p-4 text-left transition-colors"
+                >
+                  <span class="grid min-w-0 gap-1.5">
+                    {#if item.payload.title}
+                      <span class="truncate pr-8 font-semibold">{item.payload.title}</span>
+                    {/if}
+                    <span class="line-clamp-5 text-sm leading-relaxed break-words whitespace-pre-wrap">{item.payload.text}</span>
+                  </span>
+                  <span class="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+                    <time datetime={item.payload.updatedAt}>{formatDate(item.payload.updatedAt)}</time>
                     {#each item.payload.groupIds as groupId (groupId)}
                       {@const group = groupById.get(groupId)}
                       {#if group}
-                        <span class="note-chip" style={`--chip-color: ${group.payload.color}`}>{group.payload.name}</span>
+                        <span
+                          class="rounded-full border px-2 py-0.5 text-[0.6875rem] font-semibold"
+                          style="border-color: color-mix(in srgb, {group.payload.color} 45%, transparent); background: color-mix(in srgb, {group.payload.color} 12%, transparent); color: var(--foreground)"
+                        >
+                          {group.payload.name}
+                        </span>
                       {/if}
                     {/each}
                   </span>
-                </span>
-              </button>
-            </article>
-          {/each}
-        </div>
-      {/if}
+                </button>
+              </Card.Root>
+            {/each}
+          </div>
+        {/if}
+      </div>
     </section>
   </div>
 
@@ -428,59 +438,68 @@
     onClose={closeNoteForm}
   >
     <form
-      class="space-y-4"
+      class="grid gap-4"
       onsubmit={(event) => {
         event.preventDefault();
         saveNote();
       }}
     >
-      <label class="block text-sm font-medium">
-        Title <span style="color: var(--muted); font-weight: 500">(optional)</span>
-        <input class="focus-ring vault-input mt-1.5" bind:value={noteForm.title} maxlength="120" />
-      </label>
+      <div class="grid gap-2">
+        <Label for="note-title">Title <span class="text-muted-foreground font-normal">(optional)</span></Label>
+        <Input id="note-title" bind:value={noteForm.title} maxlength={120} />
+      </div>
 
-      <label class="block text-sm font-medium">
-        Note
-        <textarea class="focus-ring vault-input mt-1.5 min-h-36" bind:value={noteForm.text} maxlength="20000" required></textarea>
-      </label>
+      <div class="grid gap-2">
+        <Label for="note-text">Note</Label>
+        <Textarea id="note-text" bind:value={noteForm.text} maxlength={20000} required class="min-h-36" />
+      </div>
 
-      <label class="note-pin-toggle">
-        <input type="checkbox" bind:checked={noteForm.pinned} />
-        <span><Pin size={15} /> Pinned</span>
-      </label>
+      <Label for="note-pinned" class="flex items-center gap-2 font-normal">
+        <Checkbox id="note-pinned" bind:checked={noteForm.pinned} />
+        <Pin class="size-4" /> Pinned
+      </Label>
 
-      <div>
-        <p class="text-sm font-medium" style="color: var(--foreground)">Groups</p>
+      <div class="grid gap-2">
+        <p class="text-sm font-medium">Groups</p>
         {#if groups.length === 0}
-          <p class="mt-1 text-sm" style="color: var(--muted)">No groups yet. Create groups from the Notes page.</p>
+          <p class="text-muted-foreground text-sm">No groups yet. Create groups from the Notes page.</p>
         {:else}
-          <div class="note-form-groups">
+          <div class="flex flex-wrap gap-3">
             {#each groups as group (group.record.id)}
-              <label class="note-form-group">
-                <input
-                  type="checkbox"
+              <Label class="flex items-center gap-2 font-normal">
+                <Checkbox
                   checked={noteForm.groupIds.includes(group.record.id)}
-                  onchange={() => toggleGroup(group.record.id)}
+                  onCheckedChange={() => toggleGroup(group.record.id)}
                 />
-                <span style={`--chip-color: ${group.payload.color}`}>{group.payload.name}</span>
-              </label>
+                <span
+                  class="rounded-full border px-2 py-0.5 text-xs font-semibold"
+                  style="border-color: color-mix(in srgb, {group.payload.color} 45%, transparent); background: color-mix(in srgb, {group.payload.color} 12%, transparent)"
+                >
+                  {group.payload.name}
+                </span>
+              </Label>
             {/each}
           </div>
         {/if}
       </div>
 
-      <div class="note-form-footer">
-        <span class="text-sm" style="color: var(--muted)">{noteForm.text.length}/20000</span>
-        <div class="note-form-actions">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span class="text-muted-foreground text-sm">{noteForm.text.length}/20000</span>
+        <div class="flex gap-2">
           {#if editingNoteId}
-            <button class="focus-ring vault-btn-danger" type="button" onclick={removeCurrentNote} disabled={saving}>
-              <Trash2 size={15} />
-              Delete
-            </button>
+            <Button
+              variant="outline"
+              type="button"
+              class="text-destructive hover:text-destructive"
+              onclick={removeCurrentNote}
+              disabled={saving}
+            >
+              <Trash2 class="size-4" /> Delete
+            </Button>
           {/if}
-          <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
-            {saving ? 'Saving...' : editingNoteId ? 'Save changes' : 'Create'}
-          </button>
+          <Button type="submit" disabled={saving}>
+            {saving ? 'Saving…' : editingNoteId ? 'Save changes' : 'Create'}
+          </Button>
         </div>
       </div>
     </form>
@@ -493,362 +512,34 @@
     onClose={closeGroupForm}
   >
     <form
-      class="space-y-4"
+      class="grid gap-4"
       onsubmit={(event) => {
         event.preventDefault();
         saveGroup();
       }}
     >
-      <label class="block text-sm font-medium">
-        Name
-        <input class="focus-ring vault-input mt-1.5" bind:value={groupForm.name} required />
-      </label>
-      <label class="block text-sm font-medium">
-        Description
-        <textarea class="focus-ring vault-input mt-1.5" bind:value={groupForm.description}></textarea>
-      </label>
-      <label class="block text-sm font-medium">
-        Color
-        <input class="focus-ring mt-1.5 h-10 w-16 rounded-lg border-0 p-1" type="color" bind:value={groupForm.color} />
-      </label>
+      <div class="grid gap-2">
+        <Label for="group-name">Name</Label>
+        <Input id="group-name" bind:value={groupForm.name} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="group-description">Description</Label>
+        <Textarea id="group-description" bind:value={groupForm.description} />
+      </div>
+      <div class="grid gap-2">
+        <Label for="group-color">Color</Label>
+        <input
+          id="group-color"
+          class="border-input h-10 w-16 cursor-pointer rounded-md border bg-transparent p-1"
+          type="color"
+          bind:value={groupForm.color}
+        />
+      </div>
       <div class="flex justify-end">
-        <button class="focus-ring vault-btn-primary" type="submit" disabled={saving}>
-          {saving ? 'Saving...' : editingGroupId ? 'Save' : 'Create'}
-        </button>
+        <Button type="submit" disabled={saving}>
+          {saving ? 'Saving…' : editingGroupId ? 'Save' : 'Create'}
+        </Button>
       </div>
     </form>
   </EntryModal>
 {/if}
-
-<style>
-  .notes-layout {
-    display: grid;
-    grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
-    gap: 1.5rem;
-    align-items: start;
-  }
-
-  .notes-groups {
-    position: sticky;
-    top: 1rem;
-    display: grid;
-    gap: 0.4rem;
-  }
-
-  .notes-groups__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.35rem;
-  }
-
-  .notes-groups__header h2 {
-    color: var(--foreground);
-    font-size: 0.8125rem;
-    font-weight: 700;
-    line-height: 1.25rem;
-  }
-
-  .notes-groups__list {
-    display: grid;
-    gap: 0.4rem;
-  }
-
-  .notes-group-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 2.25rem 2.25rem;
-    gap: 0.25rem;
-  }
-
-  .notes-group {
-    display: grid;
-    grid-template-columns: 0.625rem minmax(0, 1fr) auto;
-    gap: 0.5rem;
-    align-items: center;
-    width: 100%;
-    min-height: 2.25rem;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 0.5rem 0.625rem;
-    color: var(--foreground);
-    background: transparent;
-    text-align: left;
-    font-size: 0.875rem;
-    line-height: 1.2;
-  }
-
-  .notes-group:hover,
-  .notes-group--active {
-    border-color: var(--border);
-    background: var(--accent-light);
-  }
-
-  .notes-group span:not(.notes-group__dot) {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .notes-group strong {
-    color: var(--muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .notes-group__dot {
-    width: 0.625rem;
-    height: 0.625rem;
-    border-radius: 999px;
-  }
-
-  .notes-main {
-    min-width: 0;
-  }
-
-  .notes-tools {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    display: grid;
-    grid-template-columns: minmax(12rem, 1fr) 11rem auto;
-    gap: 0.75rem;
-    align-items: center;
-    padding: 0.75rem 0;
-    background: var(--background);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .notes-search {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
-    color: var(--muted);
-    background: var(--background);
-  }
-
-  .notes-search:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--ring);
-  }
-
-  .notes-search input {
-    width: 100%;
-    min-width: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--foreground);
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-  }
-
-  .notes-sort {
-    min-height: 2.375rem;
-  }
-
-  .notes-list {
-    display: grid;
-    gap: 0.65rem;
-    align-items: start;
-    margin-top: 1rem;
-  }
-
-  .note-card {
-    position: relative;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--background);
-  }
-
-  .note-card--pinned {
-    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
-    background: var(--accent-light);
-  }
-
-  .note-card__open {
-    display: grid;
-    gap: 0.85rem;
-    width: 100%;
-    border: 0;
-    border-radius: 8px;
-    padding: 1rem;
-    background: transparent;
-    color: inherit;
-    text-align: left;
-  }
-
-  .note-card__open:hover {
-    background: color-mix(in srgb, var(--accent-light) 72%, transparent);
-  }
-
-  .note-card__content {
-    display: grid;
-    gap: 0.45rem;
-    min-width: 0;
-  }
-
-  .note-card__title {
-    display: block;
-    max-width: calc(100% - 2rem);
-    overflow: hidden;
-    color: var(--foreground);
-    font-size: 0.9375rem;
-    font-weight: 700;
-    line-height: 1.3;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .note-card__body {
-    display: -webkit-box;
-    max-width: 100%;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 5;
-    line-clamp: 5;
-    color: var(--foreground);
-    font-size: 0.9375rem;
-    line-height: 1.55;
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
-  }
-
-  .note-card__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    color: var(--muted);
-    font-size: 0.75rem;
-    line-height: 1rem;
-  }
-
-  .note-card__groups {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-  }
-
-  .note-card__pin {
-    position: absolute;
-    top: 0.65rem;
-    right: 0.65rem;
-    z-index: 2;
-    display: grid;
-    width: 2rem;
-    height: 2rem;
-    place-items: center;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    color: var(--muted);
-    background: var(--background);
-    opacity: 0.88;
-    transition:
-      border-color 0.15s ease,
-      color 0.15s ease,
-      opacity 0.15s ease;
-  }
-
-  .note-card__pin:hover,
-  .note-card__pin--active {
-    border-color: var(--accent);
-    color: var(--accent);
-    opacity: 1;
-  }
-
-  .note-card__pin--active :global(svg) {
-    fill: currentColor;
-  }
-
-  .note-chip,
-  .note-form-group span {
-    border: 1px solid color-mix(in srgb, var(--chip-color) 45%, transparent);
-    border-radius: 999px;
-    padding: 0.125rem 0.45rem;
-    color: var(--foreground);
-    background: color-mix(in srgb, var(--chip-color) 11%, transparent);
-    font-size: 0.75rem;
-    font-weight: 600;
-    line-height: 1rem;
-  }
-
-  .note-form-groups {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-  }
-
-  .note-form-group {
-    display: inline-flex;
-    gap: 0.35rem;
-    align-items: center;
-  }
-
-  .note-pin-toggle {
-    display: inline-flex;
-    gap: 0.45rem;
-    align-items: center;
-    color: var(--foreground);
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-
-  .note-pin-toggle span {
-    display: inline-flex;
-    gap: 0.35rem;
-    align-items: center;
-  }
-
-  .note-form-footer {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .note-form-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: flex-end;
-  }
-
-  @media (min-width: 1100px) {
-    .notes-list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 760px) {
-    .notes-layout {
-      grid-template-columns: 1fr;
-    }
-
-    .notes-groups,
-    .notes-tools {
-      position: static;
-    }
-
-    .notes-tools {
-      grid-template-columns: 1fr;
-    }
-
-    .note-form-footer,
-    .note-form-actions {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .note-form-actions :global(button) {
-      justify-content: center;
-    }
-  }
-</style>

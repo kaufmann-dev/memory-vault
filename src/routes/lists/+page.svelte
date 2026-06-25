@@ -16,6 +16,13 @@
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { Pencil, Plus, Trash2 } from '@lucide/svelte';
+  import * as Card from '$lib/components/ui/card/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import { Label } from '$lib/components/ui/label/index.js';
+  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+  import { Separator } from '$lib/components/ui/separator/index.js';
 
   type ListItem = {
     record: EncryptedRecord;
@@ -144,30 +151,27 @@
 </script>
 
 <PageHeader title="Lists" description="Encrypted checklists and plain lists, stored as self-contained records.">
-  <button class="focus-ring vault-btn-primary" type="button" onclick={openCreateList}>
-    <Plus size={16} />
+  <Button onclick={openCreateList}>
+    <Plus class="size-4" />
     New
-  </button>
+  </Button>
 </PageHeader>
 
 {#if locked}
   <VaultNotice />
 {:else}
-  <div class="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-    <aside class="space-y-4">
+  <div class="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+    <aside>
       {#if lists.length}
-        <nav class="space-y-1">
+        <nav class="grid gap-1">
           {#each lists as item (item.record.id)}
-            <button
-              class="focus-ring w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors"
-              style={selected?.record.id === item.record.id
-                ? 'color: var(--foreground); background: var(--accent-light); border: 1px solid var(--border)'
-                : 'color: var(--foreground); background: transparent; border: 1px solid transparent'}
-              type="button"
+            <Button
+              variant={selected?.record.id === item.record.id ? 'secondary' : 'ghost'}
+              class="w-full justify-start truncate"
               onclick={() => (selectedId = item.record.id)}
             >
               {item.payload.title}
-            </button>
+            </Button>
           {/each}
         </nav>
       {/if}
@@ -175,44 +179,59 @@
 
     <section>
       {#if loading}
-        <p class="text-sm" style="color: var(--muted)">Decrypting lists...</p>
+        <p class="text-muted-foreground text-sm">Decrypting lists…</p>
       {:else if !selected}
         <EmptyState title="No lists yet" description="Create a list to start tracking tasks." />
       {:else}
-        <div class="vault-card p-5">
-          <div class="space-y-3">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <h2 class="min-w-0 break-words text-lg font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
-              <div class="flex shrink-0 gap-2">
-                <button class="focus-ring vault-btn-primary" type="button" onclick={() => (taskFormOpen = true)}>+ Add</button>
-                <button class="focus-ring vault-btn-secondary" type="button" onclick={() => openEditList(selected)}>
-                  <Pencil size={16} />
-                  Edit
-                </button>
-                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeList(selected)} aria-label="Delete list">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
+        <Card.Root>
+          <Card.Header>
+            <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
             {#if selected.payload.description}
-              <p class="text-sm leading-relaxed" style="color: var(--muted)">{selected.payload.description}</p>
+              <Card.Description>{selected.payload.description}</Card.Description>
             {/if}
-          </div>
-
-          <div class="mt-5 divide-y" style="border-color: var(--border)">
-            {#each selected.payload.tasks as task (task.id)}
-              <div class="flex items-center gap-3 py-3 group">
-                {#if selected.payload.checklist}
-                  <input type="checkbox" checked={task.done} onchange={() => toggleTask(selected, task.id)} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
-                {/if}
-                <span class:line-through={task.done} class="flex-1 text-sm" style="color: var(--foreground)">{task.text}</span>
-                <button class="focus-ring vault-btn-ghost opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100" type="button" onclick={() => removeTask(selected, task.id)}>
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            {/each}
-          </div>
-        </div>
+            <Card.Action class="flex gap-2">
+              <Button size="sm" onclick={() => (taskFormOpen = true)}>
+                <Plus class="size-4" /> Add
+              </Button>
+              <Button variant="outline" size="sm" onclick={() => openEditList(selected)}>
+                <Pencil class="size-4" /> Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                class="text-destructive hover:text-destructive size-8"
+                onclick={() => removeList(selected)}
+                aria-label="Delete list"
+              >
+                <Trash2 class="size-4" />
+              </Button>
+            </Card.Action>
+          </Card.Header>
+          <Card.Content>
+            <ul class="grid">
+              {#each selected.payload.tasks as task, index (task.id)}
+                {#if index > 0}<Separator />{/if}
+                <li class="group flex items-center gap-3 py-3">
+                  {#if selected.payload.checklist}
+                    <Checkbox checked={task.done} onCheckedChange={() => toggleTask(selected, task.id)} />
+                  {/if}
+                  <span class="flex-1 text-sm" class:line-through={task.done} class:text-muted-foreground={task.done}>
+                    {task.text}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="text-muted-foreground hover:text-destructive size-8 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+                    onclick={() => removeTask(selected, task.id)}
+                    aria-label="Delete task"
+                  >
+                    <Trash2 class="size-4" />
+                  </Button>
+                </li>
+              {/each}
+            </ul>
+          </Card.Content>
+        </Card.Root>
       {/if}
     </section>
   </div>
@@ -224,26 +243,26 @@
     onClose={closeListForm}
   >
     <form
-      class="space-y-4"
+      class="grid gap-4"
       onsubmit={(event) => {
         event.preventDefault();
         saveList();
       }}
     >
-      <label class="block text-sm font-medium">
-        Title
-        <input class="focus-ring vault-input mt-1.5" bind:value={form.title} required />
-      </label>
-      <label class="block text-sm font-medium">
-        Description
-        <textarea class="focus-ring vault-input mt-1.5" bind:value={form.description}></textarea>
-      </label>
-      <label class="flex items-center gap-2 text-sm font-medium">
-        <input type="checkbox" bind:checked={form.checklist} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+      <div class="grid gap-2">
+        <Label for="list-title">Title</Label>
+        <Input id="list-title" bind:value={form.title} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="list-description">Description</Label>
+        <Textarea id="list-description" bind:value={form.description} />
+      </div>
+      <Label for="list-checklist" class="flex items-center gap-2 font-normal">
+        <Checkbox id="list-checklist" bind:checked={form.checklist} />
         Checklist
-      </label>
+      </Label>
       <div class="flex justify-end">
-        <button class="focus-ring vault-btn-primary" type="submit">{editingListId ? 'Save' : 'Create'}</button>
+        <Button type="submit">{editingListId ? 'Save' : 'Create'}</Button>
       </div>
     </form>
   </EntryModal>
@@ -259,18 +278,18 @@
       }}
     >
       <form
-        class="space-y-4"
+        class="grid gap-4"
         onsubmit={(event) => {
           event.preventDefault();
           addTask(selected);
         }}
       >
-        <label class="block text-sm font-medium">
-          Task
-          <input class="focus-ring vault-input mt-1.5" bind:value={newTask} required />
-        </label>
+        <div class="grid gap-2">
+          <Label for="new-task">Task</Label>
+          <Input id="new-task" bind:value={newTask} required />
+        </div>
         <div class="flex justify-end">
-          <button class="focus-ring vault-btn-primary" type="submit">Add</button>
+          <Button type="submit">Add</Button>
         </div>
       </form>
     </EntryModal>

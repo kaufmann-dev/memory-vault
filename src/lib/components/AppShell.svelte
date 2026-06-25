@@ -4,24 +4,22 @@
   import type { SafeUser } from '$lib/types';
   import { page } from '$app/state';
   import type { Snippet } from 'svelte';
+  import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+  import { Separator } from '$lib/components/ui/separator/index.js';
   import {
     Activity,
     BookOpen,
     CalendarDays,
+    ChevronsUpDown,
     Home,
     ListChecks,
     LogOut,
-    Menu,
     Settings,
-    StickyNote,
-    X
+    StickyNote
   } from '@lucide/svelte';
-  import { fly, fade } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
 
   let { user, children }: { user: SafeUser; children: Snippet } = $props();
-
-  let drawerOpen = $state(false);
 
   const nav = [
     { href: '/', label: 'Home', icon: Home },
@@ -39,113 +37,109 @@
     lockVault();
     location.href = '/login';
   }
-
-  function toggleDrawer() {
-    drawerOpen = !drawerOpen;
-  }
-
-  function closeDrawer() {
-    drawerOpen = false;
-  }
-
-  $effect(() => {
-    if (typeof document !== 'undefined') {
-      document.body.style.overflow = drawerOpen ? 'hidden' : '';
-    }
-  });
 </script>
 
-<svelte:window onkeydown={(e) => { if (e.key === 'Escape') closeDrawer(); }} />
+<Sidebar.Provider>
+  <Sidebar.Root>
+    <Sidebar.Header>
+      <Sidebar.Menu>
+        <Sidebar.MenuItem>
+          <Sidebar.MenuButton size="lg">
+            {#snippet child({ props })}
+              <a href="/" {...props}>
+                <div class="flex aspect-square size-8 items-center justify-center">
+                  <img src="/memory-vault.svg" alt="" class="size-8" />
+                </div>
+                <div class="grid flex-1 text-left text-sm leading-tight">
+                  <span class="truncate font-semibold">Memory Vault</span>
+                  <span class="text-muted-foreground truncate text-xs">Private &amp; encrypted</span>
+                </div>
+              </a>
+            {/snippet}
+          </Sidebar.MenuButton>
+        </Sidebar.MenuItem>
+      </Sidebar.Menu>
+    </Sidebar.Header>
 
-<div class="min-h-screen">
-  <!-- Desktop Sidebar -->
-  <aside class="fixed inset-y-0 left-0 hidden w-64 lg:block" style="background: var(--background); border-right: 1px solid var(--border)">
-    <div class="flex h-full flex-col px-4 py-5">
-      <a href="/" class="focus-ring flex items-center gap-3 px-2 py-2 text-sm font-bold text-inherit hover:no-underline">
-        <img src="/memory-vault.svg" alt="" class="h-8 w-8" />
+    <Sidebar.Content>
+      <Sidebar.Group>
+        <Sidebar.GroupContent>
+          <Sidebar.Menu>
+            {#each nav as item (item.href)}
+              {@const Icon = item.icon}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton isActive={page.url.pathname === item.href} tooltipContent={item.label}>
+                  {#snippet child({ props })}
+                    <a href={item.href} {...props}>
+                      <Icon />
+                      <span>{item.label}</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            {/each}
+          </Sidebar.Menu>
+        </Sidebar.GroupContent>
+      </Sidebar.Group>
+    </Sidebar.Content>
+
+    <Sidebar.Footer>
+      <Sidebar.Menu>
+        <Sidebar.MenuItem>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              {#snippet child({ props })}
+                <Sidebar.MenuButton
+                  size="lg"
+                  class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  {...props}
+                >
+                  <div class="bg-sidebar-accent text-sidebar-accent-foreground flex aspect-square size-8 items-center justify-center rounded-lg text-xs font-semibold uppercase">
+                    {user.email.charAt(0)}
+                  </div>
+                  <div class="grid flex-1 text-left text-sm leading-tight">
+                    <span class="truncate font-medium">{user.name}</span>
+                    <span class="text-muted-foreground truncate text-xs">{user.email}</span>
+                  </div>
+                  <ChevronsUpDown class="ml-auto size-4" />
+                </Sidebar.MenuButton>
+              {/snippet}
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content class="w-(--bits-dropdown-menu-anchor-width) min-w-56 rounded-lg" side="top" align="end">
+              <DropdownMenu.Label class="text-muted-foreground text-xs font-normal">{user.email}</DropdownMenu.Label>
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item>
+                {#snippet child({ props })}
+                  <a href="/settings" {...props}>
+                    <Settings />
+                    Settings
+                  </a>
+                {/snippet}
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item onSelect={logout}>
+                <LogOut />
+                Log out
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </Sidebar.MenuItem>
+      </Sidebar.Menu>
+    </Sidebar.Footer>
+    <Sidebar.Rail />
+  </Sidebar.Root>
+
+  <Sidebar.Inset>
+    <header class="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-4">
+      <Sidebar.Trigger class="-ml-1" />
+      <Separator orientation="vertical" class="mr-1 data-[orientation=vertical]:h-4" />
+      <a href="/" class="flex items-center gap-2 font-semibold lg:hidden">
+        <img src="/memory-vault.svg" alt="" class="size-6" />
         Memory Vault
       </a>
-
-      <nav class="mt-8 space-y-0.5">
-        {#each nav as item (item.href)}
-          {@const Icon = item.icon}
-          {@const isActive = page.url.pathname === item.href}
-          <a href={item.href} class="focus-ring vault-nav-item" data-active={isActive}>
-            <Icon size={18} />
-            {item.label}
-          </a>
-        {/each}
-      </nav>
-
-      <div class="mt-auto border-t pt-4" style="border-color: var(--border)">
-        <p class="truncate text-xs" style="color: var(--muted)">{user.email}</p>
-        <button class="focus-ring vault-btn-secondary mt-3 w-full" type="button" onclick={logout}>
-          <LogOut size={16} />
-          Logout
-        </button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Mobile Header -->
-  <header class="sticky top-0 z-10 border-b px-4 py-3 lg:hidden" style="border-color: var(--border); background: var(--background)">
-    <div class="flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2.5 font-bold text-inherit hover:no-underline">
-        <img src="/memory-vault.svg" alt="" class="h-8 w-8" />
-        Memory Vault
-      </a>
-      <button class="focus-ring vault-btn-ghost" type="button" onclick={toggleDrawer} aria-label="Open menu">
-        <Menu size={20} />
-      </button>
-    </div>
-  </header>
-
-  <!-- Mobile Drawer -->
-  {#if drawerOpen}
-    <div class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" transition:fade={{ duration: 200 }}>
-      <div
-        class="absolute inset-0 bg-black/50"
-        role="button"
-        tabindex="-1"
-        aria-label="Close menu"
-        onclick={closeDrawer}
-        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') closeDrawer(); }}
-      ></div>
-      <aside
-        class="absolute right-0 top-0 h-full w-72"
-        style="background: var(--background); border-left: 1px solid var(--border)"
-        transition:fly={{ x: 300, duration: 300, easing: cubicOut }}
-      >
-        <div class="flex items-center justify-between border-b px-4 py-3" style="border-color: var(--border)">
-          <span class="font-bold text-sm">Menu</span>
-          <button class="focus-ring vault-btn-ghost" type="button" onclick={closeDrawer} aria-label="Close menu">
-            <X size={18} />
-          </button>
-        </div>
-
-        <nav class="p-2 space-y-0.5">
-          {#each nav as item (item.href)}
-            {@const Icon = item.icon}
-            {@const isActive = page.url.pathname === item.href}
-            <a href={item.href} class="focus-ring vault-nav-item" data-active={isActive} onclick={closeDrawer}>
-              <Icon size={18} />
-              {item.label}
-            </a>
-          {/each}
-        </nav>
-
-        <div class="absolute bottom-0 left-0 right-0 border-t p-4" style="border-color: var(--border)">
-          <p class="truncate text-xs" style="color: var(--muted)">{user.email}</p>
-          <button class="focus-ring vault-btn-secondary mt-3 w-full" type="button" onclick={() => { closeDrawer(); logout(); }}>
-            <LogOut size={16} />
-            Logout
-          </button>
-        </div>
-      </aside>
-    </div>
-  {/if}
-
-  <main class="mx-auto max-w-6xl px-4 py-8 lg:ml-64 lg:px-8">
-    {@render children()}
-  </main>
-</div>
+    </header>
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8">
+      {@render children()}
+    </main>
+  </Sidebar.Inset>
+</Sidebar.Provider>
