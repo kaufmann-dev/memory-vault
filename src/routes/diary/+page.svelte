@@ -167,7 +167,7 @@
           <EmptyState title="No matching entries" description="Clear filters or broaden the search to find more diary entries." />
         </div>
       {:else}
-        <Card.Root class="mt-6 overflow-hidden p-0">
+        <Card.Root class="mt-6 gap-0 overflow-hidden p-0">
           {#each groupedEntries as group (group.key)}
             <div class="bg-muted/60 text-muted-foreground flex justify-between border-b px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider uppercase">
               <span>{group.label}</span>
