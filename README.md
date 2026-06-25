@@ -135,7 +135,7 @@ npm run db:migrate   # Run migrations with scripts/migrate.mjs
     |   |-- client/          # Browser-side encrypted record helpers
     |   |-- components/      # Shared Svelte components
     |   |-- server/          # Auth, password, and database modules
-    |   |-- stores/          # In-memory crypto key store
+    |   |-- stores/          # In-memory client stores (crypto key, decrypted caches)
     |   |-- crypto.ts        # Web Crypto helpers
     |   `-- types.ts         # Shared application types
     `-- routes/
