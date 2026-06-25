@@ -196,26 +196,27 @@
         .filter(Boolean)
     };
 
-    let savedId = editingId;
-
-    if (savedId) {
-      await updateEncryptedRecord(savedId, 'diary', payload, dek);
+    if (editingId) {
+      const id = editingId;
+      entries = entries.map((entry) => (entry.record.id === id ? { ...entry, payload } : entry));
+      await updateEncryptedRecord(id, 'diary', payload, dek);
+      selectedEntryId = id;
     } else {
-      savedId = (await createEncryptedRecord('diary', payload, dek)).id;
+      const record = await createEncryptedRecord('diary', payload, dek);
+      entries = [...entries, { record, payload }];
+      selectedEntryId = record.id;
     }
 
-    await loadEntries();
-    selectedEntryId = savedId;
     closeForm();
     saving = false;
   }
 
   async function removeEntry(id: string) {
     if (!confirm('Delete this entry?')) return;
-    await deleteEncryptedRecord(id);
-    await loadEntries();
+    entries = entries.filter((entry) => entry.record.id !== id);
     if (selectedEntryId === id) selectedEntryId = null;
     if (editingId === id) startCreate();
+    await deleteEncryptedRecord(id);
   }
 
   onMount(async () => {
