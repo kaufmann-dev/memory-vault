@@ -172,7 +172,7 @@
   </span>
 {/snippet}
 
-<div class="grid gap-6 sm:grid-cols-[16rem_minmax(0,1fr)]">
+<div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
   <aside class="min-w-0">
     <CollectionNav
       items={navItems}
