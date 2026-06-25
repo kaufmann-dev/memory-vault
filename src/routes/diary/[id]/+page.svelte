@@ -70,16 +70,16 @@
         <span>{entry.payload.wordCount} words</span>
       </div>
 
-      <div class="mt-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="mt-2 flex items-start justify-between gap-4">
         <h1 class="text-3xl font-bold break-words">{entry.payload.title || 'Untitled'}</h1>
-        <div class="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" onclick={() => (editOpen = true)}>
-            <Pencil class="size-4" /> Edit
+        <div class="flex shrink-0 items-center gap-1">
+          <Button variant="ghost" size="icon" onclick={() => (editOpen = true)} aria-label="Edit entry">
+            <Pencil class="size-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            class="text-destructive hover:text-destructive size-8"
+            class="text-destructive hover:text-destructive"
             onclick={removeEntry}
             aria-label="Delete entry"
           >

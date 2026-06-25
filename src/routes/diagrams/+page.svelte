@@ -514,30 +514,28 @@
     {:else}
       <div class="grid gap-6">
         <Card.Root class="min-w-0">
-          <Card.Header class="gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-            <div class="min-w-0 space-y-1.5">
-              <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
-              {#if selected.payload.description}
-                <Card.Description class="break-words">{selected.payload.description}</Card.Description>
-              {/if}
-            </div>
-            <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-              <Button size="sm" class="h-9" onclick={() => openCreateMeasurement(selected)}>
-                <Plus class="size-4" /> Add
+          <Card.Header>
+            <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
+            {#if selected.payload.description}
+              <Card.Description class="break-words">{selected.payload.description}</Card.Description>
+            {/if}
+            <Card.Action class="flex gap-1">
+              <Button variant="ghost" size="icon" onclick={() => openCreateMeasurement(selected)} aria-label="Add measurement">
+                <Plus class="size-4" />
               </Button>
-              <Button variant="outline" size="sm" class="h-9" onclick={() => startEdit(selected)}>
-                <Pencil class="size-4" /> Edit
+              <Button variant="ghost" size="icon" onclick={() => startEdit(selected)} aria-label="Edit diagram">
+                <Pencil class="size-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                class="text-destructive hover:text-destructive size-9"
+                class="text-destructive hover:text-destructive"
                 onclick={() => removeDiagram(selected)}
                 aria-label="Delete diagram"
               >
                 <Trash2 class="size-4" />
               </Button>
-            </div>
+            </Card.Action>
           </Card.Header>
           <Card.Content class="min-w-0">
             <SimpleLineChart
@@ -571,7 +569,7 @@
                       <Button
                         variant="ghost"
                         size="icon"
-                        class="size-9"
+                        class="size-8"
                         onclick={() => openEditMeasurement(selected, measurement)}
                         aria-label="Edit measurement"
                       >
@@ -580,7 +578,7 @@
                       <Button
                         variant="ghost"
                         size="icon"
-                        class="text-muted-foreground hover:text-destructive size-9"
+                        class="text-muted-foreground hover:text-destructive size-8"
                         onclick={() => removeMeasurement(selected, measurement.id)}
                         aria-label="Delete measurement"
                       >
@@ -691,7 +689,7 @@
           <Button
             variant="ghost"
             size="icon"
-            class="text-muted-foreground hover:text-destructive size-9"
+            class="text-muted-foreground hover:text-destructive size-8"
             onclick={() => removeFormField(field.id)}
             aria-label="Remove series"
             disabled={diagramForm.fields.length === 1}
