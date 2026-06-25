@@ -2,9 +2,9 @@
   import { forgetRememberedDEK } from '$lib/client/rememberedDevice';
   import { lockVault } from '$lib/stores/cryptoKey';
   import type { SafeUser } from '$lib/types';
-  import { page } from '$app/state';
   import type { Snippet } from 'svelte';
   import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+  import AppSidebarNav from '$lib/components/AppSidebarNav.svelte';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
   import { Separator } from '$lib/components/ui/separator/index.js';
   import {
@@ -64,21 +64,7 @@
     <Sidebar.Content>
       <Sidebar.Group>
         <Sidebar.GroupContent>
-          <Sidebar.Menu>
-            {#each nav as item (item.href)}
-              {@const Icon = item.icon}
-              <Sidebar.MenuItem>
-                <Sidebar.MenuButton isActive={page.url.pathname === item.href} tooltipContent={item.label}>
-                  {#snippet child({ props })}
-                    <a href={item.href} {...props}>
-                      <Icon />
-                      <span>{item.label}</span>
-                    </a>
-                  {/snippet}
-                </Sidebar.MenuButton>
-              </Sidebar.MenuItem>
-            {/each}
-          </Sidebar.Menu>
+          <AppSidebarNav items={nav} />
         </Sidebar.GroupContent>
       </Sidebar.Group>
     </Sidebar.Content>
