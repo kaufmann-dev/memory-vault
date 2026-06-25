@@ -503,7 +503,7 @@
           <section class="vault-card p-5">
             <div class="mb-4 space-y-3">
               <div class="flex items-start justify-between gap-3">
-                <h2 class="text-lg font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
+                <h2 class="min-w-0 break-words text-lg font-semibold" style="color: var(--foreground)">{selected.payload.title}</h2>
                 <div class="flex shrink-0 gap-2">
                   <button class="focus-ring vault-btn-primary" type="button" onclick={() => openCreateMeasurement(selected)}>+ Add</button>
                   <button class="focus-ring vault-btn-secondary" type="button" onclick={() => startEdit(selected)}>
