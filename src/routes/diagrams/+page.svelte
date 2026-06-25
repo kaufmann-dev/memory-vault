@@ -4,6 +4,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SimpleLineChart from '$lib/components/SimpleLineChart.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
+  import CollectionNav from '$lib/components/CollectionNav.svelte';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -78,6 +79,14 @@
   let measurementFormOpen = $state(false);
 
   let selected = $derived(diagrams.find((diagram) => diagram.record.id === selectedId) ?? diagrams[0] ?? null);
+
+  let navItems = $derived(
+    diagrams.map((item) => ({
+      id: item.record.id,
+      label: item.payload.title || 'Untitled diagram',
+      measurementCount: item.payload.measurements.length
+    }))
+  );
 
   function normalizeDiagramPayload(payload: DiagramPayload): DiagramPayload {
     return {
@@ -479,21 +488,27 @@
 {#if locked}
   <VaultNotice />
 {:else}
+  {#snippet diagramRow(item: (typeof navItems)[number])}
+    <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
+    <span class="text-muted-foreground ml-auto shrink-0 text-xs whitespace-nowrap">
+      {item.measurementCount} {item.measurementCount === 1 ? 'point' : 'points'}
+    </span>
+  {/snippet}
+
   <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
     <aside class="min-w-0">
-      {#if diagrams.length}
-        <nav class="grid gap-1">
-          {#each diagrams as item (item.record.id)}
-            <Button
-              variant={selected?.record.id === item.record.id ? 'secondary' : 'ghost'}
-              class="w-full justify-start truncate"
-              onclick={() => selectDiagram(item)}
-            >
-              {item.payload.title}
-            </Button>
-          {/each}
-        </nav>
-      {/if}
+      <CollectionNav
+        items={navItems}
+        selected={selected?.record.id ?? null}
+        onSelect={(id) => {
+          const item = diagrams.find((diagram) => diagram.record.id === id);
+          if (item) selectDiagram(item);
+        }}
+        row={diagramRow}
+        searchPlaceholder="Search diagrams"
+        emptyText="No diagrams found."
+        ariaLabel="Select diagram"
+      />
     </aside>
 
     <section class="min-w-0">

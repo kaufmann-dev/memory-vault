@@ -3,6 +3,7 @@
   import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
+  import CollectionNav from '$lib/components/CollectionNav.svelte';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -14,7 +15,7 @@
   import type { EncryptedRecord, NoteGroupPayload, NotePayload } from '$lib/types';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Pencil, Pin, Plus, Search, Trash2, X } from '@lucide/svelte';
+  import { Pencil, Pin, Plus, Search, Settings2, Trash2, X } from '@lucide/svelte';
   import * as Card from '$lib/components/ui/card/index.js';
   import * as Select from '$lib/components/ui/select/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
@@ -59,6 +60,7 @@
   let editingGroupId: string | null = $state(null);
   let noteFormOpen = $state(false);
   let groupFormOpen = $state(false);
+  let manageGroupsOpen = $state(false);
   let query = $state('');
   let activeGroupId = $state('all');
   let sortOrder: SortOrder = $state('newest');
@@ -88,6 +90,17 @@
 
   let ungroupedCount = $derived(notes.filter((note) => note.payload.groupIds.length === 0).length);
   let hasFilters = $derived(Boolean(query.trim() || activeGroupId !== 'all' || sortOrder !== 'newest'));
+
+  let navItems = $derived([
+    { id: 'all', label: 'All notes', tone: 'var(--foreground)', count: notes.length },
+    { id: 'ungrouped', label: 'Ungrouped', tone: 'var(--border)', count: ungroupedCount },
+    ...groups.map((group) => ({
+      id: group.record.id,
+      label: group.payload.name,
+      tone: group.payload.color,
+      count: groupCount(group.record.id)
+    }))
+  ]);
 
   function formatDate(value: string) {
     return new Intl.DateTimeFormat(undefined, {
@@ -159,6 +172,16 @@
     groupFormOpen = false;
     editingGroupId = null;
     groupForm = emptyGroup();
+  }
+
+  function manageCreateGroup() {
+    manageGroupsOpen = false;
+    openCreateGroup();
+  }
+
+  function manageEditGroup(item: GroupItem) {
+    manageGroupsOpen = false;
+    openEditGroup(item);
   }
 
   function toggleGroup(groupId: string) {
@@ -311,49 +334,31 @@
 {#if locked}
   <VaultNotice />
 {:else}
-  {#snippet groupButton(id: string, label: string, count: number, color: string, editable: boolean, group: GroupItem | null)}
-    <div class="flex items-center gap-1">
-      <Button
-        variant={activeGroupId === id ? 'secondary' : 'ghost'}
-        class="h-9 flex-1 justify-start gap-2 px-2.5"
-        onclick={() => (activeGroupId = id)}
-      >
-        <span class="size-2.5 shrink-0 rounded-full" style="background: {color}"></span>
-        <span class="flex-1 truncate text-left">{label}</span>
-        <span class="text-muted-foreground text-xs font-semibold">{count}</span>
-      </Button>
-      {#if editable && group}
-        <Button variant="ghost" size="icon" class="size-8" onclick={() => openEditGroup(group)} aria-label="Edit group">
-          <Pencil class="size-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="text-muted-foreground hover:text-destructive size-8"
-          onclick={() => removeGroup(group)}
-          aria-label="Delete group"
-        >
-          <Trash2 class="size-3.5" />
-        </Button>
-      {/if}
-    </div>
+  {#snippet groupRow(item: (typeof navItems)[number])}
+    <span class="size-2.5 shrink-0 rounded-full" style="background: {item.tone}"></span>
+    <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
+    <span class="text-muted-foreground ml-auto shrink-0 text-xs font-semibold">{item.count}</span>
+  {/snippet}
+
+  {#snippet manageAction()}
+    <Button variant="outline" size="sm" class="w-full md:w-auto" onclick={() => (manageGroupsOpen = true)}>
+      <Settings2 class="size-4" /> Manage groups
+    </Button>
   {/snippet}
 
   <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
-    <aside class="grid content-start gap-1" aria-label="Note groups">
-      <div class="mb-1 flex items-center justify-between">
-        <h2 class="text-sm font-semibold">Groups</h2>
-        <Button variant="ghost" size="icon" class="size-8" onclick={openCreateGroup} aria-label="New group">
-          <Plus class="size-4" />
-        </Button>
-      </div>
-
-      {@render groupButton('all', 'All notes', notes.length, 'var(--foreground)', false, null)}
-      {@render groupButton('ungrouped', 'Ungrouped', ungroupedCount, 'var(--border)', false, null)}
-
-      {#each groups as group (group.record.id)}
-        {@render groupButton(group.record.id, group.payload.name, groupCount(group.record.id), group.payload.color, true, group)}
-      {/each}
+    <aside class="min-w-0" aria-label="Note groups">
+      <CollectionNav
+        items={navItems}
+        selected={activeGroupId}
+        onSelect={(id) => (activeGroupId = id)}
+        row={groupRow}
+        title="Groups"
+        searchPlaceholder="Search groups"
+        emptyText="No groups found."
+        ariaLabel="Select group"
+        action={manageAction}
+      />
     </aside>
 
     <section class="min-w-0">
@@ -541,5 +546,49 @@
         </Button>
       </div>
     </form>
+  </EntryModal>
+
+  <EntryModal
+    open={manageGroupsOpen}
+    title="Manage groups"
+    description="Create, rename, recolor, or delete the encrypted labels used to triage notes."
+    onClose={() => (manageGroupsOpen = false)}
+  >
+    <div class="grid gap-4">
+      <Button onclick={manageCreateGroup}>
+        <Plus class="size-4" /> New group
+      </Button>
+
+      {#if groups.length === 0}
+        <p class="text-muted-foreground text-sm">No groups yet. Create one to start triaging notes.</p>
+      {:else}
+        <ul class="grid gap-1.5">
+          {#each groups as group (group.record.id)}
+            <li class="flex items-center gap-3 rounded-lg border px-3 py-2">
+              <span class="size-3 shrink-0 rounded-full" style="background: {group.payload.color}"></span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium">{group.payload.name}</p>
+                {#if group.payload.description}
+                  <p class="text-muted-foreground truncate text-xs">{group.payload.description}</p>
+                {/if}
+              </div>
+              <span class="text-muted-foreground shrink-0 text-xs font-semibold">{groupCount(group.record.id)}</span>
+              <Button variant="ghost" size="icon" class="size-8" onclick={() => manageEditGroup(group)} aria-label="Edit group">
+                <Pencil class="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                class="text-muted-foreground hover:text-destructive size-8"
+                onclick={() => removeGroup(group)}
+                aria-label="Delete group"
+              >
+                <Trash2 class="size-4" />
+              </Button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
   </EntryModal>
 {/if}
