@@ -1,11 +1,17 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import * as Card from '$lib/components/ui/card/index.js';
   import { Skeleton } from '$lib/components/ui/skeleton/index.js';
   import { fetchRecordCounts } from '$lib/client/records';
   import type { RecordType } from '$lib/types';
   import { onMount } from 'svelte';
-  import { Activity, BookOpen, CalendarDays, ListChecks, StickyNote } from '@lucide/svelte';
+  import {
+    Activity,
+    BookOpen,
+    CalendarDays,
+    ChevronRight,
+    ListChecks,
+    StickyNote
+  } from '@lucide/svelte';
 
   const features = [
     {
@@ -73,32 +79,28 @@
 
 <PageHeader title="Home" description="Everything here is private and backed by encrypted records." />
 
-<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+<div class="divide-border border-border divide-y overflow-hidden rounded-xl border">
   {#each features as feature (feature.href)}
     {@const Icon = feature.icon}
-    <a href={feature.href} class="group focus-visible:ring-ring rounded-xl outline-none focus-visible:ring-2">
-      <Card.Root class="hover:border-foreground/20 h-full transition-colors">
-        <Card.Header>
-          <div class="flex items-center gap-3">
-            <div class="bg-muted text-foreground flex size-9 items-center justify-center rounded-lg">
-              <Icon class="size-5" />
-            </div>
-            <Card.Title>{feature.label}</Card.Title>
-          </div>
-          <Card.Action>
-            {#if loading}
-              <Skeleton class="h-4 w-16" />
-            {:else if counts}
-              <span class="text-muted-foreground text-sm">
-                {label(counts[feature.type], feature.one, feature.many)}
-              </span>
-            {/if}
-          </Card.Action>
-        </Card.Header>
-        <Card.Content>
-          <p class="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
-        </Card.Content>
-      </Card.Root>
+    <a
+      href={feature.href}
+      class="group focus-visible:ring-ring hover:bg-muted/40 flex items-center gap-4 p-4 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset"
+    >
+      <div class="bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg">
+        <Icon class="size-5" />
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="font-medium">{feature.label}</p>
+        <p class="text-muted-foreground truncate text-sm">{feature.description}</p>
+      </div>
+      <div class="text-muted-foreground flex shrink-0 items-center gap-3 text-sm">
+        {#if loading}
+          <Skeleton class="h-4 w-14" />
+        {:else if counts}
+          <span class="tabular-nums">{label(counts[feature.type], feature.one, feature.many)}</span>
+        {/if}
+        <ChevronRight class="size-4 transition-transform group-hover:translate-x-0.5" />
+      </div>
     </a>
   {/each}
 </div>
