@@ -12,7 +12,6 @@
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
   import { KeyRound, Save, Shield } from '@lucide/svelte';
-  import * as Card from '$lib/components/ui/card/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import { Label } from '$lib/components/ui/label/index.js';
@@ -193,98 +192,109 @@
 
 <PageHeader title="Settings" description="Account security and vault controls." />
 
-<div class="grid max-w-6xl gap-4 lg:grid-cols-3 lg:items-start">
-  <Card.Root>
-    <Card.Header>
-      <div class="bg-muted text-foreground mb-1 flex size-10 items-center justify-center rounded-lg">
+<div class="max-w-3xl">
+  <section class="border-border grid gap-6 border-b py-8 first:pt-0 last:border-b-0 last:pb-0">
+    <div class="grid gap-3">
+      <div class="bg-muted text-foreground flex size-10 items-center justify-center rounded-lg">
         <Shield class="size-4.5" />
       </div>
-      <Card.Title>Account password</Card.Title>
-      <Card.Description>This password signs in to the server and creates the session cookie.</Card.Description>
-    </Card.Header>
-    <Card.Content>
-      <form
-        class="grid gap-4"
-        onsubmit={(event) => {
-          event.preventDefault();
-          changeAccountPassword();
-        }}
-      >
-        <div class="grid gap-2">
-          <Label for="current-account-password">Current account password</Label>
-          <Input id="current-account-password" type="password" bind:value={currentAccountPassword} required />
-        </div>
-        <div class="grid gap-2">
-          <Label for="new-account-password">New account password</Label>
-          <Input id="new-account-password" type="password" bind:value={newAccountPassword} required />
-        </div>
-        <div class="grid gap-2">
-          <Label for="confirm-account-password">Confirm new account password</Label>
-          <Input id="confirm-account-password" type="password" bind:value={confirmAccountPassword} required />
-        </div>
-        {#if accountMessage}
-          <p class="text-sm font-medium {accountSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
-            {accountMessage}
-          </p>
-        {/if}
-        <Button type="submit" disabled={savingAccount} class="justify-self-start">
-          <Save class="size-4" />
-          {savingAccount ? 'Saving…' : 'Save account password'}
-        </Button>
-      </form>
-    </Card.Content>
-  </Card.Root>
+      <div class="grid gap-2">
+        <h2 class="text-xl font-semibold tracking-tight">Account password</h2>
+        <p class="text-muted-foreground max-w-2xl text-sm leading-6">
+          This password signs in to the server and creates the session cookie.
+        </p>
+      </div>
+    </div>
 
-  <Card.Root>
-    <Card.Header>
-      <div class="bg-muted text-foreground mb-1 flex size-10 items-center justify-center rounded-lg">
+    <form
+      class="grid max-w-xl gap-4"
+      onsubmit={(event) => {
+        event.preventDefault();
+        changeAccountPassword();
+      }}
+    >
+      <div class="grid gap-2">
+        <Label for="current-account-password">Current account password</Label>
+        <Input id="current-account-password" type="password" bind:value={currentAccountPassword} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="new-account-password">New account password</Label>
+        <Input id="new-account-password" type="password" bind:value={newAccountPassword} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="confirm-account-password">Confirm new account password</Label>
+        <Input id="confirm-account-password" type="password" bind:value={confirmAccountPassword} required />
+      </div>
+      {#if accountMessage}
+        <p class="text-sm font-medium {accountSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
+          {accountMessage}
+        </p>
+      {/if}
+      <Button type="submit" disabled={savingAccount} class="justify-self-start">
+        <Save class="size-4" />
+        {savingAccount ? 'Saving…' : 'Save account password'}
+      </Button>
+    </form>
+  </section>
+
+  <section class="border-border grid gap-6 border-b py-8">
+    <div class="grid gap-3">
+      <div class="bg-muted text-foreground flex size-10 items-center justify-center rounded-lg">
         <KeyRound class="size-4.5" />
       </div>
-      <Card.Title>Vault passphrase</Card.Title>
-      <Card.Description>This passphrase never gets sent to the server. It re-encrypts only the vault key.</Card.Description>
-    </Card.Header>
-    <Card.Content>
-      <form
-        class="grid gap-4"
-        onsubmit={(event) => {
-          event.preventDefault();
-          changeVaultPassphrase();
-        }}
-      >
-        <div class="grid gap-2">
-          <Label for="current-vault-passphrase">Current vault passphrase</Label>
-          <Input id="current-vault-passphrase" type="password" bind:value={currentVaultPassphrase} required />
-        </div>
-        <div class="grid gap-2">
-          <Label for="new-vault-passphrase">New vault passphrase</Label>
-          <Input id="new-vault-passphrase" type="password" bind:value={newVaultPassphrase} required />
-        </div>
-        <div class="grid gap-2">
-          <Label for="confirm-vault-passphrase">Confirm new vault passphrase</Label>
-          <Input id="confirm-vault-passphrase" type="password" bind:value={confirmVaultPassphrase} required />
-        </div>
-        {#if vaultMessage}
-          <p class="text-sm font-medium {vaultSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
-            {vaultMessage}
-          </p>
-        {/if}
-        <Button type="submit" disabled={savingVault} class="justify-self-start">
-          <Save class="size-4" />
-          {savingVault ? 'Saving…' : 'Save vault passphrase'}
-        </Button>
-      </form>
-    </Card.Content>
-  </Card.Root>
+      <div class="grid gap-2">
+        <h2 class="text-xl font-semibold tracking-tight">Vault passphrase</h2>
+        <p class="text-muted-foreground max-w-2xl text-sm leading-6">
+          This passphrase never gets sent to the server. It re-encrypts only the vault key.
+        </p>
+      </div>
+    </div>
 
-  <Card.Root>
-    <Card.Header>
-      <div class="bg-muted text-foreground mb-1 flex size-10 items-center justify-center rounded-lg">
+    <form
+      class="grid max-w-xl gap-4"
+      onsubmit={(event) => {
+        event.preventDefault();
+        changeVaultPassphrase();
+      }}
+    >
+      <div class="grid gap-2">
+        <Label for="current-vault-passphrase">Current vault passphrase</Label>
+        <Input id="current-vault-passphrase" type="password" bind:value={currentVaultPassphrase} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="new-vault-passphrase">New vault passphrase</Label>
+        <Input id="new-vault-passphrase" type="password" bind:value={newVaultPassphrase} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="confirm-vault-passphrase">Confirm new vault passphrase</Label>
+        <Input id="confirm-vault-passphrase" type="password" bind:value={confirmVaultPassphrase} required />
+      </div>
+      {#if vaultMessage}
+        <p class="text-sm font-medium {vaultSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
+          {vaultMessage}
+        </p>
+      {/if}
+      <Button type="submit" disabled={savingVault} class="justify-self-start">
+        <Save class="size-4" />
+        {savingVault ? 'Saving…' : 'Save vault passphrase'}
+      </Button>
+    </form>
+  </section>
+
+  <section class="grid gap-6 py-8">
+    <div class="grid gap-3">
+      <div class="bg-muted text-foreground flex size-10 items-center justify-center rounded-lg">
         <Shield class="size-4.5" />
       </div>
-      <Card.Title>Remembered device</Card.Title>
-      <Card.Description>Store a browser-local vault key so reloads unlock automatically on this device.</Card.Description>
-    </Card.Header>
-    <Card.Content class="grid gap-4">
+      <div class="grid gap-2">
+        <h2 class="text-xl font-semibold tracking-tight">Remembered device</h2>
+        <p class="text-muted-foreground max-w-2xl text-sm leading-6">
+          Store a browser-local vault key so reloads unlock automatically on this device.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid max-w-xl gap-4">
       <p class="text-sm font-medium">Status: {rememberedDevice ? 'Enabled' : 'Disabled'}</p>
       {#if deviceMessage}
         <p class="text-sm font-medium {deviceSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
@@ -301,6 +311,6 @@
           {savingRememberedDevice ? 'Working…' : 'Remember this device'}
         </Button>
       {/if}
-    </Card.Content>
-  </Card.Root>
+    </div>
+  </section>
 </div>
