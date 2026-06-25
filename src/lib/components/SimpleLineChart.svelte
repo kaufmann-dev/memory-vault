@@ -33,27 +33,29 @@
   ) as Chart.ChartConfig;
 
   const seriesDefs = $derived(
-    series.map((item, index) => ({ key: `s${index}`, label: item.label, color: item.color }))
+    series.map((item, index) => ({
+      key: `s${index}`,
+      label: item.label,
+      color: item.color,
+      data: item.points
+        .filter((point) => {
+          return (
+            point.x !== null &&
+            point.x !== undefined &&
+            Number.isFinite(point.x) &&
+            point.y !== null &&
+            Number.isFinite(point.y)
+          );
+        })
+        .map((point) => ({
+          x: xAxis.type === 'datetime' ? new Date(point.x as number) : (point.x as number),
+          y: point.y as number,
+          _x: point.x as number
+        }))
+        .sort((a, b) => a._x - b._x)
+    }))
   );
-
-  type Row = { x: Date | number; _x: number } & Record<string, number>;
-
-  const data = $derived.by(() => {
-    const rows = new Map<number, Row>();
-    series.forEach((item, index) => {
-      for (const point of item.points) {
-        if (point.x === null || point.x === undefined || !Number.isFinite(point.x)) continue;
-        const xValue = point.x;
-        let row = rows.get(xValue);
-        if (!row) {
-          row = { x: xAxis.type === 'datetime' ? new Date(xValue) : xValue, _x: xValue } as Row;
-          rows.set(xValue, row);
-        }
-        if (point.y !== null && Number.isFinite(point.y)) row[`s${index}`] = point.y;
-      }
-    });
-    return [...rows.values()].sort((a, b) => a._x - b._x);
-  });
+  const hasData = $derived(seriesDefs.some((item) => item.data.length > 0));
 
   function formatNumber(value: number) {
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
@@ -67,7 +69,7 @@
   }
 </script>
 
-{#if data.length}
+{#if hasData}
   <div class="min-w-0">
     <Chart.Container
       config={chartConfig}
@@ -75,8 +77,8 @@
       style="--chart-height-mobile: {mobileHeight}px; --chart-height: {height}px;"
     >
       <LineChart
-        {data}
         x="x"
+        y="y"
         series={seriesDefs}
         props={{
           spline: { motion: 'none', class: 'stroke-2' },
