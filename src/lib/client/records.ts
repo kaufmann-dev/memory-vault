@@ -19,6 +19,21 @@ export async function fetchEncryptedRecords(type: RecordType) {
   return parseResponse<RecordResponse>(response).then((body) => body.records);
 }
 
+export async function fetchRecordCounts(): Promise<Record<RecordType, number>> {
+  const response = await fetch('/api/records');
+  const { records } = await parseResponse<RecordResponse>(response);
+  const counts = {
+    diary: 0,
+    note: 0,
+    note_group: 0,
+    list: 0,
+    diagram: 0,
+    day_counter: 0
+  } satisfies Record<RecordType, number>;
+  for (const record of records) counts[record.type]++;
+  return counts;
+}
+
 export async function decryptRecord<T>(record: EncryptedRecord, dek: CryptoKey) {
   return JSON.parse(await decrypt(dek, record.ciphertext, record.iv)) as T;
 }
