@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import LoadingState from '$lib/components/LoadingState.svelte';
   import DiaryEntryModal from '$lib/components/DiaryEntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
@@ -123,7 +124,7 @@
 {:else}
   <section class="w-full">
     {#if loading}
-      <p class="text-muted-foreground text-sm">Decrypting entries…</p>
+      <LoadingState message="Decrypting entries…" />
     {:else if $diaryEntries.length === 0}
       <EmptyState title="No diary entries yet" description="Create the first encrypted entry when you are ready." />
     {:else}

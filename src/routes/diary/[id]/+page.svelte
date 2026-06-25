@@ -1,5 +1,6 @@
 <script lang="ts">
   import VaultNotice from '$lib/components/VaultNotice.svelte';
+  import LoadingState from '$lib/components/LoadingState.svelte';
   import DiaryEntryModal from '$lib/components/DiaryEntryModal.svelte';
   import { deleteEncryptedRecord } from '$lib/client/records';
   import {
@@ -57,7 +58,7 @@
     </a>
 
     {#if loading}
-      <p class="text-muted-foreground mt-8 text-sm">Decrypting entries…</p>
+      <LoadingState message="Decrypting entries…" class="mt-8" />
     {:else if !entry}
       <div class="mt-8">
         <h1 class="text-2xl font-bold tracking-tight">Entry not found</h1>

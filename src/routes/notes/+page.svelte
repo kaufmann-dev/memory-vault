@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import LoadingState from '$lib/components/LoadingState.svelte';
   import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
@@ -383,7 +384,7 @@
 
       <div class="mt-4">
         {#if loading}
-          <p class="text-muted-foreground text-sm">Decrypting notes…</p>
+          <LoadingState message="Decrypting notes…" />
         {:else if notes.length === 0}
           <EmptyState title="No notes yet" description="Create a short encrypted note when something needs a temporary place." />
         {:else if filteredNotes.length === 0}
