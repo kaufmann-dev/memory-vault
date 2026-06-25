@@ -203,7 +203,7 @@
                   <input type="checkbox" checked={task.done} onchange={() => toggleTask(selected, task.id)} class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
                 {/if}
                 <span class:line-through={task.done} class="flex-1 text-sm" style="color: var(--foreground)">{task.text}</span>
-                <button class="focus-ring vault-btn-ghost opacity-0 group-hover:opacity-100 transition-opacity" type="button" onclick={() => removeTask(selected, task.id)}>
+                <button class="focus-ring vault-btn-ghost opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100" type="button" onclick={() => removeTask(selected, task.id)}>
                   <Trash2 size={15} />
                 </button>
               </div>
