@@ -19,7 +19,6 @@
   import { Pencil, Plus, Trash2 } from '@lucide/svelte';
   import * as Card from '$lib/components/ui/card/index.js';
   import * as Select from '$lib/components/ui/select/index.js';
-  import * as Table from '$lib/components/ui/table/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
@@ -36,9 +35,17 @@
     values: Record<string, number | null>;
   };
 
+  type MeasurementEntry = {
+    id: string;
+    label: string;
+    value: string;
+    color: string;
+  };
+
   type MeasurementMode = 'single' | 'batch';
 
   const colors = ['#2563eb', '#dc2626', '#0f766e', '#ca8a04', '#9333ea', '#0891b2'];
+  const measurementNumberFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
   const todayDateTime = () => new Date().toISOString().slice(0, 16);
   const defaultXAxis = () => ({ type: 'datetime' as const, label: 'Date', unit: '' });
   const emptyField = (): DiagramField => ({ id: randomId(), label: '', unit: '', color: colors[0] });
@@ -422,14 +429,23 @@
     return `${measurement.x ?? ''}${axis.unit ? ` ${axis.unit}` : ''}`;
   }
 
-  function measurementValue(payload: DiagramPayload, measurement: DiagramMeasurement) {
-    return payload.fields
-      .map((field) => {
-        const value = measurement.values[field.id];
-        return value === null || value === undefined ? '' : `${field.label}: ${value}${field.unit ? ` ${field.unit}` : ''}`;
-      })
-      .filter(Boolean)
-      .join(', ');
+  function measurementHeading(payload: DiagramPayload) {
+    return isNumberAxis(payload) ? xAxis(payload).label : 'Date';
+  }
+
+  function measurementEntries(payload: DiagramPayload, measurement: DiagramMeasurement): MeasurementEntry[] {
+    return payload.fields.flatMap((field) => {
+      const value = measurement.values[field.id];
+      if (value === null || value === undefined) return [];
+      return [
+        {
+          id: field.id,
+          label: field.unit ? `${field.label} (${field.unit})` : field.label,
+          value: `${measurementNumberFormat.format(value)}${field.unit ? ` ${field.unit}` : ''}`,
+          color: field.color
+        }
+      ];
+    });
   }
 
   function batchExample(payload: DiagramPayload) {
@@ -463,8 +479,8 @@
 {#if locked}
   <VaultNotice />
 {:else}
-  <div class="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-    <aside>
+  <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
+    <aside class="min-w-0">
       {#if diagrams.length}
         <nav class="grid gap-1">
           {#each diagrams as item (item.record.id)}
@@ -480,38 +496,40 @@
       {/if}
     </aside>
 
-    <section>
+    <section class="min-w-0">
       {#if loading}
         <p class="text-muted-foreground text-sm">Decrypting diagrams…</p>
       {:else if !selected}
         <EmptyState title="No diagrams yet" description="Create a diagram to start tracking measurements." />
       {:else}
         <div class="grid gap-6">
-          <Card.Root>
-            <Card.Header>
-              <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
-              {#if selected.payload.description}
-                <Card.Description>{selected.payload.description}</Card.Description>
-              {/if}
-              <Card.Action class="flex gap-2">
-                <Button size="sm" onclick={() => openCreateMeasurement(selected)}>
+          <Card.Root class="min-w-0">
+            <Card.Header class="gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+              <div class="min-w-0 space-y-1.5">
+                <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
+                {#if selected.payload.description}
+                  <Card.Description class="break-words">{selected.payload.description}</Card.Description>
+                {/if}
+              </div>
+              <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                <Button size="sm" class="h-9" onclick={() => openCreateMeasurement(selected)}>
                   <Plus class="size-4" /> Add
                 </Button>
-                <Button variant="outline" size="sm" onclick={() => startEdit(selected)}>
+                <Button variant="outline" size="sm" class="h-9" onclick={() => startEdit(selected)}>
                   <Pencil class="size-4" /> Edit
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  class="text-destructive hover:text-destructive size-8"
+                  class="text-destructive hover:text-destructive size-9"
                   onclick={() => removeDiagram(selected)}
                   aria-label="Delete diagram"
                 >
                   <Trash2 class="size-4" />
                 </Button>
-              </Card.Action>
+              </div>
             </Card.Header>
-            <Card.Content>
+            <Card.Content class="min-w-0">
               <SimpleLineChart
                 xAxis={xAxis(selected.payload)}
                 series={selected.payload.fields.map((field) => ({
@@ -528,45 +546,55 @@
             {#if selected.payload.measurements.length === 0}
               <EmptyState title="No measurements yet" description="Add a measurement above to populate this chart." />
             {:else}
-              <Card.Root class="overflow-hidden p-0">
-                <Table.Root>
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.Head>{isNumberAxis(selected.payload) ? xAxis(selected.payload).label : 'Date'}</Table.Head>
-                      <Table.Head>Value</Table.Head>
-                      <Table.Head class="w-0 text-right">Actions</Table.Head>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {#each sortedMeasurements(selected.payload) as measurement (measurement.id)}
-                      <Table.Row>
-                        <Table.Cell class="text-muted-foreground">{xLabel(selected.payload, measurement)}</Table.Cell>
-                        <Table.Cell class="font-medium">{measurementValue(selected.payload, measurement)}</Table.Cell>
-                        <Table.Cell class="text-right whitespace-nowrap">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            class="size-8"
-                            onclick={() => openEditMeasurement(selected, measurement)}
-                            aria-label="Edit measurement"
-                          >
-                            <Pencil class="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            class="text-muted-foreground hover:text-destructive size-8"
-                            onclick={() => removeMeasurement(selected, measurement.id)}
-                            aria-label="Delete measurement"
-                          >
-                            <Trash2 class="size-4" />
-                          </Button>
-                        </Table.Cell>
-                      </Table.Row>
-                    {/each}
-                  </Table.Body>
-                </Table.Root>
-              </Card.Root>
+              <div class="grid gap-3">
+                {#each sortedMeasurements(selected.payload) as measurement (measurement.id)}
+                  {@const entries = measurementEntries(selected.payload, measurement)}
+                  <Card.Root class="gap-4 px-4 py-4 sm:px-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
+                          {measurementHeading(selected.payload)}
+                        </p>
+                        <p class="mt-1 break-words text-sm font-medium sm:text-base">{xLabel(selected.payload, measurement)}</p>
+                      </div>
+                      <div class="flex items-center gap-1 self-start">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-9"
+                          onclick={() => openEditMeasurement(selected, measurement)}
+                          aria-label="Edit measurement"
+                        >
+                          <Pencil class="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="text-muted-foreground hover:text-destructive size-9"
+                          onclick={() => removeMeasurement(selected, measurement.id)}
+                          aria-label="Delete measurement"
+                        >
+                          <Trash2 class="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                      {#each entries as entry (entry.id)}
+                        <div class="bg-muted/20 rounded-xl border px-3 py-2">
+                          <div class="flex items-start gap-2">
+                            <span class="mt-1 size-2.5 shrink-0 rounded-full" style="background: {entry.color}"></span>
+                            <div class="min-w-0">
+                              <p class="text-muted-foreground text-xs font-semibold">{entry.label}</p>
+                              <p class="mt-1 break-words text-sm font-medium">{entry.value}</p>
+                            </div>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </Card.Root>
+                {/each}
+              </div>
             {/if}
           </section>
         </div>

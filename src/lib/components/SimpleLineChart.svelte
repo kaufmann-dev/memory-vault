@@ -26,6 +26,8 @@
     height = 320
   }: { series?: Series[]; xAxis?: Axis; height?: number } = $props();
 
+  const mobileHeight = $derived(Math.max(220, Math.round(height * 0.75)));
+
   const chartConfig = $derived(
     Object.fromEntries(series.map((item, index) => [`s${index}`, { label: item.label, color: item.color }]))
   ) as Chart.ChartConfig;
@@ -66,29 +68,51 @@
 </script>
 
 {#if data.length}
-  <Chart.Container config={chartConfig} class="aspect-auto w-full" style="height: {height}px;">
-    <LineChart
-      {data}
-      x="x"
-      series={seriesDefs}
-      legend
-      props={{
-        spline: { motion: 'none', class: 'stroke-2' },
-        xAxis: { format: formatX },
-        yAxis: { format: formatNumber },
-        highlight: { points: { r: 4 } }
-      }}
+  <div class="min-w-0">
+    <Chart.Container
+      config={chartConfig}
+      class="aspect-auto h-[var(--chart-height-mobile)] min-w-0 w-full sm:h-[var(--chart-height)]"
+      style="--chart-height-mobile: {mobileHeight}px; --chart-height: {height}px;"
     >
-      {#snippet tooltip()}
-        <Chart.Tooltip
-          labelFormatter={(value: Date | number) =>
-            xAxis.type === 'datetime' || value instanceof Date
-              ? new Date(value).toLocaleString()
-              : `${formatNumber(value as number)}${xAxis.unit ? ` ${xAxis.unit}` : ''}`}
-        />
-      {/snippet}
-    </LineChart>
-  </Chart.Container>
+      <LineChart
+        {data}
+        x="x"
+        series={seriesDefs}
+        props={{
+          spline: { motion: 'none', class: 'stroke-2' },
+          xAxis: {
+            format: formatX,
+            tickSpacing: xAxis.type === 'datetime' ? 88 : 72
+          },
+          yAxis: {
+            format: formatNumber,
+            tickSpacing: 48
+          },
+          highlight: { points: { r: 4 } }
+        }}
+      >
+        {#snippet tooltip()}
+          <Chart.Tooltip
+            labelFormatter={(value: Date | number) =>
+              xAxis.type === 'datetime' || value instanceof Date
+                ? new Date(value).toLocaleString()
+                : `${formatNumber(value as number)}${xAxis.unit ? ` ${xAxis.unit}` : ''}`}
+          />
+        {/snippet}
+      </LineChart>
+    </Chart.Container>
+
+    {#if series.length}
+      <ul class="mt-4 flex flex-wrap gap-2" aria-label="Series">
+        {#each series as item, index (`${item.label}-${index}`)}
+          <li class="bg-muted/35 border-border/70 flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs sm:text-sm">
+            <span class="size-2.5 shrink-0 rounded-full" style="background-color: {item.color};"></span>
+            <span class="min-w-0 break-words">{item.label}</span>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
 {:else}
   <div class="text-muted-foreground flex min-h-48 items-center justify-center text-sm">No chart data yet.</div>
 {/if}
