@@ -83,26 +83,29 @@
     };
 
     if (editingListId) {
-      await updateEncryptedRecord(editingListId, 'list', payload, dek);
+      const id = editingListId;
+      lists = lists.map((list) => (list.record.id === id ? { ...list, payload } : list));
+      await updateEncryptedRecord(id, 'list', payload, dek);
     } else {
-      await createEncryptedRecord('list', payload, dek);
+      const record = await createEncryptedRecord('list', payload, dek);
+      lists = [...lists, { record, payload }];
+      selectedId = record.id;
     }
 
     closeListForm();
-    await loadLists();
   }
 
   async function updateList(item: ListItem, payload: ListPayload) {
     if (!dek) return;
+    lists = lists.map((list) => (list.record.id === item.record.id ? { ...list, payload } : list));
     await updateEncryptedRecord(item.record.id, 'list', payload, dek);
-    await loadLists();
   }
 
   async function removeList(item: ListItem) {
     if (!confirm('Delete this list?')) return;
-    await deleteEncryptedRecord(item.record.id);
+    lists = lists.filter((list) => list.record.id !== item.record.id);
     selectedId = null;
-    await loadLists();
+    await deleteEncryptedRecord(item.record.id);
   }
 
   async function addTask(item: ListItem) {
