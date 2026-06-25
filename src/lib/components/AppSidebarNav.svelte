@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as Sidebar from '$lib/components/ui/sidebar/index.js';
   import { page } from '$app/state';
+  import { afterNavigate } from '$app/navigation';
   import type { Component } from 'svelte';
 
   type NavItem = { href: string; label: string; icon: Component };
@@ -9,9 +10,12 @@
 
   const sidebar = Sidebar.useSidebar();
 
-  function handleNavigate() {
+  function closeMobile() {
     if (sidebar.isMobile) sidebar.setOpenMobile(false);
   }
+
+  // Covers every in-app link (nav items, header logo, footer menu).
+  afterNavigate(closeMobile);
 </script>
 
 <Sidebar.Menu>
@@ -20,7 +24,7 @@
     <Sidebar.MenuItem>
       <Sidebar.MenuButton isActive={page.url.pathname === item.href} tooltipContent={item.label}>
         {#snippet child({ props })}
-          <a href={item.href} {...props} onclick={handleNavigate}>
+          <a href={item.href} {...props} onclick={closeMobile}>
             <Icon />
             <span>{item.label}</span>
           </a>
