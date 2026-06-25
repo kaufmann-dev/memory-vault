@@ -12,6 +12,10 @@
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
   import { KeyRound, Save, Shield } from '@lucide/svelte';
+  import * as Card from '$lib/components/ui/card/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { Label } from '$lib/components/ui/label/index.js';
 
   let { data }: PageProps = $props();
 
@@ -189,162 +193,114 @@
 
 <PageHeader title="Settings" description="Account security and vault controls." />
 
-<div class="settings-grid">
-  <section class="vault-card p-6">
-    <div class="settings-card__header">
-      <div class="settings-card__icon">
-        <Shield size={18} />
+<div class="grid max-w-6xl gap-4 lg:grid-cols-3 lg:items-start">
+  <Card.Root>
+    <Card.Header>
+      <div class="bg-muted text-foreground mb-1 flex size-10 items-center justify-center rounded-lg">
+        <Shield class="size-4.5" />
       </div>
-      <div>
-        <h2>Account password</h2>
-        <p>This password signs in to the server and creates the session cookie.</p>
-      </div>
-    </div>
+      <Card.Title>Account password</Card.Title>
+      <Card.Description>This password signs in to the server and creates the session cookie.</Card.Description>
+    </Card.Header>
+    <Card.Content>
+      <form
+        class="grid gap-4"
+        onsubmit={(event) => {
+          event.preventDefault();
+          changeAccountPassword();
+        }}
+      >
+        <div class="grid gap-2">
+          <Label for="current-account-password">Current account password</Label>
+          <Input id="current-account-password" type="password" bind:value={currentAccountPassword} required />
+        </div>
+        <div class="grid gap-2">
+          <Label for="new-account-password">New account password</Label>
+          <Input id="new-account-password" type="password" bind:value={newAccountPassword} required />
+        </div>
+        <div class="grid gap-2">
+          <Label for="confirm-account-password">Confirm new account password</Label>
+          <Input id="confirm-account-password" type="password" bind:value={confirmAccountPassword} required />
+        </div>
+        {#if accountMessage}
+          <p class="text-sm font-medium {accountSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
+            {accountMessage}
+          </p>
+        {/if}
+        <Button type="submit" disabled={savingAccount} class="justify-self-start">
+          <Save class="size-4" />
+          {savingAccount ? 'Saving…' : 'Save account password'}
+        </Button>
+      </form>
+    </Card.Content>
+  </Card.Root>
 
-    <form
-      class="mt-6 space-y-4"
-      onsubmit={(event) => {
-        event.preventDefault();
-        changeAccountPassword();
-      }}
-    >
-      <label class="block text-sm font-medium">
-        Current account password
-        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={currentAccountPassword} required />
-      </label>
-      <label class="block text-sm font-medium">
-        New account password
-        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={newAccountPassword} required />
-      </label>
-      <label class="block text-sm font-medium">
-        Confirm new account password
-        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={confirmAccountPassword} required />
-      </label>
-      {#if accountMessage}
-        <p class="text-sm font-medium" style="color: {accountSuccess ? 'var(--success)' : 'var(--danger)'}">{accountMessage}</p>
-      {/if}
-      <button class="focus-ring vault-btn-primary" type="submit" disabled={savingAccount}>
-        <Save size={16} />
-        {savingAccount ? 'Saving...' : 'Save account password'}
-      </button>
-    </form>
-  </section>
-
-  <section class="vault-card p-6">
-    <div class="settings-card__header">
-      <div class="settings-card__icon">
-        <KeyRound size={18} />
+  <Card.Root>
+    <Card.Header>
+      <div class="bg-muted text-foreground mb-1 flex size-10 items-center justify-center rounded-lg">
+        <KeyRound class="size-4.5" />
       </div>
-      <div>
-        <h2>Vault passphrase</h2>
-        <p>This passphrase never gets sent to the server. It re-encrypts only the vault key.</p>
-      </div>
-    </div>
+      <Card.Title>Vault passphrase</Card.Title>
+      <Card.Description>This passphrase never gets sent to the server. It re-encrypts only the vault key.</Card.Description>
+    </Card.Header>
+    <Card.Content>
+      <form
+        class="grid gap-4"
+        onsubmit={(event) => {
+          event.preventDefault();
+          changeVaultPassphrase();
+        }}
+      >
+        <div class="grid gap-2">
+          <Label for="current-vault-passphrase">Current vault passphrase</Label>
+          <Input id="current-vault-passphrase" type="password" bind:value={currentVaultPassphrase} required />
+        </div>
+        <div class="grid gap-2">
+          <Label for="new-vault-passphrase">New vault passphrase</Label>
+          <Input id="new-vault-passphrase" type="password" bind:value={newVaultPassphrase} required />
+        </div>
+        <div class="grid gap-2">
+          <Label for="confirm-vault-passphrase">Confirm new vault passphrase</Label>
+          <Input id="confirm-vault-passphrase" type="password" bind:value={confirmVaultPassphrase} required />
+        </div>
+        {#if vaultMessage}
+          <p class="text-sm font-medium {vaultSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
+            {vaultMessage}
+          </p>
+        {/if}
+        <Button type="submit" disabled={savingVault} class="justify-self-start">
+          <Save class="size-4" />
+          {savingVault ? 'Saving…' : 'Save vault passphrase'}
+        </Button>
+      </form>
+    </Card.Content>
+  </Card.Root>
 
-    <form
-      class="mt-6 space-y-4"
-      onsubmit={(event) => {
-        event.preventDefault();
-        changeVaultPassphrase();
-      }}
-    >
-      <label class="block text-sm font-medium">
-        Current vault passphrase
-        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={currentVaultPassphrase} required />
-      </label>
-      <label class="block text-sm font-medium">
-        New vault passphrase
-        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={newVaultPassphrase} required />
-      </label>
-      <label class="block text-sm font-medium">
-        Confirm new vault passphrase
-        <input class="focus-ring vault-input mt-1.5" type="password" bind:value={confirmVaultPassphrase} required />
-      </label>
-      {#if vaultMessage}
-        <p class="text-sm font-medium" style="color: {vaultSuccess ? 'var(--success)' : 'var(--danger)'}">{vaultMessage}</p>
-      {/if}
-      <button class="focus-ring vault-btn-primary" type="submit" disabled={savingVault}>
-        <Save size={16} />
-        {savingVault ? 'Saving...' : 'Save vault passphrase'}
-      </button>
-    </form>
-  </section>
-
-  <section class="vault-card p-6">
-    <div class="settings-card__header">
-      <div class="settings-card__icon">
-        <Shield size={18} />
+  <Card.Root>
+    <Card.Header>
+      <div class="bg-muted text-foreground mb-1 flex size-10 items-center justify-center rounded-lg">
+        <Shield class="size-4.5" />
       </div>
-      <div>
-        <h2>Remembered device</h2>
-        <p>Store a browser-local vault key so reloads unlock automatically on this device.</p>
-      </div>
-    </div>
-
-    <div class="mt-6 space-y-4">
-      <p class="text-sm font-medium" style="color: var(--foreground)">
-        Status: {rememberedDevice ? 'Enabled' : 'Disabled'}
-      </p>
+      <Card.Title>Remembered device</Card.Title>
+      <Card.Description>Store a browser-local vault key so reloads unlock automatically on this device.</Card.Description>
+    </Card.Header>
+    <Card.Content class="grid gap-4">
+      <p class="text-sm font-medium">Status: {rememberedDevice ? 'Enabled' : 'Disabled'}</p>
       {#if deviceMessage}
-        <p class="text-sm font-medium" style="color: {deviceSuccess ? 'var(--success)' : 'var(--danger)'}">{deviceMessage}</p>
+        <p class="text-sm font-medium {deviceSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
+          {deviceMessage}
+        </p>
       {/if}
       {#if rememberedDevice}
-        <button class="focus-ring vault-btn-secondary" type="button" disabled={savingRememberedDevice} onclick={forgetDevice}>
-          {savingRememberedDevice ? 'Working...' : 'Forget this device'}
-        </button>
+        <Button variant="outline" disabled={savingRememberedDevice} onclick={forgetDevice} class="justify-self-start">
+          {savingRememberedDevice ? 'Working…' : 'Forget this device'}
+        </Button>
       {:else}
-        <button class="focus-ring vault-btn-primary" type="button" disabled={savingRememberedDevice} onclick={rememberDevice}>
-          <Save size={16} />
-          {savingRememberedDevice ? 'Working...' : 'Remember this device'}
-        </button>
+        <Button disabled={savingRememberedDevice} onclick={rememberDevice} class="justify-self-start">
+          <Save class="size-4" />
+          {savingRememberedDevice ? 'Working…' : 'Remember this device'}
+        </Button>
       {/if}
-    </div>
-  </section>
+    </Card.Content>
+  </Card.Root>
 </div>
-
-<style>
-  .settings-grid {
-    display: grid;
-    gap: 1rem;
-    max-width: 72rem;
-  }
-
-  .settings-card__header {
-    display: flex;
-    gap: 0.875rem;
-    align-items: flex-start;
-  }
-
-  .settings-card__icon {
-    display: grid;
-    flex: 0 0 auto;
-    width: 2.5rem;
-    height: 2.5rem;
-    place-items: center;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--foreground);
-    background: var(--surface);
-  }
-
-  h2 {
-    color: var(--foreground);
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1.4;
-  }
-
-  p {
-    margin-top: 0.25rem;
-    color: var(--muted);
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-
-  @media (min-width: 900px) {
-    .settings-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      align-items: start;
-    }
-  }
-</style>

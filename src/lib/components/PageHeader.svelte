@@ -16,13 +16,13 @@
 
 <header class="mb-8">
   {#if eyebrow}
-    <p class="mb-2 text-xs font-semibold uppercase tracking-widest" style="color: var(--foreground)">{eyebrow}</p>
+    <p class="text-muted-foreground mb-2 text-xs font-semibold tracking-widest uppercase">{eyebrow}</p>
   {/if}
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl" style="color: var(--foreground)">{title}</h1>
+      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
       {#if description}
-        <p class="mt-2 max-w-2xl text-sm leading-relaxed" style="color: var(--muted)">{description}</p>
+        <p class="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed">{description}</p>
       {/if}
     </div>
     {#if children}

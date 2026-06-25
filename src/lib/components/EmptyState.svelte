@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import * as Empty from '$lib/components/ui/empty/index.js';
 
   let {
     title,
@@ -12,12 +13,14 @@
   } = $props();
 </script>
 
-<div class="vault-card p-10 text-center">
-  <h2 class="text-base font-semibold" style="color: var(--foreground)">{title}</h2>
-  <p class="mx-auto mt-2 max-w-md text-sm leading-relaxed" style="color: var(--muted)">{description}</p>
-  <div class="mt-5">
-    {#if children}
+<Empty.Root class="border">
+  <Empty.Header>
+    <Empty.Title>{title}</Empty.Title>
+    <Empty.Description>{description}</Empty.Description>
+  </Empty.Header>
+  {#if children}
+    <Empty.Content>
       {@render children()}
-    {/if}
-  </div>
-</div>
+    </Empty.Content>
+  {/if}
+</Empty.Root>

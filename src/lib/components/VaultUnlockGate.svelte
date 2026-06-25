@@ -5,6 +5,12 @@
   import type { Snippet } from 'svelte';
   import { onMount } from 'svelte';
   import { KeyRound, Shield } from '@lucide/svelte';
+  import * as Card from '$lib/components/ui/card/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { Label } from '$lib/components/ui/label/index.js';
+  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+  import { Spinner } from '$lib/components/ui/spinner/index.js';
 
   let { user, children }: { user: SafeUser; children: Snippet } = $props();
 
@@ -56,154 +62,67 @@
 {#if $sessionDEK}
   {@render children()}
 {:else}
-  <section class="vault-unlock">
-    <div class="vault-unlock__card">
-      <div class="vault-unlock__icon">
-        <KeyRound size={22} />
-      </div>
-      <div>
-        <p class="vault-unlock__eyebrow">Signed in as {user.email}</p>
-        <h1>Unlock vault</h1>
-        <p class="vault-unlock__copy">
+  <div class="grid min-h-[calc(100vh-7rem)] place-items-center py-8">
+    <Card.Root class="w-full max-w-md">
+      <Card.Header>
+        <div class="bg-muted text-foreground mb-2 flex size-11 items-center justify-center rounded-lg">
+          <KeyRound class="size-5" />
+        </div>
+        <Card.Description>Signed in as {user.email}</Card.Description>
+        <Card.Title class="text-2xl">Unlock vault</Card.Title>
+        <Card.Description>
           Your account session is active. Enter the separate vault passphrase to decrypt this browser tab.
-        </p>
-      </div>
+        </Card.Description>
+      </Card.Header>
+      <Card.Content>
+        {#if restoring}
+          <p class="text-muted-foreground flex items-center gap-2 text-sm">
+            <Spinner class="size-4" /> Checking this device…
+          </p>
+        {:else}
+          <form
+            class="grid gap-4"
+            onsubmit={(event) => {
+              event.preventDefault();
+              unlock();
+            }}
+          >
+            <div class="grid gap-2">
+              <Label for="vault-passphrase">Vault passphrase</Label>
+              <Input
+                id="vault-passphrase"
+                type="password"
+                bind:value={vaultPassphrase}
+                autocomplete="current-password"
+                required
+              />
+            </div>
 
-      {#if restoring}
-        <p class="vault-unlock__copy">Checking this device...</p>
-      {:else}
-        <form
-          class="vault-unlock__form"
-          onsubmit={(event) => {
-            event.preventDefault();
-            unlock();
-          }}
-        >
-          <label class="block text-sm font-medium">
-            Vault passphrase
-            <input
-              class="focus-ring vault-input mt-1.5"
-              type="password"
-              bind:value={vaultPassphrase}
-              autocomplete="current-password"
-              required
-            />
-          </label>
+            <Label
+              for="remember-device"
+              class="bg-muted/40 flex items-start gap-3 rounded-lg border p-3.5 font-normal"
+            >
+              <Checkbox id="remember-device" bind:checked={rememberThisDevice} class="mt-0.5" />
+              <span class="grid gap-0.5">
+                <span class="font-medium">Remember this device</span>
+                <span class="text-muted-foreground text-xs">Unlock automatically after reloads on this browser.</span>
+              </span>
+            </Label>
 
-          <label class="vault-unlock__remember">
-            <input type="checkbox" bind:checked={rememberThisDevice} />
-            <span>
-              <strong>Remember this device</strong>
-              <small>Unlock automatically after reloads on this browser.</small>
-            </span>
-          </label>
+            {#if message}
+              <p class="text-destructive text-sm font-medium">{message}</p>
+            {/if}
 
-          {#if message}
-            <p class="vault-unlock__message">{message}</p>
-          {/if}
-
-          <button class="focus-ring vault-btn-primary w-full" type="submit" disabled={loading}>
-            <Shield size={16} />
-            {loading ? 'Unlocking...' : 'Unlock vault'}
-          </button>
-        </form>
-      {/if}
-    </div>
-  </section>
+            <Button type="submit" disabled={loading} class="w-full">
+              {#if loading}
+                <Spinner class="size-4" /> Unlocking…
+              {:else}
+                <Shield class="size-4" /> Unlock vault
+              {/if}
+            </Button>
+          </form>
+        {/if}
+      </Card.Content>
+    </Card.Root>
+  </div>
 {/if}
-
-<style>
-  .vault-unlock {
-    display: grid;
-    min-height: calc(100vh - 4rem);
-    place-items: center;
-    padding: 2rem 0;
-  }
-
-  .vault-unlock__card {
-    width: min(100%, 28rem);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1.5rem;
-    background: var(--background);
-  }
-
-  .vault-unlock__icon {
-    display: grid;
-    width: 3rem;
-    height: 3rem;
-    place-items: center;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--foreground);
-    background: var(--surface);
-  }
-
-  .vault-unlock__eyebrow {
-    margin-top: 1rem;
-    color: var(--muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-    line-height: 1rem;
-    overflow-wrap: anywhere;
-  }
-
-  h1 {
-    margin-top: 0.25rem;
-    color: var(--foreground);
-    font-size: 1.625rem;
-    font-weight: 700;
-    line-height: 1.15;
-  }
-
-  .vault-unlock__copy {
-    margin-top: 0.5rem;
-    color: var(--muted);
-    font-size: 0.875rem;
-    line-height: 1.55;
-  }
-
-  .vault-unlock__form {
-    display: grid;
-    gap: 1rem;
-    margin-top: 1.5rem;
-  }
-
-  .vault-unlock__remember {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.875rem;
-    color: var(--foreground);
-    background: var(--surface);
-    font-size: 0.875rem;
-    line-height: 1.4;
-  }
-
-  .vault-unlock__remember input {
-    margin-top: 0.125rem;
-  }
-
-  .vault-unlock__remember span {
-    display: grid;
-    gap: 0.125rem;
-  }
-
-  .vault-unlock__remember small {
-    color: var(--muted);
-    font-size: 0.75rem;
-    line-height: 1.25rem;
-  }
-
-  .vault-unlock__message {
-    border-radius: 8px;
-    padding: 0.625rem 0.75rem;
-    color: var(--danger);
-    background: rgba(220, 38, 38, 0.06);
-    font-size: 0.875rem;
-    font-weight: 500;
-    line-height: 1.25rem;
-  }
-</style>

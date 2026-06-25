@@ -15,6 +15,11 @@
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { Pencil, Plus, RotateCcw, Trash2 } from '@lucide/svelte';
+  import * as Card from '$lib/components/ui/card/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { Label } from '$lib/components/ui/label/index.js';
+  import { Progress } from '$lib/components/ui/progress/index.js';
 
   type CounterItem = {
     record: EncryptedRecord;
@@ -109,10 +114,10 @@
 </script>
 
 <PageHeader title="Milestones" description="Encrypted trackers for elapsed days since an event.">
-  <button class="focus-ring vault-btn-primary" type="button" onclick={openCreateCounter}>
-    <Plus size={16} />
+  <Button onclick={openCreateCounter}>
+    <Plus class="size-4" />
     New
-  </button>
+  </Button>
 </PageHeader>
 
 {#if locked}
@@ -120,41 +125,45 @@
 {:else}
   <section>
     {#if loading}
-      <p class="text-sm" style="color: var(--muted)">Decrypting milestones...</p>
+      <p class="text-muted-foreground text-sm">Decrypting milestones…</p>
     {:else if counters.length === 0}
       <EmptyState title="No milestones yet" description="Create a milestone to track elapsed time." />
     {:else}
       <div class="grid gap-4 sm:grid-cols-2">
         {#each counters as item (item.record.id)}
-          <article class="vault-card p-5">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <h2 class="text-sm font-semibold" style="color: var(--foreground)">{item.payload.name}</h2>
-                <p class="mt-1 text-xs" style="color: var(--muted)">Since {item.payload.initiated}</p>
-              </div>
-              <div class="flex gap-2">
-                <button class="focus-ring vault-btn-ghost" type="button" onclick={() => openEditCounter(item)} aria-label="Edit milestone">
-                  <Pencil size={15} />
-                </button>
-                <button class="focus-ring vault-btn-ghost" type="button" onclick={() => resetCounter(item)}>
-                  <RotateCcw size={15} />
-                </button>
-                <button class="focus-ring vault-btn-danger" type="button" onclick={() => removeCounter(item)}>
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-            <p class="mt-6 text-4xl font-bold tracking-tight" style="color: var(--foreground)">{elapsedDays(item.payload.initiated)}</p>
-            <p class="mt-1 text-sm font-medium" style="color: var(--muted)">days elapsed</p>
-            {#if item.payload.maxDays !== null}
-              <div class="mt-4 h-1.5 overflow-hidden" style="background: var(--border)">
-                <div
-                  class="h-full"
-                  style={`background: var(--foreground); width: ${Math.min(100, (elapsedDays(item.payload.initiated) / item.payload.maxDays) * 100)}%`}
-                ></div>
-              </div>
-            {/if}
-          </article>
+          <Card.Root>
+            <Card.Header>
+              <Card.Title>{item.payload.name}</Card.Title>
+              <Card.Description>Since {item.payload.initiated}</Card.Description>
+              <Card.Action class="flex gap-1">
+                <Button variant="ghost" size="icon" onclick={() => openEditCounter(item)} aria-label="Edit milestone">
+                  <Pencil class="size-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onclick={() => resetCounter(item)} aria-label="Reset milestone">
+                  <RotateCcw class="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="text-destructive hover:text-destructive"
+                  onclick={() => removeCounter(item)}
+                  aria-label="Delete milestone"
+                >
+                  <Trash2 class="size-4" />
+                </Button>
+              </Card.Action>
+            </Card.Header>
+            <Card.Content>
+              <p class="text-4xl font-bold tracking-tight">{elapsedDays(item.payload.initiated)}</p>
+              <p class="text-muted-foreground mt-1 text-sm font-medium">days elapsed</p>
+              {#if item.payload.maxDays !== null}
+                <Progress
+                  value={Math.min(100, (elapsedDays(item.payload.initiated) / item.payload.maxDays) * 100)}
+                  class="mt-4"
+                />
+              {/if}
+            </Card.Content>
+          </Card.Root>
         {/each}
       </div>
     {/if}
@@ -167,32 +176,26 @@
     onClose={closeCounterForm}
   >
     <form
-      class="space-y-4"
+      class="grid gap-4"
       onsubmit={(event) => {
         event.preventDefault();
         saveCounter();
       }}
     >
-      <label class="block text-sm font-medium">
-        Name
-        <input class="focus-ring vault-input mt-1.5" bind:value={form.name} required />
-      </label>
-      <label class="mt-3 block text-sm font-medium">
-        Initiated
-        <input class="focus-ring vault-input mt-1.5" type="date" bind:value={form.initiated} required />
-      </label>
-      <label class="mt-3 block text-sm font-medium">
-        Max days
-        <input
-          class="focus-ring vault-input mt-1.5"
-          type="number"
-          min="0"
-          bind:value={form.maxDays}
-          placeholder="optional"
-        />
-      </label>
+      <div class="grid gap-2">
+        <Label for="counter-name">Name</Label>
+        <Input id="counter-name" bind:value={form.name} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="counter-initiated">Initiated</Label>
+        <Input id="counter-initiated" type="date" bind:value={form.initiated} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="counter-max">Max days</Label>
+        <Input id="counter-max" type="number" min="0" bind:value={form.maxDays} placeholder="optional" />
+      </div>
       <div class="flex justify-end">
-        <button class="focus-ring vault-btn-primary" type="submit">{editingCounterId ? 'Save' : 'Create'}</button>
+        <Button type="submit">{editingCounterId ? 'Save' : 'Create'}</Button>
       </div>
     </form>
   </EntryModal>

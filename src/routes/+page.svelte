@@ -1,5 +1,6 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import * as Card from '$lib/components/ui/card/index.js';
   import { Activity, BookOpen, CalendarDays, ListChecks, StickyNote } from '@lucide/svelte';
 
   const features = [
@@ -41,17 +42,20 @@
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
   {#each features as feature (feature.href)}
     {@const Icon = feature.icon}
-    <a
-      class="focus-ring group vault-card vault-card-hover p-5 text-inherit hover:no-underline"
-      href={feature.href}
-    >
-      <div class="mb-4 flex items-center gap-3">
-        <span style="color: var(--foreground)">
-          <Icon size={20} />
-        </span>
-        <h2 class="text-sm font-semibold" style="color: var(--foreground)">{feature.label}</h2>
-      </div>
-      <p class="text-sm leading-relaxed" style="color: var(--muted)">{feature.description}</p>
+    <a href={feature.href} class="group focus-visible:ring-ring rounded-xl outline-none focus-visible:ring-2">
+      <Card.Root class="hover:border-foreground/20 h-full transition-colors">
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            <div class="bg-muted text-foreground flex size-9 items-center justify-center rounded-lg">
+              <Icon class="size-5" />
+            </div>
+            <Card.Title>{feature.label}</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+        </Card.Content>
+      </Card.Root>
     </a>
   {/each}
 </div>
