@@ -4,7 +4,6 @@
   import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SimpleLineChart from '$lib/components/SimpleLineChart.svelte';
-  import VaultNotice from '$lib/components/VaultNotice.svelte';
   import CollectionNav from '$lib/components/CollectionNav.svelte';
   import {
     createEncryptedRecord,
@@ -65,7 +64,6 @@
   });
 
   let dek: CryptoKey | null = null;
-  let locked = $state(false);
   let loading = $state(true);
   let diagrams: DiagramItem[] = $state([]);
   let selectedId: string | null = $state(null);
@@ -471,7 +469,6 @@
   onMount(async () => {
     dek = get(sessionDEK);
     if (!dek) {
-      locked = true;
       loading = false;
       return;
     }
@@ -486,332 +483,328 @@
   </Button>
 </PageHeader>
 
-{#if locked}
-  <VaultNotice />
-{:else}
-  {#snippet diagramRow(item: (typeof navItems)[number])}
-    <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
-    <span class="text-muted-foreground ml-auto shrink-0 text-xs whitespace-nowrap">
-      {item.measurementCount} {item.measurementCount === 1 ? 'point' : 'points'}
-    </span>
-  {/snippet}
+{#snippet diagramRow(item: (typeof navItems)[number])}
+  <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
+  <span class="text-muted-foreground ml-auto shrink-0 text-xs whitespace-nowrap">
+    {item.measurementCount} {item.measurementCount === 1 ? 'point' : 'points'}
+  </span>
+{/snippet}
 
-  <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
-    <aside class="min-w-0">
-      <CollectionNav
-        items={navItems}
-        selected={selected?.record.id ?? null}
-        onSelect={(id) => {
-          const item = diagrams.find((diagram) => diagram.record.id === id);
-          if (item) selectDiagram(item);
-        }}
-        row={diagramRow}
-        searchPlaceholder="Search diagrams"
-        emptyText="No diagrams found."
-        ariaLabel="Select diagram"
-      />
-    </aside>
+<div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
+  <aside class="min-w-0">
+    <CollectionNav
+      items={navItems}
+      selected={selected?.record.id ?? null}
+      onSelect={(id) => {
+        const item = diagrams.find((diagram) => diagram.record.id === id);
+        if (item) selectDiagram(item);
+      }}
+      row={diagramRow}
+      searchPlaceholder="Search diagrams"
+      emptyText="No diagrams found."
+      ariaLabel="Select diagram"
+    />
+  </aside>
 
-    <section class="min-w-0">
-      {#if loading}
-        <LoadingState message="Decrypting diagrams…" />
-      {:else if !selected}
-        <EmptyState title="No diagrams yet" description="Create a diagram to start tracking measurements." />
-      {:else}
-        <div class="grid gap-6">
-          <Card.Root class="min-w-0">
-            <Card.Header class="gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-              <div class="min-w-0 space-y-1.5">
-                <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
-                {#if selected.payload.description}
-                  <Card.Description class="break-words">{selected.payload.description}</Card.Description>
-                {/if}
-              </div>
-              <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-                <Button size="sm" class="h-9" onclick={() => openCreateMeasurement(selected)}>
-                  <Plus class="size-4" /> Add
-                </Button>
-                <Button variant="outline" size="sm" class="h-9" onclick={() => startEdit(selected)}>
-                  <Pencil class="size-4" /> Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  class="text-destructive hover:text-destructive size-9"
-                  onclick={() => removeDiagram(selected)}
-                  aria-label="Delete diagram"
-                >
-                  <Trash2 class="size-4" />
-                </Button>
-              </div>
-            </Card.Header>
-            <Card.Content class="min-w-0">
-              <SimpleLineChart
-                xAxis={xAxis(selected.payload)}
-                series={selected.payload.fields.map((field) => ({
-                  label: field.unit ? `${field.label} (${field.unit})` : field.label,
-                  points: points(selected, field),
-                  color: field.color
-                }))}
-              />
-            </Card.Content>
-          </Card.Root>
+  <section class="min-w-0">
+    {#if loading}
+      <LoadingState message="Decrypting diagrams…" />
+    {:else if !selected}
+      <EmptyState title="No diagrams yet" description="Create a diagram to start tracking measurements." />
+    {:else}
+      <div class="grid gap-6">
+        <Card.Root class="min-w-0">
+          <Card.Header class="gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+            <div class="min-w-0 space-y-1.5">
+              <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
+              {#if selected.payload.description}
+                <Card.Description class="break-words">{selected.payload.description}</Card.Description>
+              {/if}
+            </div>
+            <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+              <Button size="sm" class="h-9" onclick={() => openCreateMeasurement(selected)}>
+                <Plus class="size-4" /> Add
+              </Button>
+              <Button variant="outline" size="sm" class="h-9" onclick={() => startEdit(selected)}>
+                <Pencil class="size-4" /> Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                class="text-destructive hover:text-destructive size-9"
+                onclick={() => removeDiagram(selected)}
+                aria-label="Delete diagram"
+              >
+                <Trash2 class="size-4" />
+              </Button>
+            </div>
+          </Card.Header>
+          <Card.Content class="min-w-0">
+            <SimpleLineChart
+              xAxis={xAxis(selected.payload)}
+              series={selected.payload.fields.map((field) => ({
+                label: field.unit ? `${field.label} (${field.unit})` : field.label,
+                points: points(selected, field),
+                color: field.color
+              }))}
+            />
+          </Card.Content>
+        </Card.Root>
 
-          <section>
-            <h2 class="mb-3 text-lg font-semibold">Measurements</h2>
-            {#if selected.payload.measurements.length === 0}
-              <EmptyState title="No measurements yet" description="Add a measurement above to populate this chart." />
-            {:else}
-              <div class="grid gap-3">
-                {#each sortedMeasurements(selected.payload) as measurement (measurement.id)}
-                  {@const entries = measurementEntries(selected.payload, measurement)}
-                  <Card.Root class="gap-4 px-4 py-4 sm:px-5">
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                      <div class="min-w-0">
-                        <p class="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
-                          {measurementHeading(selected.payload)}
-                        </p>
-                        <p class="mt-1 break-words text-sm font-medium sm:text-base">{xLabel(selected.payload, measurement)}</p>
-                      </div>
-                      <div class="flex items-center gap-1 self-start">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          class="size-9"
-                          onclick={() => openEditMeasurement(selected, measurement)}
-                          aria-label="Edit measurement"
-                        >
-                          <Pencil class="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          class="text-muted-foreground hover:text-destructive size-9"
-                          onclick={() => removeMeasurement(selected, measurement.id)}
-                          aria-label="Delete measurement"
-                        >
-                          <Trash2 class="size-4" />
-                        </Button>
-                      </div>
+        <section>
+          <h2 class="mb-3 text-lg font-semibold">Measurements</h2>
+          {#if selected.payload.measurements.length === 0}
+            <EmptyState title="No measurements yet" description="Add a measurement above to populate this chart." />
+          {:else}
+            <div class="grid gap-3">
+              {#each sortedMeasurements(selected.payload) as measurement (measurement.id)}
+                {@const entries = measurementEntries(selected.payload, measurement)}
+                <Card.Root class="gap-4 px-4 py-4 sm:px-5">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
+                        {measurementHeading(selected.payload)}
+                      </p>
+                      <p class="mt-1 break-words text-sm font-medium sm:text-base">{xLabel(selected.payload, measurement)}</p>
                     </div>
+                    <div class="flex items-center gap-1 self-start">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="size-9"
+                        onclick={() => openEditMeasurement(selected, measurement)}
+                        aria-label="Edit measurement"
+                      >
+                        <Pencil class="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="text-muted-foreground hover:text-destructive size-9"
+                        onclick={() => removeMeasurement(selected, measurement.id)}
+                        aria-label="Delete measurement"
+                      >
+                        <Trash2 class="size-4" />
+                      </Button>
+                    </div>
+                  </div>
 
-                    <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                      {#each entries as entry (entry.id)}
-                        <div class="bg-muted/20 rounded-xl border px-3 py-2">
-                          <div class="flex items-start gap-2">
-                            <span class="mt-1 size-2.5 shrink-0 rounded-full" style="background: {entry.color}"></span>
-                            <div class="min-w-0">
-                              <p class="text-muted-foreground text-xs font-semibold">{entry.label}</p>
-                              <p class="mt-1 break-words text-sm font-medium">{entry.value}</p>
-                            </div>
+                  <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    {#each entries as entry (entry.id)}
+                      <div class="bg-muted/20 rounded-xl border px-3 py-2">
+                        <div class="flex items-start gap-2">
+                          <span class="mt-1 size-2.5 shrink-0 rounded-full" style="background: {entry.color}"></span>
+                          <div class="min-w-0">
+                            <p class="text-muted-foreground text-xs font-semibold">{entry.label}</p>
+                            <p class="mt-1 break-words text-sm font-medium">{entry.value}</p>
                           </div>
                         </div>
-                      {/each}
-                    </div>
-                  </Card.Root>
-                {/each}
-              </div>
-            {/if}
-          </section>
-        </div>
-      {/if}
-    </section>
-  </div>
+                      </div>
+                    {/each}
+                  </div>
+                </Card.Root>
+              {/each}
+            </div>
+          {/if}
+        </section>
+      </div>
+    {/if}
+  </section>
+</div>
 
+<EntryModal
+  open={diagramFormOpen}
+  title={editingId ? 'Edit diagram' : 'New diagram'}
+  description="Define the chart and the numeric series you want to track."
+  onClose={cancelEdit}
+>
+  <form
+    class="grid gap-4"
+    onsubmit={(event) => {
+      event.preventDefault();
+      saveDiagram();
+    }}
+  >
+    <div class="grid gap-2">
+      <Label for="diagram-title">Title</Label>
+      <Input id="diagram-title" bind:value={diagramForm.title} required />
+    </div>
+    <div class="grid gap-2">
+      <Label for="diagram-description">Description</Label>
+      <Textarea id="diagram-description" bind:value={diagramForm.description} />
+    </div>
+
+    <div class="grid gap-3 rounded-lg border p-3">
+      <h3 class="text-sm font-semibold">X axis</h3>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div class="grid gap-2">
+          <Label>Type</Label>
+          <Select.Root
+            type="single"
+            value={diagramForm.xAxis.type}
+            onValueChange={(value) => setXAxisType(value === 'number' ? 'number' : 'datetime')}
+          >
+            <Select.Trigger class="w-full">{diagramForm.xAxis.type === 'number' ? 'Number' : 'Date/time'}</Select.Trigger>
+            <Select.Content>
+              <Select.Item value="datetime" label="Date/time">Date/time</Select.Item>
+              <Select.Item value="number" label="Number">Number</Select.Item>
+            </Select.Content>
+          </Select.Root>
+        </div>
+        <div class="grid gap-2">
+          <Label for="xaxis-label">Label</Label>
+          <Input
+            id="xaxis-label"
+            bind:value={diagramForm.xAxis.label}
+            placeholder={diagramForm.xAxis.type === 'number' ? 'Minutes' : 'Date'}
+          />
+        </div>
+        <div class="grid gap-2">
+          <Label for="xaxis-unit">Unit</Label>
+          <Input
+            id="xaxis-unit"
+            bind:value={diagramForm.xAxis.unit}
+            placeholder={diagramForm.xAxis.type === 'number' ? 'min' : 'optional'}
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="grid gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-sm font-semibold">Series</h3>
+        <Button variant="ghost" size="icon" class="size-8" onclick={addFormField} aria-label="Add series">
+          <Plus class="size-4" />
+        </Button>
+      </div>
+
+      {#each diagramForm.fields as field (field.id)}
+        <div class="grid grid-cols-[2.5rem_minmax(0,1fr)_5rem_2.5rem] gap-2">
+          <input
+            class="border-input h-9 w-10 cursor-pointer rounded-md border bg-transparent p-1"
+            type="color"
+            bind:value={field.color}
+            aria-label="Series color"
+          />
+          <Input class="min-w-0" bind:value={field.label} placeholder="Name" required />
+          <Input class="min-w-0" bind:value={field.unit} placeholder="Unit" />
+          <Button
+            variant="ghost"
+            size="icon"
+            class="text-muted-foreground hover:text-destructive size-9"
+            onclick={() => removeFormField(field.id)}
+            aria-label="Remove series"
+            disabled={diagramForm.fields.length === 1}
+          >
+            <Trash2 class="size-4" />
+          </Button>
+        </div>
+      {/each}
+    </div>
+
+    <div class="flex justify-end">
+      <Button type="submit">{editingId ? 'Save' : 'Create'}</Button>
+    </div>
+  </form>
+</EntryModal>
+
+{#if selected}
   <EntryModal
-    open={diagramFormOpen}
-    title={editingId ? 'Edit diagram' : 'New diagram'}
-    description="Define the chart and the numeric series you want to track."
-    onClose={cancelEdit}
+    open={measurementFormOpen}
+    title={editingMeasurementId ? 'Edit measurement' : measurementMode === 'batch' ? 'Batch add measurements' : 'New measurement'}
+    description={`${editingMeasurementId ? 'Update' : 'Add'} values to ${selected.payload.title}. Empty series are skipped.`}
+    onClose={() => closeMeasurementForm(selected)}
   >
     <form
       class="grid gap-4"
       onsubmit={(event) => {
         event.preventDefault();
-        saveDiagram();
+        if (measurementMode === 'batch' && !editingMeasurementId) {
+          saveBatchMeasurements(selected);
+        } else {
+          saveMeasurement(selected);
+        }
       }}
     >
-      <div class="grid gap-2">
-        <Label for="diagram-title">Title</Label>
-        <Input id="diagram-title" bind:value={diagramForm.title} required />
-      </div>
-      <div class="grid gap-2">
-        <Label for="diagram-description">Description</Label>
-        <Textarea id="diagram-description" bind:value={diagramForm.description} />
-      </div>
-
-      <div class="grid gap-3 rounded-lg border p-3">
-        <h3 class="text-sm font-semibold">X axis</h3>
-        <div class="grid gap-3 sm:grid-cols-3">
-          <div class="grid gap-2">
-            <Label>Type</Label>
-            <Select.Root
-              type="single"
-              value={diagramForm.xAxis.type}
-              onValueChange={(value) => setXAxisType(value === 'number' ? 'number' : 'datetime')}
-            >
-              <Select.Trigger class="w-full">{diagramForm.xAxis.type === 'number' ? 'Number' : 'Date/time'}</Select.Trigger>
-              <Select.Content>
-                <Select.Item value="datetime" label="Date/time">Date/time</Select.Item>
-                <Select.Item value="number" label="Number">Number</Select.Item>
-              </Select.Content>
-            </Select.Root>
-          </div>
-          <div class="grid gap-2">
-            <Label for="xaxis-label">Label</Label>
-            <Input
-              id="xaxis-label"
-              bind:value={diagramForm.xAxis.label}
-              placeholder={diagramForm.xAxis.type === 'number' ? 'Minutes' : 'Date'}
-            />
-          </div>
-          <div class="grid gap-2">
-            <Label for="xaxis-unit">Unit</Label>
-            <Input
-              id="xaxis-unit"
-              bind:value={diagramForm.xAxis.unit}
-              placeholder={diagramForm.xAxis.type === 'number' ? 'min' : 'optional'}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div class="grid gap-3">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-sm font-semibold">Series</h3>
-          <Button variant="ghost" size="icon" class="size-8" onclick={addFormField} aria-label="Add series">
-            <Plus class="size-4" />
+      {#if !editingMeasurementId}
+        <div class="bg-muted inline-flex gap-1 rounded-lg p-1">
+          <Button
+            variant={measurementMode === 'single' ? 'default' : 'ghost'}
+            size="sm"
+            onclick={() => setMeasurementMode('single')}
+          >
+            Single
+          </Button>
+          <Button
+            variant={measurementMode === 'batch' ? 'default' : 'ghost'}
+            size="sm"
+            onclick={() => setMeasurementMode('batch')}
+          >
+            Batch
           </Button>
         </div>
+      {/if}
 
-        {#each diagramForm.fields as field (field.id)}
-          <div class="grid grid-cols-[2.5rem_minmax(0,1fr)_5rem_2.5rem] gap-2">
-            <input
-              class="border-input h-9 w-10 cursor-pointer rounded-md border bg-transparent p-1"
-              type="color"
-              bind:value={field.color}
-              aria-label="Series color"
-            />
-            <Input class="min-w-0" bind:value={field.label} placeholder="Name" required />
-            <Input class="min-w-0" bind:value={field.unit} placeholder="Unit" />
-            <Button
-              variant="ghost"
-              size="icon"
-              class="text-muted-foreground hover:text-destructive size-9"
-              onclick={() => removeFormField(field.id)}
-              aria-label="Remove series"
-              disabled={diagramForm.fields.length === 1}
-            >
-              <Trash2 class="size-4" />
-            </Button>
+      {#if measurementMode === 'batch' && !editingMeasurementId}
+        <div class="text-muted-foreground rounded-lg border p-3 text-sm">
+          <p>
+            Paste exactly one tab-separated table: row 1 is the header, every later non-empty row is one measurement, columns are
+            separated by real tab characters and not commas, every row must have the same number of columns as the header, the
+            first header must be <code>{isNumberAxis(selected.payload) ? 'x' : 'date'}</code>, {isNumberAxis(selected.payload)
+              ? 'the x column must contain a plain finite number such as 0, 30, or 120'
+              : 'the date column must contain YYYY-MM-DD HH:mm text such as 2022-09-24 16:22 and must not contain Unix timestamps'},
+            every other header must exactly match one existing series name in this diagram such as sys, dia, or pul, or
+            <code>Name (unit)</code> when that series has a unit, units are read from the diagram setup and must not be written in
+            value cells, value cells must be plain finite numbers using dot decimals, and an empty value cell skips only that series
+            for that row.
+          </p>
+        </div>
+        <div class="grid gap-2">
+          <Label for="batch-text">Batch measurements</Label>
+          <Textarea id="batch-text" bind:value={batchText} spellcheck="false" class="min-h-60 font-mono text-xs" />
+        </div>
+        <div class="rounded-lg border p-3">
+          <p class="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">Example</p>
+          <pre class="overflow-auto text-xs whitespace-pre-wrap">{batchExample(selected.payload)}</pre>
+        </div>
+        {#if batchError}
+          <p class="text-destructive text-sm font-medium">{batchError}</p>
+        {/if}
+      {:else}
+        {#if isNumberAxis(selected.payload)}
+          <div class="grid gap-2">
+            <Label for="measurement-x">
+              {xAxis(selected.payload).unit
+                ? `${xAxis(selected.payload).label} (${xAxis(selected.payload).unit})`
+                : xAxis(selected.payload).label}
+            </Label>
+            <Input id="measurement-x" type="number" step="0.001" bind:value={measurementForm.x} required />
           </div>
-        {/each}
-      </div>
-
+        {:else}
+          <div class="grid gap-2">
+            <Label for="measurement-date">Date</Label>
+            <Input id="measurement-date" type="datetime-local" bind:value={measurementForm.date} required />
+          </div>
+        {/if}
+        <div class="grid gap-3 sm:grid-cols-2">
+          {#each selected.payload.fields as field (field.id)}
+            <div class="grid gap-2">
+              <Label for={`measurement-${field.id}`}>{field.unit ? `${field.label} (${field.unit})` : field.label}</Label>
+              <Input
+                id={`measurement-${field.id}`}
+                type="number"
+                step="0.001"
+                bind:value={measurementForm.values[field.id]}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
       <div class="flex justify-end">
-        <Button type="submit">{editingId ? 'Save' : 'Create'}</Button>
+        <Button type="submit">
+          {editingMeasurementId ? 'Save' : measurementMode === 'batch' ? 'Add measurements' : 'Add'}
+        </Button>
       </div>
     </form>
   </EntryModal>
-
-  {#if selected}
-    <EntryModal
-      open={measurementFormOpen}
-      title={editingMeasurementId ? 'Edit measurement' : measurementMode === 'batch' ? 'Batch add measurements' : 'New measurement'}
-      description={`${editingMeasurementId ? 'Update' : 'Add'} values to ${selected.payload.title}. Empty series are skipped.`}
-      onClose={() => closeMeasurementForm(selected)}
-    >
-      <form
-        class="grid gap-4"
-        onsubmit={(event) => {
-          event.preventDefault();
-          if (measurementMode === 'batch' && !editingMeasurementId) {
-            saveBatchMeasurements(selected);
-          } else {
-            saveMeasurement(selected);
-          }
-        }}
-      >
-        {#if !editingMeasurementId}
-          <div class="bg-muted inline-flex gap-1 rounded-lg p-1">
-            <Button
-              variant={measurementMode === 'single' ? 'default' : 'ghost'}
-              size="sm"
-              onclick={() => setMeasurementMode('single')}
-            >
-              Single
-            </Button>
-            <Button
-              variant={measurementMode === 'batch' ? 'default' : 'ghost'}
-              size="sm"
-              onclick={() => setMeasurementMode('batch')}
-            >
-              Batch
-            </Button>
-          </div>
-        {/if}
-
-        {#if measurementMode === 'batch' && !editingMeasurementId}
-          <div class="text-muted-foreground rounded-lg border p-3 text-sm">
-            <p>
-              Paste exactly one tab-separated table: row 1 is the header, every later non-empty row is one measurement, columns are
-              separated by real tab characters and not commas, every row must have the same number of columns as the header, the
-              first header must be <code>{isNumberAxis(selected.payload) ? 'x' : 'date'}</code>, {isNumberAxis(selected.payload)
-                ? 'the x column must contain a plain finite number such as 0, 30, or 120'
-                : 'the date column must contain YYYY-MM-DD HH:mm text such as 2022-09-24 16:22 and must not contain Unix timestamps'},
-              every other header must exactly match one existing series name in this diagram such as sys, dia, or pul, or
-              <code>Name (unit)</code> when that series has a unit, units are read from the diagram setup and must not be written in
-              value cells, value cells must be plain finite numbers using dot decimals, and an empty value cell skips only that series
-              for that row.
-            </p>
-          </div>
-          <div class="grid gap-2">
-            <Label for="batch-text">Batch measurements</Label>
-            <Textarea id="batch-text" bind:value={batchText} spellcheck="false" class="min-h-60 font-mono text-xs" />
-          </div>
-          <div class="rounded-lg border p-3">
-            <p class="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">Example</p>
-            <pre class="overflow-auto text-xs whitespace-pre-wrap">{batchExample(selected.payload)}</pre>
-          </div>
-          {#if batchError}
-            <p class="text-destructive text-sm font-medium">{batchError}</p>
-          {/if}
-        {:else}
-          {#if isNumberAxis(selected.payload)}
-            <div class="grid gap-2">
-              <Label for="measurement-x">
-                {xAxis(selected.payload).unit
-                  ? `${xAxis(selected.payload).label} (${xAxis(selected.payload).unit})`
-                  : xAxis(selected.payload).label}
-              </Label>
-              <Input id="measurement-x" type="number" step="0.001" bind:value={measurementForm.x} required />
-            </div>
-          {:else}
-            <div class="grid gap-2">
-              <Label for="measurement-date">Date</Label>
-              <Input id="measurement-date" type="datetime-local" bind:value={measurementForm.date} required />
-            </div>
-          {/if}
-          <div class="grid gap-3 sm:grid-cols-2">
-            {#each selected.payload.fields as field (field.id)}
-              <div class="grid gap-2">
-                <Label for={`measurement-${field.id}`}>{field.unit ? `${field.label} (${field.unit})` : field.label}</Label>
-                <Input
-                  id={`measurement-${field.id}`}
-                  type="number"
-                  step="0.001"
-                  bind:value={measurementForm.values[field.id]}
-                />
-              </div>
-            {/each}
-          </div>
-        {/if}
-        <div class="flex justify-end">
-          <Button type="submit">
-            {editingMeasurementId ? 'Save' : measurementMode === 'batch' ? 'Add measurements' : 'Add'}
-          </Button>
-        </div>
-      </form>
-    </EntryModal>
-  {/if}
 {/if}

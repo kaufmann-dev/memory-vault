@@ -3,7 +3,6 @@
   import LoadingState from '$lib/components/LoadingState.svelte';
   import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import VaultNotice from '$lib/components/VaultNotice.svelte';
   import CollectionNav from '$lib/components/CollectionNav.svelte';
   import {
     createEncryptedRecord,
@@ -39,7 +38,6 @@
   });
 
   let dek: CryptoKey | null = null;
-  let locked = $state(false);
   let loading = $state(true);
   let lists: ListItem[] = $state([]);
   let selectedId: string | null = $state(null);
@@ -153,7 +151,6 @@
   onMount(async () => {
     dek = get(sessionDEK);
     if (!dek) {
-      locked = true;
       loading = false;
       return;
     }
@@ -168,144 +165,140 @@
   </Button>
 </PageHeader>
 
-{#if locked}
-  <VaultNotice />
-{:else}
-  {#snippet listRow(item: (typeof navItems)[number])}
-    <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
-    <span class="text-muted-foreground ml-auto shrink-0 text-xs whitespace-nowrap">
-      {item.taskCount} · {item.checklist ? 'Checklist' : 'List'}
-    </span>
-  {/snippet}
+{#snippet listRow(item: (typeof navItems)[number])}
+  <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
+  <span class="text-muted-foreground ml-auto shrink-0 text-xs whitespace-nowrap">
+    {item.taskCount} · {item.checklist ? 'Checklist' : 'List'}
+  </span>
+{/snippet}
 
-  <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
-    <aside class="min-w-0">
-      <CollectionNav
-        items={navItems}
-        selected={selected?.record.id ?? null}
-        onSelect={(id) => (selectedId = id)}
-        row={listRow}
-        searchPlaceholder="Search lists"
-        emptyText="No lists found."
-        ariaLabel="Select list"
-      />
-    </aside>
+<div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
+  <aside class="min-w-0">
+    <CollectionNav
+      items={navItems}
+      selected={selected?.record.id ?? null}
+      onSelect={(id) => (selectedId = id)}
+      row={listRow}
+      searchPlaceholder="Search lists"
+      emptyText="No lists found."
+      ariaLabel="Select list"
+    />
+  </aside>
 
-    <section>
-      {#if loading}
-        <LoadingState message="Decrypting lists…" />
-      {:else if !selected}
-        <EmptyState title="No lists yet" description="Create a list to start tracking tasks." />
-      {:else}
-        <Card.Root>
-          <Card.Header>
-            <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
-            {#if selected.payload.description}
-              <Card.Description>{selected.payload.description}</Card.Description>
-            {/if}
-            <Card.Action class="flex gap-2">
-              <Button size="sm" onclick={() => (taskFormOpen = true)}>
-                <Plus class="size-4" /> Add
-              </Button>
-              <Button variant="outline" size="sm" onclick={() => openEditList(selected)}>
-                <Pencil class="size-4" /> Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                class="text-destructive hover:text-destructive size-8"
-                onclick={() => removeList(selected)}
-                aria-label="Delete list"
-              >
-                <Trash2 class="size-4" />
-              </Button>
-            </Card.Action>
-          </Card.Header>
-          <Card.Content>
-            <ul class="grid">
-              {#each selected.payload.tasks as task, index (task.id)}
-                {#if index > 0}<Separator />{/if}
-                <li class="group flex items-center gap-3 py-3">
-                  {#if selected.payload.checklist}
-                    <Checkbox checked={task.done} onCheckedChange={() => toggleTask(selected, task.id)} />
-                  {/if}
-                  <span class="flex-1 text-sm" class:line-through={task.done} class:text-muted-foreground={task.done}>
-                    {task.text}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="text-muted-foreground hover:text-destructive size-8 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
-                    onclick={() => removeTask(selected, task.id)}
-                    aria-label="Delete task"
-                  >
-                    <Trash2 class="size-4" />
-                  </Button>
-                </li>
-              {/each}
-            </ul>
-          </Card.Content>
-        </Card.Root>
-      {/if}
-    </section>
-  </div>
+  <section>
+    {#if loading}
+      <LoadingState message="Decrypting lists…" />
+    {:else if !selected}
+      <EmptyState title="No lists yet" description="Create a list to start tracking tasks." />
+    {:else}
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
+          {#if selected.payload.description}
+            <Card.Description>{selected.payload.description}</Card.Description>
+          {/if}
+          <Card.Action class="flex gap-2">
+            <Button size="sm" onclick={() => (taskFormOpen = true)}>
+              <Plus class="size-4" /> Add
+            </Button>
+            <Button variant="outline" size="sm" onclick={() => openEditList(selected)}>
+              <Pencil class="size-4" /> Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              class="text-destructive hover:text-destructive size-8"
+              onclick={() => removeList(selected)}
+              aria-label="Delete list"
+            >
+              <Trash2 class="size-4" />
+            </Button>
+          </Card.Action>
+        </Card.Header>
+        <Card.Content>
+          <ul class="grid">
+            {#each selected.payload.tasks as task, index (task.id)}
+              {#if index > 0}<Separator />{/if}
+              <li class="group flex items-center gap-3 py-3">
+                {#if selected.payload.checklist}
+                  <Checkbox checked={task.done} onCheckedChange={() => toggleTask(selected, task.id)} />
+                {/if}
+                <span class="flex-1 text-sm" class:line-through={task.done} class:text-muted-foreground={task.done}>
+                  {task.text}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="text-muted-foreground hover:text-destructive size-8 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+                  onclick={() => removeTask(selected, task.id)}
+                  aria-label="Delete task"
+                >
+                  <Trash2 class="size-4" />
+                </Button>
+              </li>
+            {/each}
+          </ul>
+        </Card.Content>
+      </Card.Root>
+    {/if}
+  </section>
+</div>
 
+<EntryModal
+  open={listFormOpen}
+  title={editingListId ? 'Edit list' : 'New list'}
+  description={editingListId ? 'Update this private list shell.' : 'Create a private list shell. Tasks can be added once the list exists.'}
+  onClose={closeListForm}
+>
+  <form
+    class="grid gap-4"
+    onsubmit={(event) => {
+      event.preventDefault();
+      saveList();
+    }}
+  >
+    <div class="grid gap-2">
+      <Label for="list-title">Title</Label>
+      <Input id="list-title" bind:value={form.title} required />
+    </div>
+    <div class="grid gap-2">
+      <Label for="list-description">Description</Label>
+      <Textarea id="list-description" bind:value={form.description} />
+    </div>
+    <Label for="list-checklist" class="flex items-center gap-2 font-normal">
+      <Checkbox id="list-checklist" bind:checked={form.checklist} />
+      Checklist
+    </Label>
+    <div class="flex justify-end">
+      <Button type="submit">{editingListId ? 'Save' : 'Create'}</Button>
+    </div>
+  </form>
+</EntryModal>
+
+{#if selected}
   <EntryModal
-    open={listFormOpen}
-    title={editingListId ? 'Edit list' : 'New list'}
-    description={editingListId ? 'Update this private list shell.' : 'Create a private list shell. Tasks can be added once the list exists.'}
-    onClose={closeListForm}
+    open={taskFormOpen}
+    title="New task"
+    description={`Add a task to ${selected.payload.title}.`}
+    onClose={() => {
+      taskFormOpen = false;
+      newTask = '';
+    }}
   >
     <form
       class="grid gap-4"
       onsubmit={(event) => {
         event.preventDefault();
-        saveList();
+        addTask(selected);
       }}
     >
       <div class="grid gap-2">
-        <Label for="list-title">Title</Label>
-        <Input id="list-title" bind:value={form.title} required />
+        <Label for="new-task">Task</Label>
+        <Input id="new-task" bind:value={newTask} required />
       </div>
-      <div class="grid gap-2">
-        <Label for="list-description">Description</Label>
-        <Textarea id="list-description" bind:value={form.description} />
-      </div>
-      <Label for="list-checklist" class="flex items-center gap-2 font-normal">
-        <Checkbox id="list-checklist" bind:checked={form.checklist} />
-        Checklist
-      </Label>
       <div class="flex justify-end">
-        <Button type="submit">{editingListId ? 'Save' : 'Create'}</Button>
+        <Button type="submit">Add</Button>
       </div>
     </form>
   </EntryModal>
-
-  {#if selected}
-    <EntryModal
-      open={taskFormOpen}
-      title="New task"
-      description={`Add a task to ${selected.payload.title}.`}
-      onClose={() => {
-        taskFormOpen = false;
-        newTask = '';
-      }}
-    >
-      <form
-        class="grid gap-4"
-        onsubmit={(event) => {
-          event.preventDefault();
-          addTask(selected);
-        }}
-      >
-        <div class="grid gap-2">
-          <Label for="new-task">Task</Label>
-          <Input id="new-task" bind:value={newTask} required />
-        </div>
-        <div class="flex justify-end">
-          <Button type="submit">Add</Button>
-        </div>
-      </form>
-    </EntryModal>
-  {/if}
 {/if}
