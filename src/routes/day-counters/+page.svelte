@@ -124,7 +124,7 @@
   {:else if counters.length === 0}
     <EmptyState title="No milestones yet" description="Create a milestone to track elapsed time." />
   {:else}
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid gap-4 md:grid-cols-2">
       {#each counters as item (item.record.id)}
         <Card.Root>
           <Card.Header>
