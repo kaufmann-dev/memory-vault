@@ -306,7 +306,7 @@
   .settings-grid {
     display: grid;
     gap: 1rem;
-    max-width: 64rem;
+    max-width: 72rem;
   }
 
   .settings-card__header {
@@ -343,7 +343,7 @@
 
   @media (min-width: 900px) {
     .settings-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       align-items: start;
     }
   }
