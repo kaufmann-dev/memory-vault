@@ -204,23 +204,25 @@
     };
 
     if (editingId) {
-      await updateEncryptedRecord(editingId, 'diagram', payload, dek);
-      selectedId = editingId;
+      const id = editingId;
+      diagrams = diagrams.map((d) => (d.record.id === id ? { ...d, payload } : d));
+      await updateEncryptedRecord(id, 'diagram', payload, dek);
+      selectedId = id;
     } else {
       const record = await createEncryptedRecord('diagram', payload, dek);
+      diagrams = [...diagrams, { record, payload }];
       selectedId = record.id;
     }
 
     cancelEdit();
-    await loadDiagrams();
   }
 
   async function removeDiagram(item: DiagramItem) {
     if (!confirm('Delete this diagram?')) return;
-    await deleteEncryptedRecord(item.record.id);
+    diagrams = diagrams.filter((d) => d.record.id !== item.record.id);
     selectedId = null;
     cancelEdit();
-    await loadDiagrams();
+    await deleteEncryptedRecord(item.record.id);
   }
 
   function openCreateMeasurement(item: DiagramItem) {
@@ -364,18 +366,11 @@
       ? item.payload.measurements.map((existing) => (existing.id === editingMeasurementId ? measurement : existing))
       : [...item.payload.measurements, measurement];
 
-    await updateEncryptedRecord(
-      item.record.id,
-      'diagram',
-      {
-        ...item.payload,
-        measurements
-      },
-      dek
-    );
-    resetMeasurement(item.payload);
+    const payload = { ...item.payload, measurements };
+    diagrams = diagrams.map((d) => (d.record.id === item.record.id ? { ...d, payload } : d));
+    await updateEncryptedRecord(item.record.id, 'diagram', payload, dek);
+    resetMeasurement(payload);
     measurementFormOpen = false;
-    await loadDiagrams();
   }
 
   async function saveBatchMeasurements(item: DiagramItem) {
@@ -389,32 +384,21 @@
       return;
     }
 
-    await updateEncryptedRecord(
-      item.record.id,
-      'diagram',
-      {
-        ...item.payload,
-        measurements: [...item.payload.measurements, ...imported]
-      },
-      dek
-    );
-    resetMeasurement(item.payload);
+    const payload = { ...item.payload, measurements: [...item.payload.measurements, ...imported] };
+    diagrams = diagrams.map((d) => (d.record.id === item.record.id ? { ...d, payload } : d));
+    await updateEncryptedRecord(item.record.id, 'diagram', payload, dek);
+    resetMeasurement(payload);
     measurementFormOpen = false;
-    await loadDiagrams();
   }
 
   async function removeMeasurement(item: DiagramItem, measurementId: string) {
     if (!dek) return;
-    await updateEncryptedRecord(
-      item.record.id,
-      'diagram',
-      {
-        ...item.payload,
-        measurements: item.payload.measurements.filter((measurement) => measurement.id !== measurementId)
-      },
-      dek
-    );
-    await loadDiagrams();
+    const payload = {
+      ...item.payload,
+      measurements: item.payload.measurements.filter((measurement) => measurement.id !== measurementId)
+    };
+    diagrams = diagrams.map((d) => (d.record.id === item.record.id ? { ...d, payload } : d));
+    await updateEncryptedRecord(item.record.id, 'diagram', payload, dek);
   }
 
   function points(item: DiagramItem, field: DiagramField) {

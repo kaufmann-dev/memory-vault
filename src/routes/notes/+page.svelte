@@ -160,6 +160,10 @@
       : [...noteForm.groupIds, groupId];
   }
 
+  function sortGroups(items: GroupItem[]) {
+    return [...items].sort((a, b) => a.payload.name.localeCompare(b.payload.name));
+  }
+
   async function loadNotes() {
     if (!dek) return;
     loading = true;
@@ -167,9 +171,7 @@
       fetchEncryptedRecords('note'),
       fetchEncryptedRecords('note_group')
     ]);
-    groups = (await decryptRecords<NoteGroupPayload>(groupRecords, dek)).sort((a, b) =>
-      a.payload.name.localeCompare(b.payload.name)
-    );
+    groups = sortGroups(await decryptRecords<NoteGroupPayload>(groupRecords, dek));
     notes = (await decryptRecords<NotePayload>(noteRecords, dek)).map((item) => ({
       ...item,
       payload: normalizeNotePayload(item.payload)
@@ -192,13 +194,15 @@
       };
 
       if (editingNoteId) {
-        await updateEncryptedRecord(editingNoteId, 'note', payload, dek);
+        const id = editingNoteId;
+        notes = notes.map((note) => (note.record.id === id ? { ...note, payload } : note));
+        await updateEncryptedRecord(id, 'note', payload, dek);
       } else {
-        await createEncryptedRecord('note', payload, dek);
+        const record = await createEncryptedRecord('note', payload, dek);
+        notes = [...notes, { record, payload }];
       }
 
       closeNoteForm();
-      await loadNotes();
     } finally {
       saving = false;
     }
@@ -206,26 +210,23 @@
 
   async function removeCurrentNote() {
     if (!editingNoteId || !confirm('Delete this note?')) return;
-    await deleteEncryptedRecord(editingNoteId);
+    const id = editingNoteId;
+    notes = notes.filter((note) => note.record.id !== id);
     closeNoteForm();
-    await loadNotes();
+    await deleteEncryptedRecord(id);
   }
 
   async function togglePinned(item: NoteItem) {
     if (!dek || saving) return;
     saving = true;
     try {
-      await updateEncryptedRecord(
-        item.record.id,
-        'note',
-        {
-          ...normalizeNotePayload(item.payload),
-          pinned: !item.payload.pinned,
-          updatedAt: nowIso()
-        },
-        dek
-      );
-      await loadNotes();
+      const payload = {
+        ...normalizeNotePayload(item.payload),
+        pinned: !item.payload.pinned,
+        updatedAt: nowIso()
+      };
+      notes = notes.map((note) => (note.record.id === item.record.id ? { ...note, payload } : note));
+      await updateEncryptedRecord(item.record.id, 'note', payload, dek);
     } finally {
       saving = false;
     }
@@ -242,13 +243,15 @@
       };
 
       if (editingGroupId) {
-        await updateEncryptedRecord(editingGroupId, 'note_group', payload, dek);
+        const id = editingGroupId;
+        groups = sortGroups(groups.map((group) => (group.record.id === id ? { ...group, payload } : group)));
+        await updateEncryptedRecord(id, 'note_group', payload, dek);
       } else {
-        await createEncryptedRecord('note_group', payload, dek);
+        const record = await createEncryptedRecord('note_group', payload, dek);
+        groups = sortGroups([...groups, { record, payload }]);
       }
 
       closeGroupForm();
-      await loadNotes();
     } finally {
       saving = false;
     }
@@ -257,24 +260,27 @@
   async function removeGroup(item: GroupItem) {
     const activeDek = dek;
     if (!activeDek || !confirm('Delete this group? Notes in it will become ungrouped unless they have other groups.')) return;
-    const changedNotes = notes.filter((note) => note.payload.groupIds.includes(item.record.id));
-    await Promise.all(
-      changedNotes.map((note) =>
-        updateEncryptedRecord(
-          note.record.id,
-          'note',
-          {
-            ...note.payload,
-            groupIds: note.payload.groupIds.filter((groupId) => groupId !== item.record.id),
-            updatedAt: nowIso()
-          },
-          activeDek
-        )
-      )
+    const groupId = item.record.id;
+    const updates = notes
+      .filter((note) => note.payload.groupIds.includes(groupId))
+      .map((note) => ({
+        note,
+        payload: {
+          ...note.payload,
+          groupIds: note.payload.groupIds.filter((id) => id !== groupId),
+          updatedAt: nowIso()
+        }
+      }));
+    const updatedById = new Map(updates.map((update) => [update.note.record.id, update.payload]));
+    notes = notes.map((note) =>
+      updatedById.has(note.record.id) ? { ...note, payload: updatedById.get(note.record.id)! } : note
     );
-    await deleteEncryptedRecord(item.record.id);
-    if (activeGroupId === item.record.id) activeGroupId = 'all';
-    await loadNotes();
+    groups = groups.filter((group) => group.record.id !== groupId);
+    if (activeGroupId === groupId) activeGroupId = 'all';
+    await Promise.all([
+      ...updates.map((update) => updateEncryptedRecord(update.note.record.id, 'note', update.payload, activeDek)),
+      deleteEncryptedRecord(groupId)
+    ]);
   }
 
   onMount(async () => {

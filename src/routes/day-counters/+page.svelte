@@ -38,13 +38,15 @@
     return Math.max(0, Math.floor((now.getTime() - start.getTime()) / 86_400_000));
   }
 
+  function sortCounters(items: CounterItem[]) {
+    return [...items].sort((a, b) => elapsedDays(b.payload.initiated) - elapsedDays(a.payload.initiated));
+  }
+
   async function loadCounters() {
     if (!dek) return;
     loading = true;
     const records = await fetchEncryptedRecords('day_counter');
-    counters = (await decryptRecords<DayCounterPayload>(records, dek)).sort(
-      (a, b) => elapsedDays(b.payload.initiated) - elapsedDays(a.payload.initiated)
-    );
+    counters = sortCounters(await decryptRecords<DayCounterPayload>(records, dek));
     loading = false;
   }
 
@@ -71,25 +73,28 @@
     const payload = { ...form, name: form.name.trim() };
 
     if (editingCounterId) {
-      await updateEncryptedRecord(editingCounterId, 'day_counter', payload, dek);
+      const id = editingCounterId;
+      counters = sortCounters(counters.map((c) => (c.record.id === id ? { ...c, payload } : c)));
+      await updateEncryptedRecord(id, 'day_counter', payload, dek);
     } else {
-      await createEncryptedRecord('day_counter', payload, dek);
+      const record = await createEncryptedRecord('day_counter', payload, dek);
+      counters = sortCounters([...counters, { record, payload }]);
     }
 
     closeCounterForm();
-    await loadCounters();
   }
 
   async function resetCounter(item: CounterItem) {
     if (!dek) return;
-    await updateEncryptedRecord(item.record.id, 'day_counter', { ...item.payload, initiated: today() }, dek);
-    await loadCounters();
+    const payload = { ...item.payload, initiated: today() };
+    counters = sortCounters(counters.map((c) => (c.record.id === item.record.id ? { ...c, payload } : c)));
+    await updateEncryptedRecord(item.record.id, 'day_counter', payload, dek);
   }
 
   async function removeCounter(item: CounterItem) {
     if (!confirm('Delete this counter?')) return;
+    counters = counters.filter((c) => c.record.id !== item.record.id);
     await deleteEncryptedRecord(item.record.id);
-    await loadCounters();
   }
 
   onMount(async () => {
