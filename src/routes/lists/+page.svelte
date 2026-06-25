@@ -3,6 +3,7 @@
   import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
+  import CollectionNav from '$lib/components/CollectionNav.svelte';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -48,6 +49,15 @@
   let taskFormOpen = $state(false);
 
   let selected = $derived(lists.find((list) => list.record.id === selectedId) ?? lists[0] ?? null);
+
+  let navItems = $derived(
+    lists.map((item) => ({
+      id: item.record.id,
+      label: item.payload.title || 'Untitled list',
+      taskCount: item.payload.tasks.length,
+      checklist: item.payload.checklist
+    }))
+  );
 
   async function loadLists() {
     if (!dek) return;
@@ -160,21 +170,24 @@
 {#if locked}
   <VaultNotice />
 {:else}
-  <div class="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-    <aside>
-      {#if lists.length}
-        <nav class="grid gap-1">
-          {#each lists as item (item.record.id)}
-            <Button
-              variant={selected?.record.id === item.record.id ? 'secondary' : 'ghost'}
-              class="w-full justify-start truncate"
-              onclick={() => (selectedId = item.record.id)}
-            >
-              {item.payload.title}
-            </Button>
-          {/each}
-        </nav>
-      {/if}
+  {#snippet listRow(item: (typeof navItems)[number])}
+    <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
+    <span class="text-muted-foreground ml-auto shrink-0 text-xs whitespace-nowrap">
+      {item.taskCount} · {item.checklist ? 'Checklist' : 'List'}
+    </span>
+  {/snippet}
+
+  <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
+    <aside class="min-w-0">
+      <CollectionNav
+        items={navItems}
+        selected={selected?.record.id ?? null}
+        onSelect={(id) => (selectedId = id)}
+        row={listRow}
+        searchPlaceholder="Search lists"
+        emptyText="No lists found."
+        ariaLabel="Select list"
+      />
     </aside>
 
     <section>
