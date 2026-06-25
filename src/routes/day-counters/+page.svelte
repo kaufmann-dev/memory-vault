@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import LoadingState from '$lib/components/LoadingState.svelte';
   import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
@@ -125,7 +126,7 @@
 {:else}
   <section>
     {#if loading}
-      <p class="text-muted-foreground text-sm">Decrypting milestones…</p>
+      <LoadingState message="Decrypting milestones…" />
     {:else if counters.length === 0}
       <EmptyState title="No milestones yet" description="Create a milestone to track elapsed time." />
     {:else}

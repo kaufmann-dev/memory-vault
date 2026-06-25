@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import LoadingState from '$lib/components/LoadingState.svelte';
   import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SimpleLineChart from '$lib/components/SimpleLineChart.svelte';
@@ -513,7 +514,7 @@
 
     <section class="min-w-0">
       {#if loading}
-        <p class="text-muted-foreground text-sm">Decrypting diagrams…</p>
+        <LoadingState message="Decrypting diagrams…" />
       {:else if !selected}
         <EmptyState title="No diagrams yet" description="Create a diagram to start tracking measurements." />
       {:else}

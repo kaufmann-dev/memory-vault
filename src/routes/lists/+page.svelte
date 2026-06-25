@@ -1,5 +1,6 @@
 <script lang="ts">
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import LoadingState from '$lib/components/LoadingState.svelte';
   import EntryModal from '$lib/components/EntryModal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import VaultNotice from '$lib/components/VaultNotice.svelte';
@@ -192,7 +193,7 @@
 
     <section>
       {#if loading}
-        <p class="text-muted-foreground text-sm">Decrypting lists…</p>
+        <LoadingState message="Decrypting lists…" />
       {:else if !selected}
         <EmptyState title="No lists yet" description="Create a list to start tracking tasks." />
       {:else}
