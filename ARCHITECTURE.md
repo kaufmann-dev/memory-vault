@@ -28,7 +28,7 @@ No additional dependencies are required — everything uses the browser-native W
 Two keys are used, each with a distinct role:
 
 - **KEK (Key Encryption Key)** — derived from the user's password via PBKDF2. Used only to encrypt/decrypt the DEK. Never touches content directly.
-- **DEK (Data Encryption Key)** — a random AES-256-GCM key generated once at account creation. Used to encrypt all diary content. Stored in the database encrypted by the KEK.
+- **DEK (Data Encryption Key)** — a random AES-256-GCM key generated once at account creation. Used to encrypt all vault content. Stored in the database encrypted by the KEK.
 
 ```
 Login password

@@ -18,7 +18,7 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 - Admin-only access with first-run account setup from `/login`
 - Separate account password and vault passphrase
 - Client-side encryption using the browser Web Crypto API
-- Encrypted diary entries, notes, lists, diagrams, and milestones
+- Encrypted diary entries, notes, lists, diagrams, milestones, and secrets
 - Account password changes without re-encrypting vault data
 - Vault passphrase rotation by re-encrypting only the data encryption key
 - PostgreSQL persistence through Drizzle ORM
@@ -146,6 +146,7 @@ npm run db:migrate   # Run migrations with scripts/migrate.mjs
         |-- lists/           # Lists UI
         |-- login/           # Setup and account login UI
         |-- notes/           # Quick notes and encrypted note groups
+        |-- secrets/         # Passwords, API keys, WiFi credentials, and PGP keys
         `-- settings/        # Account and vault settings
 ```
 
@@ -165,5 +166,5 @@ See `ARCHITECTURE.md` for the detailed encryption model.
 
 - Visit `/login` on a fresh database to create the first admin account and vault passphrase.
 - Sign in with the account password, then unlock the vault with the separate vault passphrase.
-- Use `/diary`, `/notes`, `/lists`, `/diagrams`, and `/day-counters` to manage encrypted records.
+- Use `/diary`, `/notes`, `/lists`, `/diagrams`, `/day-counters`, and `/secrets` to manage encrypted records.
 - Use `/settings` to change either the account password or the vault passphrase.

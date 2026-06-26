@@ -13,6 +13,7 @@
     CalendarDays,
     ChevronsUpDown,
     Home,
+    KeyRound,
     ListChecks,
     LogOut,
     Settings,
@@ -28,6 +29,7 @@
     { href: '/lists', label: 'Lists', icon: ListChecks },
     { href: '/diagrams', label: 'Diagrams', icon: Activity },
     { href: '/day-counters', label: 'Milestones', icon: CalendarDays },
+    { href: '/secrets', label: 'Secrets', icon: KeyRound },
     { href: '/settings', label: 'Settings', icon: Settings }
   ];
 

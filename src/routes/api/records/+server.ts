@@ -10,7 +10,8 @@ const recordTypes = new Set<RecordType>([
   'note_group',
   'list',
   'diagram',
-  'day_counter'
+  'day_counter',
+  'secret'
 ]);
 
 function assertRecordType(value: unknown): RecordType {

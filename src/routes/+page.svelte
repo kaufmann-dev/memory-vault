@@ -9,6 +9,7 @@
     BookOpen,
     CalendarDays,
     ChevronRight,
+    KeyRound,
     ListChecks,
     StickyNote
   } from '@lucide/svelte';
@@ -58,6 +59,15 @@
       type: 'day_counter' as RecordType,
       one: 'milestone',
       many: 'milestones'
+    },
+    {
+      href: '/secrets',
+      label: 'Secrets',
+      description: 'Encrypted passwords, API keys, WiFi credentials, and PGP keys.',
+      icon: KeyRound,
+      type: 'secret' as RecordType,
+      one: 'secret',
+      many: 'secrets'
     }
   ];
 
