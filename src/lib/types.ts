@@ -23,7 +23,10 @@ export type RecordType =
   | 'note_group'
   | 'list'
   | 'diagram'
-  | 'day_counter';
+  | 'day_counter'
+  | 'secret';
+
+export type SecretCategory = 'password' | 'api_key' | 'wifi' | 'pgp_key';
 
 export type DiaryPayload = {
   title: string;
@@ -58,6 +61,16 @@ export type NoteGroupPayload = {
   name: string;
   description: string;
   color: string;
+};
+
+export type SecretPayload = {
+  title: string;
+  category: SecretCategory;
+  username: string;
+  secret: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type DayCounterPayload = {

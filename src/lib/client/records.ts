@@ -28,7 +28,8 @@ export async function fetchRecordCounts(): Promise<Record<RecordType, number>> {
     note_group: 0,
     list: 0,
     diagram: 0,
-    day_counter: 0
+    day_counter: 0,
+    secret: 0
   } satisfies Record<RecordType, number>;
   for (const record of records) counts[record.type]++;
   return counts;
