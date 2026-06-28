@@ -18,13 +18,14 @@
   import type { Component } from 'svelte';
   import { toast } from 'svelte-sonner';
   import {
-    Landmark,
     Braces,
     Copy,
     Eye,
     EyeOff,
+    FileKey,
     Fingerprint,
     KeyRound,
+    Landmark,
     Plus,
     Search,
     Trash2,
@@ -72,6 +73,14 @@
       icon: Braces,
       secretLabel: 'API key',
       usernameLabel: 'Account or service user'
+    },
+    {
+      id: 'encryption_key',
+      label: 'Encryption Keys',
+      singular: 'Encryption Key',
+      icon: FileKey,
+      secretLabel: 'Encryption key',
+      usernameLabel: 'Owner or context'
     },
     {
       id: 'wifi',
@@ -327,7 +336,7 @@
   });
 </script>
 
-<PageHeader title="Secrets" description="Encrypted passwords, API keys, WiFi credentials, PGP keys, and bank accounts.">
+<PageHeader title="Secrets" description="Encrypted passwords, API keys, encryption keys, WiFi credentials, PGP keys, and bank accounts.">
   <Button onclick={openCreateSecret}>
     <Plus class="size-4" />
     New
