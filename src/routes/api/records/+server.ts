@@ -1,18 +1,10 @@
 import { getDb } from '$lib/server/db';
 import { encryptedRecords } from '$lib/server/db/schema';
-import type { EncryptedRecord, RecordType } from '$lib/types';
+import { RECORD_TYPES, type EncryptedRecord, type RecordType } from '$lib/types';
 import { error, json } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
 
-const recordTypes = new Set<RecordType>([
-  'diary',
-  'note',
-  'note_group',
-  'list',
-  'diagram',
-  'day_counter',
-  'secret'
-]);
+const recordTypes = new Set<RecordType>(RECORD_TYPES);
 
 function assertRecordType(value: unknown): RecordType {
   const type = String(value ?? '');

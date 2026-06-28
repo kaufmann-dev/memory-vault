@@ -141,7 +141,15 @@ export async function decrypt(dek: CryptoKey, ciphertext: string, iv: string): P
   return new TextDecoder().decode(plaintext);
 }
 
-const bytesToBase64 = (b: Uint8Array) => btoa(String.fromCharCode(...b));
+function bytesToBase64(bytes: Uint8Array) {
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
 const base64ToBytes = (s: string) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 ```
 
@@ -240,6 +248,42 @@ requires re-encrypting the DEK — a single row update. All diary entries are un
 7. Server updates password + kek_salt + encrypted_dek + dek_iv in a single transaction
 8. sessionDEK is unchanged — the DEK itself never changed
 ```
+
+### Backup and restore
+
+Backups are downloaded as a single `.mvault` JSON envelope. The clear envelope contains
+only format metadata and the encrypted DEK metadata (`kekSalt`, `encryptedDEK`, `dekIV`)
+needed to recover the same vault key on a fresh server. The backup payload is encrypted
+in the browser with the active DEK and contains encrypted record rows only:
+
+```
+{
+  app: "memory-vault",
+  version: 1,
+  keyMaterial: { kekSalt, encryptedDEK, dekIV },
+  payload: encrypt(DEK, { exportedAt, user, records })
+}
+```
+
+Export flow:
+
+1. Browser reads the in-memory DEK from `sessionDEK`.
+2. Browser fetches encrypted records from `/api/records`.
+3. Browser encrypts the backup payload with the DEK.
+4. Browser downloads the `.mvault` file. No plaintext content or raw DEK is sent to the server.
+
+Import flow:
+
+1. Browser reads the `.mvault` file and derives the KEK from the entered backup vault passphrase.
+2. Browser decrypts the backup DEK from the backup key metadata.
+3. Browser decrypts and validates the backup payload locally.
+4. After destructive confirmation, the browser sends only encrypted records and encrypted DEK metadata to `/api/backup/import`.
+5. Server updates the current user's vault key metadata, deletes current encrypted records, and inserts backup encrypted records in one transaction.
+6. Browser replaces `sessionDEK` with the imported DEK and clears the remembered-device key for the current account.
+
+Import intentionally does not restore account passwords, password hashes, sessions, or cookies.
+The current server account remains the login identity. After restore, the vault passphrase is
+the passphrase that unlocked the imported backup.
 
 ### Constraints
 

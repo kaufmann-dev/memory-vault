@@ -63,5 +63,13 @@ export async function decrypt(dek: CryptoKey, ciphertext: string, iv: string): P
   return new TextDecoder().decode(plaintext);
 }
 
-const bytesToBase64 = (b: Uint8Array) => btoa(String.fromCharCode(...b));
+function bytesToBase64(bytes: Uint8Array) {
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
 const base64ToBytes = (s: string) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
