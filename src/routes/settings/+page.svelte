@@ -21,7 +21,7 @@
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
-  import { Download, KeyRound, Save, Shield, Trash2, Upload } from '@lucide/svelte';
+  import { Download, KeyRound, Save, Shield, Trash2, Upload, X } from '@lucide/svelte';
   import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
@@ -304,6 +304,16 @@
     resetPreparedImport();
   }
 
+  function chooseBackupFile() {
+    importFileInput?.click();
+  }
+
+  function clearBackupFile() {
+    importFiles = undefined;
+    if (importFileInput) importFileInput.value = '';
+    handleBackupFileChange();
+  }
+
   async function prepareBackupImport() {
     importMessage = '';
     importSuccess = false;
@@ -510,15 +520,47 @@
           </p>
         </div>
         <div class="grid gap-2">
-          <Label for="backup-file">Backup file</Label>
-          <Input
+          <Label id="backup-file-label" for="backup-file">Backup file</Label>
+          <input
             id="backup-file"
+            class="sr-only"
             type="file"
             accept=".mvault,application/json"
-            bind:ref={importFileInput}
+            aria-labelledby="backup-file-label"
+            bind:this={importFileInput}
             bind:files={importFiles}
             onchange={handleBackupFileChange}
           />
+          <div class="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+            <Button
+              variant="outline"
+              disabled={preparingImport || restoringImport}
+              onclick={chooseBackupFile}
+              class="justify-self-start"
+            >
+              <Upload class="size-4" />
+              Select backup
+            </Button>
+            <div
+              class="border-border bg-muted/40 flex h-9 min-w-0 items-center rounded-2xl border px-3 text-sm"
+            >
+              <span class={['truncate', importFile ? 'text-foreground' : 'text-muted-foreground']}>
+                {importFile?.name ?? 'No backup selected'}
+              </span>
+            </div>
+            {#if importFile}
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={preparingImport || restoringImport}
+                onclick={clearBackupFile}
+                aria-label="Clear selected backup file"
+              >
+                <X class="size-4" />
+                <span class="sr-only">Clear selected backup file</span>
+              </Button>
+            {/if}
+          </div>
         </div>
         <div class="grid gap-2">
           <Label for="backup-vault-passphrase">Backup vault passphrase</Label>
