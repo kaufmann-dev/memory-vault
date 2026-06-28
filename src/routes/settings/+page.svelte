@@ -516,7 +516,7 @@
         <div class="grid gap-1">
           <h3 class="text-sm font-semibold">Import</h3>
           <p class="text-muted-foreground text-sm leading-6">
-            Decrypts the backup in this browser first. Importing destroys all current entries on this server.
+            Decrypts the backup in this browser first. Importing replaces all current entries on this server.
           </p>
         </div>
         <div class="grid gap-2">
@@ -629,9 +629,9 @@
       <AlertDialog.Media>
         <Trash2 class="text-destructive size-8" />
       </AlertDialog.Media>
-      <AlertDialog.Title>Destroy current entries and import backup?</AlertDialog.Title>
+      <AlertDialog.Title>Replace current entries with backup?</AlertDialog.Title>
       <AlertDialog.Description>
-        This will permanently delete all current entries on this server and replace them with
+        This will permanently delete all current entries on this server and restore
         {preparedImportPayload?.records.length ?? 0} entries from the backup exported on
         {preparedImportPayload ? backupDateLabel(preparedImportPayload.exportedAt) : 'unknown date'}.
       </AlertDialog.Description>
@@ -646,7 +646,7 @@
           restorePreparedBackup();
         }}
       >
-        {restoringImport ? 'Importing…' : 'Destroy current entries and import'}
+        {restoringImport ? 'Importing…' : 'Replace entries and import'}
       </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
