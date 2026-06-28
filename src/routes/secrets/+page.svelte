@@ -18,6 +18,7 @@
   import type { Component } from 'svelte';
   import { toast } from 'svelte-sonner';
   import {
+    Landmark,
     Braces,
     Copy,
     Eye,
@@ -41,6 +42,8 @@
     record: EncryptedRecord;
     payload: SecretPayload;
   };
+
+  type RawSecretPayload = Partial<SecretPayload>;
 
   type SecretFilter = 'all' | SecretCategory;
   type SortOrder = 'newest' | 'oldest';
@@ -85,6 +88,14 @@
       icon: Fingerprint,
       secretLabel: 'PGP key',
       usernameLabel: 'Identity'
+    },
+    {
+      id: 'bank_account',
+      label: 'Bank accounts',
+      singular: 'Bank account',
+      icon: Landmark,
+      secretLabel: 'IBAN',
+      usernameLabel: 'Account holder'
     }
   ];
 
@@ -97,6 +108,10 @@
     category,
     username: '',
     secret: '',
+    iban: '',
+    accountHolder: '',
+    bank: '',
+    bic: '',
     notes: '',
     createdAt: nowIso(),
     updatedAt: nowIso()
@@ -124,7 +139,7 @@
         if (!normalizedQuery) return true;
 
         const category = categoryById.get(item.payload.category) ?? fallbackCategory;
-        return `${item.payload.title} ${item.payload.username} ${item.payload.notes} ${category.label}`
+        return `${item.payload.title} ${item.payload.username} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.notes} ${category.label}`
           .toLowerCase()
           .includes(normalizedQuery);
       })
@@ -147,6 +162,12 @@
   ]);
 
   let formCategory = $derived(categoryById.get(form.category) ?? fallbackCategory);
+  let formIsBankAccount = $derived(form.category === 'bank_account');
+  let canSaveSecret = $derived(
+    formIsBankAccount
+      ? Boolean(form.title.trim() && form.iban.trim())
+      : Boolean(form.title.trim() && form.secret.trim())
+  );
 
   function categoryCount(category: SecretCategory) {
     return secrets.filter((secret) => secret.payload.category === category).length;
@@ -169,6 +190,25 @@
 
   function createCategory() {
     return activeCategory === 'all' ? 'password' : activeCategory;
+  }
+
+  function normalizeSecretPayload(payload: RawSecretPayload): SecretPayload {
+    const category =
+      payload.category && categoryById.has(payload.category) ? payload.category : fallbackCategory.id;
+
+    return {
+      title: payload.title ?? '',
+      category,
+      username: payload.username ?? '',
+      secret: payload.secret ?? '',
+      iban: payload.iban ?? '',
+      accountHolder: payload.accountHolder ?? '',
+      bank: payload.bank ?? '',
+      bic: payload.bic ?? '',
+      notes: payload.notes ?? '',
+      createdAt: payload.createdAt ?? nowIso(),
+      updatedAt: payload.updatedAt ?? payload.createdAt ?? nowIso()
+    };
   }
 
   function openCreateSecret() {
@@ -203,7 +243,10 @@
     loadError = '';
     try {
       const records = await fetchEncryptedRecords('secret');
-      secrets = await decryptRecords<SecretPayload>(records, dek);
+      secrets = (await decryptRecords<RawSecretPayload>(records, dek)).map((item) => ({
+        record: item.record,
+        payload: normalizeSecretPayload(item.payload)
+      }));
     } catch {
       loadError = 'Could not decrypt secrets.';
       toast.error('Could not decrypt secrets.');
@@ -213,15 +256,20 @@
   }
 
   async function saveSecret() {
-    if (!dek || saving || !form.title.trim() || !form.secret.trim()) return;
+    if (!dek || saving || !canSaveSecret) return;
     saving = true;
     try {
       const timestamp = nowIso();
+      const isBankAccount = form.category === 'bank_account';
       const payload: SecretPayload = {
         title: form.title.trim(),
         category: form.category,
-        username: form.username.trim(),
-        secret: form.secret,
+        username: isBankAccount ? '' : form.username.trim(),
+        secret: isBankAccount ? '' : form.secret,
+        iban: isBankAccount ? form.iban.trim() : '',
+        accountHolder: isBankAccount ? form.accountHolder.trim() : '',
+        bank: isBankAccount ? form.bank.trim() : '',
+        bic: isBankAccount ? form.bic.trim() : '',
         notes: form.notes.trim(),
         createdAt: editingSecretId ? form.createdAt : timestamp,
         updatedAt: timestamp
@@ -279,7 +327,7 @@
   });
 </script>
 
-<PageHeader title="Secrets" description="Encrypted passwords, API keys, WiFi credentials, and PGP keys.">
+<PageHeader title="Secrets" description="Encrypted passwords, API keys, WiFi credentials, PGP keys, and bank accounts.">
   <Button onclick={openCreateSecret}>
     <Plus class="size-4" />
     New
@@ -356,7 +404,10 @@
                     <span class="truncate font-semibold">{item.payload.title}</span>
                     <span class="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                       <span>{category.singular}</span>
-                      {#if item.payload.username}
+                      {#if item.payload.category === 'bank_account' && (item.payload.bank || item.payload.accountHolder)}
+                        <span class="text-border">/</span>
+                        <span class="min-w-0 truncate">{item.payload.bank || item.payload.accountHolder}</span>
+                      {:else if item.payload.username}
                         <span class="text-border">/</span>
                         <span class="min-w-0 truncate">{item.payload.username}</span>
                       {/if}
@@ -416,55 +467,77 @@
       <Input id="secret-title" bind:value={form.title} maxlength={160} required />
     </div>
 
-    <div class="grid gap-2">
-      <Label for="secret-username">{formCategory.usernameLabel} <span class="text-muted-foreground font-normal">(optional)</span></Label>
-      <Input id="secret-username" bind:value={form.username} maxlength={240} />
-    </div>
-
-    <div class="grid gap-2">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <Label for="secret-value">{formCategory.secretLabel}</Label>
-        <div class="flex gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onclick={() => (secretVisible = !secretVisible)}
-            aria-pressed={secretVisible}
-          >
-            {#if secretVisible}
-              <EyeOff class="size-4" /> Hide
-            {:else}
-              <Eye class="size-4" /> Reveal
-            {/if}
-          </Button>
-          <Button type="button" variant="ghost" size="sm" onclick={copySecret} disabled={!form.secret}>
-            <Copy class="size-4" /> Copy
-          </Button>
-        </div>
+    {#if formIsBankAccount}
+      <div class="grid gap-2">
+        <Label for="secret-iban">IBAN</Label>
+        <Input id="secret-iban" bind:value={form.iban} maxlength={80} required autocomplete="off" spellcheck="false" />
       </div>
-      {#if form.category === 'pgp_key' && secretVisible}
-        <Textarea id="secret-value" bind:value={form.secret} required class="min-h-48 font-mono text-xs" spellcheck="false" />
-      {:else if form.category === 'pgp_key'}
-        <Textarea
-          id="secret-value"
-          value={maskSecret(form.secret)}
-          readonly
-          required
-          class="min-h-24 font-mono text-xs"
-          aria-label="Hidden PGP key"
-        />
-      {:else}
-        <Input
-          id="secret-value"
-          bind:value={form.secret}
-          type={secretVisible ? 'text' : 'password'}
-          required
-          autocomplete="off"
-          spellcheck="false"
-        />
-      {/if}
-    </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-account-holder">Account holder</Label>
+        <Input id="secret-account-holder" bind:value={form.accountHolder} maxlength={240} />
+      </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-bank">Bank</Label>
+        <Input id="secret-bank" bind:value={form.bank} maxlength={240} />
+      </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-bic">BIC</Label>
+        <Input id="secret-bic" bind:value={form.bic} maxlength={80} autocomplete="off" spellcheck="false" />
+      </div>
+    {:else}
+      <div class="grid gap-2">
+        <Label for="secret-username">{formCategory.usernameLabel}</Label>
+        <Input id="secret-username" bind:value={form.username} maxlength={240} />
+      </div>
+
+      <div class="grid gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Label for="secret-value">{formCategory.secretLabel}</Label>
+          <div class="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onclick={() => (secretVisible = !secretVisible)}
+              aria-pressed={secretVisible}
+            >
+              {#if secretVisible}
+                <EyeOff class="size-4" /> Hide
+              {:else}
+                <Eye class="size-4" /> Reveal
+              {/if}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onclick={copySecret} disabled={!form.secret}>
+              <Copy class="size-4" /> Copy
+            </Button>
+          </div>
+        </div>
+        {#if form.category === 'pgp_key' && secretVisible}
+          <Textarea id="secret-value" bind:value={form.secret} required class="min-h-48 font-mono text-xs" spellcheck="false" />
+        {:else if form.category === 'pgp_key'}
+          <Textarea
+            id="secret-value"
+            value={maskSecret(form.secret)}
+            readonly
+            required
+            class="min-h-24 font-mono text-xs"
+            aria-label="Hidden PGP key"
+          />
+        {:else}
+          <Input
+            id="secret-value"
+            bind:value={form.secret}
+            type={secretVisible ? 'text' : 'password'}
+            required
+            autocomplete="off"
+            spellcheck="false"
+          />
+        {/if}
+      </div>
+    {/if}
 
     <div class="grid gap-2">
       <Label for="secret-notes">Notes</Label>
@@ -485,7 +558,7 @@
             <Trash2 class="size-4" /> Delete
           </Button>
         {/if}
-        <Button type="submit" disabled={saving || !form.title.trim() || !form.secret.trim()}>
+        <Button type="submit" disabled={saving || !canSaveSecret}>
           {saving ? 'Saving...' : editingSecretId ? 'Save changes' : 'Create'}
         </Button>
       </div>

@@ -445,7 +445,7 @@
     }}
   >
     <div class="grid gap-2">
-      <Label for="note-title">Title <span class="text-muted-foreground font-normal">(optional)</span></Label>
+      <Label for="note-title">Title</Label>
       <Input id="note-title" bind:value={noteForm.title} maxlength={120} />
     </div>
 
