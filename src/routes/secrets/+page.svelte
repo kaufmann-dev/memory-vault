@@ -117,6 +117,7 @@
     category,
     username: '',
     secret: '',
+    publicKey: '',
     iban: '',
     accountHolder: '',
     bank: '',
@@ -148,7 +149,7 @@
         if (!normalizedQuery) return true;
 
         const category = categoryById.get(item.payload.category) ?? fallbackCategory;
-        return `${item.payload.title} ${item.payload.username} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.notes} ${category.label}`
+        return `${item.payload.title} ${item.payload.username} ${item.payload.publicKey} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.notes} ${category.label}`
           .toLowerCase()
           .includes(normalizedQuery);
       })
@@ -172,9 +173,12 @@
 
   let formCategory = $derived(categoryById.get(form.category) ?? fallbackCategory);
   let formIsBankAccount = $derived(form.category === 'bank_account');
+  let formIsPgpKey = $derived(form.category === 'pgp_key');
   let canSaveSecret = $derived(
     formIsBankAccount
       ? Boolean(form.title.trim() && form.iban.trim())
+      : formIsPgpKey
+        ? Boolean(form.title.trim() && (form.secret.trim() || form.publicKey.trim()))
       : Boolean(form.title.trim() && form.secret.trim())
   );
 
@@ -210,6 +214,7 @@
       category,
       username: payload.username ?? '',
       secret: payload.secret ?? '',
+      publicKey: payload.publicKey ?? '',
       iban: payload.iban ?? '',
       accountHolder: payload.accountHolder ?? '',
       bank: payload.bank ?? '',
@@ -270,11 +275,13 @@
     try {
       const timestamp = nowIso();
       const isBankAccount = form.category === 'bank_account';
+      const isPgpKey = form.category === 'pgp_key';
       const payload: SecretPayload = {
         title: form.title.trim(),
         category: form.category,
         username: isBankAccount ? '' : form.username.trim(),
         secret: isBankAccount ? '' : form.secret,
+        publicKey: isPgpKey ? form.publicKey : '',
         iban: isBankAccount ? form.iban.trim() : '',
         accountHolder: isBankAccount ? form.accountHolder.trim() : '',
         bank: isBankAccount ? form.bank.trim() : '',
@@ -316,13 +323,13 @@
     }
   }
 
-  async function copySecret() {
-    if (!form.secret) return;
+  async function copyValue(value: string, label = 'Secret') {
+    if (!value) return;
     try {
-      await navigator.clipboard.writeText(form.secret);
-      toast.success('Secret copied.');
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied.`);
     } catch {
-      toast.error('Could not copy this secret.');
+      toast.error(`Could not copy this ${label.toLowerCase()}.`);
     }
   }
 
@@ -502,40 +509,74 @@
         <Input id="secret-username" bind:value={form.username} maxlength={240} />
       </div>
 
-      <div class="grid gap-2">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <Label for="secret-value">{formCategory.secretLabel}</Label>
-          <div class="flex gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onclick={() => (secretVisible = !secretVisible)}
-              aria-pressed={secretVisible}
-            >
-              {#if secretVisible}
-                <EyeOff class="size-4" /> Hide
-              {:else}
-                <Eye class="size-4" /> Reveal
-              {/if}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onclick={copySecret} disabled={!form.secret}>
+      {#if formIsPgpKey}
+        <div class="grid gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <Label for="secret-private-key">Private key</Label>
+            <div class="flex gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={() => (secretVisible = !secretVisible)}
+                aria-pressed={secretVisible}
+              >
+                {#if secretVisible}
+                  <EyeOff class="size-4" /> Hide
+                {:else}
+                  <Eye class="size-4" /> Reveal
+                {/if}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(form.secret, 'Private key')} disabled={!form.secret}>
+                <Copy class="size-4" /> Copy
+              </Button>
+            </div>
+          </div>
+          {#if secretVisible}
+            <Textarea id="secret-private-key" bind:value={form.secret} class="min-h-48 font-mono text-xs" spellcheck="false" />
+          {:else}
+            <Textarea
+              id="secret-private-key"
+              value={maskSecret(form.secret)}
+              readonly
+              class="min-h-24 font-mono text-xs"
+              aria-label="Hidden private key"
+            />
+          {/if}
+        </div>
+
+        <div class="grid gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <Label for="secret-public-key">Public key</Label>
+            <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(form.publicKey, 'Public key')} disabled={!form.publicKey}>
               <Copy class="size-4" /> Copy
             </Button>
           </div>
+          <Textarea id="secret-public-key" bind:value={form.publicKey} class="min-h-40 font-mono text-xs" spellcheck="false" />
         </div>
-        {#if form.category === 'pgp_key' && secretVisible}
-          <Textarea id="secret-value" bind:value={form.secret} required class="min-h-48 font-mono text-xs" spellcheck="false" />
-        {:else if form.category === 'pgp_key'}
-          <Textarea
-            id="secret-value"
-            value={maskSecret(form.secret)}
-            readonly
-            required
-            class="min-h-24 font-mono text-xs"
-            aria-label="Hidden PGP key"
-          />
-        {:else}
+      {:else}
+        <div class="grid gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <Label for="secret-value">{formCategory.secretLabel}</Label>
+            <div class="flex gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={() => (secretVisible = !secretVisible)}
+                aria-pressed={secretVisible}
+              >
+                {#if secretVisible}
+                  <EyeOff class="size-4" /> Hide
+                {:else}
+                  <Eye class="size-4" /> Reveal
+                {/if}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(form.secret)} disabled={!form.secret}>
+                <Copy class="size-4" /> Copy
+              </Button>
+            </div>
+          </div>
           <Input
             id="secret-value"
             bind:value={form.secret}
@@ -544,8 +585,8 @@
             autocomplete="off"
             spellcheck="false"
           />
-        {/if}
-      </div>
+        </div>
+      {/if}
     {/if}
 
     <div class="grid gap-2">

@@ -68,6 +68,7 @@ export type SecretPayload = {
   category: SecretCategory;
   username: string;
   secret: string;
+  publicKey: string;
   iban: string;
   accountHolder: string;
   bank: string;
