@@ -26,7 +26,7 @@ export type RecordType =
   | 'day_counter'
   | 'secret';
 
-export type SecretCategory = 'password' | 'api_key' | 'wifi' | 'pgp_key' | 'bank_account';
+export type SecretCategory = 'password' | 'api_key' | 'encryption_key' | 'wifi' | 'pgp_key' | 'bank_account';
 
 export type DiaryPayload = {
   title: string;
