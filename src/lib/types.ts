@@ -26,7 +26,7 @@ export type RecordType =
   | 'day_counter'
   | 'secret';
 
-export type SecretCategory = 'password' | 'api_key' | 'wifi' | 'pgp_key';
+export type SecretCategory = 'password' | 'api_key' | 'wifi' | 'pgp_key' | 'bank_account';
 
 export type DiaryPayload = {
   title: string;
@@ -68,6 +68,10 @@ export type SecretPayload = {
   category: SecretCategory;
   username: string;
   secret: string;
+  iban: string;
+  accountHolder: string;
+  bank: string;
+  bic: string;
   notes: string;
   createdAt: string;
   updatedAt: string;

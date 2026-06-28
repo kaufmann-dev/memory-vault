@@ -146,7 +146,7 @@ npm run db:migrate   # Run migrations with scripts/migrate.mjs
         |-- lists/           # Lists UI
         |-- login/           # Setup and account login UI
         |-- notes/           # Quick notes and encrypted note groups
-        |-- secrets/         # Passwords, API keys, WiFi credentials, and PGP keys
+        |-- secrets/         # Passwords, API keys, WiFi credentials, PGP keys, and bank accounts
         `-- settings/        # Account and vault settings
 ```
 

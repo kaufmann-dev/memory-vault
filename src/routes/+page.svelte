@@ -63,7 +63,7 @@
     {
       href: '/secrets',
       label: 'Secrets',
-      description: 'Encrypted passwords, API keys, WiFi credentials, and PGP keys.',
+      description: 'Encrypted passwords, API keys, WiFi credentials, PGP keys, and bank accounts.',
       icon: KeyRound,
       type: 'secret' as RecordType,
       one: 'secret',
