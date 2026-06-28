@@ -118,6 +118,8 @@
     username: '',
     secret: '',
     publicKey: '',
+    fingerprint: '',
+    passphrase: '',
     iban: '',
     accountHolder: '',
     bank: '',
@@ -136,6 +138,7 @@
   let editingSecretId: string | null = $state(null);
   let secretFormOpen = $state(false);
   let secretVisible = $state(false);
+  let passphraseVisible = $state(false);
   let query = $state('');
   let activeCategory = $state<SecretFilter>('all');
   let sortOrder = $state<SortOrder>('newest');
@@ -149,7 +152,7 @@
         if (!normalizedQuery) return true;
 
         const category = categoryById.get(item.payload.category) ?? fallbackCategory;
-        return `${item.payload.title} ${item.payload.username} ${item.payload.publicKey} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.notes} ${category.label}`
+        return `${item.payload.title} ${item.payload.username} ${item.payload.publicKey} ${item.payload.fingerprint} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.notes} ${category.label}`
           .toLowerCase()
           .includes(normalizedQuery);
       })
@@ -215,6 +218,8 @@
       username: payload.username ?? '',
       secret: payload.secret ?? '',
       publicKey: payload.publicKey ?? '',
+      fingerprint: payload.fingerprint ?? '',
+      passphrase: payload.passphrase ?? '',
       iban: payload.iban ?? '',
       accountHolder: payload.accountHolder ?? '',
       bank: payload.bank ?? '',
@@ -229,6 +234,7 @@
     editingSecretId = null;
     form = emptySecret(createCategory());
     secretVisible = true;
+    passphraseVisible = false;
     secretFormOpen = true;
   }
 
@@ -236,6 +242,7 @@
     editingSecretId = item.record.id;
     form = { ...item.payload };
     secretVisible = false;
+    passphraseVisible = false;
     secretFormOpen = true;
   }
 
@@ -244,6 +251,7 @@
     editingSecretId = null;
     form = emptySecret();
     secretVisible = false;
+    passphraseVisible = false;
   }
 
   function maskSecret(value: string) {
@@ -282,6 +290,8 @@
         username: isBankAccount ? '' : form.username.trim(),
         secret: isBankAccount ? '' : form.secret,
         publicKey: isPgpKey ? form.publicKey : '',
+        fingerprint: isPgpKey ? form.fingerprint.trim() : '',
+        passphrase: isPgpKey ? form.passphrase : '',
         iban: isBankAccount ? form.iban.trim() : '',
         accountHolder: isBankAccount ? form.accountHolder.trim() : '',
         bank: isBankAccount ? form.bank.trim() : '',
@@ -510,6 +520,42 @@
       </div>
 
       {#if formIsPgpKey}
+        <div class="grid gap-2">
+          <Label for="secret-fingerprint">Fingerprint</Label>
+          <Input id="secret-fingerprint" bind:value={form.fingerprint} maxlength={240} autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="grid gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <Label for="secret-passphrase">Passphrase</Label>
+            <div class="flex gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={() => (passphraseVisible = !passphraseVisible)}
+                aria-pressed={passphraseVisible}
+              >
+                {#if passphraseVisible}
+                  <EyeOff class="size-4" /> Hide
+                {:else}
+                  <Eye class="size-4" /> Reveal
+                {/if}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(form.passphrase, 'Passphrase')} disabled={!form.passphrase}>
+                <Copy class="size-4" /> Copy
+              </Button>
+            </div>
+          </div>
+          <Input
+            id="secret-passphrase"
+            bind:value={form.passphrase}
+            type={passphraseVisible ? 'text' : 'password'}
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
         <div class="grid gap-2">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <Label for="secret-private-key">Private key</Label>

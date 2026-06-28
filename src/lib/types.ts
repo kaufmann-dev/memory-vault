@@ -69,6 +69,8 @@ export type SecretPayload = {
   username: string;
   secret: string;
   publicKey: string;
+  fingerprint: string;
+  passphrase: string;
   iban: string;
   accountHolder: string;
   bank: string;
