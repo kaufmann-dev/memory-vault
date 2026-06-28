@@ -17,14 +17,17 @@ export type EncryptedRecord = {
   updatedAt: string;
 };
 
-export type RecordType =
-  | 'diary'
-  | 'note'
-  | 'note_group'
-  | 'list'
-  | 'diagram'
-  | 'day_counter'
-  | 'secret';
+export const RECORD_TYPES = [
+  'diary',
+  'note',
+  'note_group',
+  'list',
+  'diagram',
+  'day_counter',
+  'secret'
+] as const;
+
+export type RecordType = (typeof RECORD_TYPES)[number];
 
 export type SecretCategory = 'password' | 'api_key' | 'encryption_key' | 'wifi' | 'pgp_key' | 'bank_account';
 

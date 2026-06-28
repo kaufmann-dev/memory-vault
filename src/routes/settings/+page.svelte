@@ -5,13 +5,24 @@
     hasRememberedDEK,
     saveRememberedDEK
   } from '$lib/client/rememberedDevice';
-  import { decryptDEK, deriveKEK, encryptDEK } from '$lib/crypto';
+  import {
+    BACKUP_APP,
+    BACKUP_EXTENSION,
+    BACKUP_VERSION,
+    parseBackupFile,
+    parseBackupPayload,
+    type BackupPayload,
+    type VaultBackupFile
+  } from '$lib/backup';
+  import { decrypt, decryptDEK, deriveKEK, encrypt, encryptDEK } from '$lib/crypto';
   import { sessionDEK } from '$lib/stores/cryptoKey';
+  import type { EncryptedRecord } from '$lib/types';
   import { invalidateAll } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
-  import { KeyRound, Save, Shield } from '@lucide/svelte';
+  import { Download, KeyRound, Save, Shield, Trash2, Upload } from '@lucide/svelte';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import { Label } from '$lib/components/ui/label/index.js';
@@ -41,10 +52,66 @@
   let savingRememberedDevice = $state(false);
   let deviceMessage = $state('');
   let deviceSuccess = $state(false);
+  let exportingBackup = $state(false);
+  let exportMessage = $state('');
+  let exportSuccess = $state(false);
+  let importFiles = $state<FileList>();
+  let importFile = $derived(importFiles?.item(0) ?? null);
+  let importFileInput = $state<HTMLInputElement | null>(null);
+  let importVaultPassphrase = $state('');
+  let importMessage = $state('');
+  let importSuccess = $state(false);
+  let preparingImport = $state(false);
+  let restoringImport = $state(false);
+  let confirmImportOpen = $state(false);
+  let preparedImportPayload = $state<BackupPayload | null>(null);
+  let preparedImportBackup: VaultBackupFile | null = null;
+  let preparedImportDEK: CryptoKey | null = null;
+
+  type RecordResponse = {
+    records: EncryptedRecord[];
+  };
+
+  async function parseResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || 'Request failed');
+    }
+
+    return response.json() as Promise<T>;
+  }
 
   function randomBase64(bytes: number) {
     const values = crypto.getRandomValues(new Uint8Array(bytes));
     return btoa(String.fromCharCode(...values));
+  }
+
+  function activeDEK() {
+    const active = get(sessionDEK);
+    dek = active;
+    return active;
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function resetPreparedImport() {
+    preparedImportPayload = null;
+    preparedImportBackup = null;
+    preparedImportDEK = null;
+    confirmImportOpen = false;
+  }
+
+  function backupDateLabel(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'unknown date';
+    return date.toLocaleString();
   }
 
   async function changeAccountPassword() {
@@ -88,7 +155,8 @@
     vaultMessage = '';
     vaultSuccess = false;
 
-    if (!dek || !keyMaterial) {
+    const currentDEK = activeDEK();
+    if (!currentDEK || !keyMaterial) {
       vaultMessage = 'Unlock the vault before changing its passphrase.';
       return;
     }
@@ -108,7 +176,7 @@
 
       const newKekSalt = randomBase64(16);
       const newKEK = await deriveKEK(newVaultPassphrase, newKekSalt);
-      const { encryptedDEK: newEncryptedDEK, dekIV: newDekIV } = await encryptDEK(newKEK, dek);
+      const { encryptedDEK: newEncryptedDEK, dekIV: newDekIV } = await encryptDEK(newKEK, currentDEK);
 
       const response = await fetch('/api/auth/vault-key', {
         method: 'POST',
@@ -151,16 +219,16 @@
     deviceMessage = '';
     deviceSuccess = false;
 
-    const activeDEK = dek ?? get(sessionDEK);
-    if (!data.user || !activeDEK) {
+    const currentDEK = activeDEK();
+    if (!data.user || !currentDEK) {
       deviceMessage = 'Unlock the vault before remembering this device.';
       return;
     }
 
     savingRememberedDevice = true;
     try {
-      await saveRememberedDEK(data.user.email, activeDEK);
-      dek = activeDEK;
+      await saveRememberedDEK(data.user.email, currentDEK);
+      dek = currentDEK;
       rememberedDevice = true;
       deviceSuccess = true;
       deviceMessage = 'This device will unlock after reloads.';
@@ -186,6 +254,127 @@
       deviceMessage = 'This browser could not forget the vault key.';
     } finally {
       savingRememberedDevice = false;
+    }
+  }
+
+  async function exportBackup() {
+    exportMessage = '';
+    exportSuccess = false;
+
+    const currentDEK = activeDEK();
+    if (!data.user || !keyMaterial || !currentDEK) {
+      exportMessage = 'Unlock the vault before exporting a backup.';
+      return;
+    }
+
+    exportingBackup = true;
+    try {
+      const response = await fetch('/api/records');
+      const { records } = await parseResponse<RecordResponse>(response);
+      const payload: BackupPayload = {
+        exportedAt: new Date().toISOString(),
+        user: {
+          email: data.user.email,
+          name: data.user.name
+        },
+        records
+      };
+      const encryptedPayload = await encrypt(currentDEK, JSON.stringify(payload));
+      const backup: VaultBackupFile = {
+        app: BACKUP_APP,
+        version: BACKUP_VERSION,
+        keyMaterial,
+        payload: encryptedPayload
+      };
+      const filename = `memory-vault-${new Date().toISOString().slice(0, 10)}.${BACKUP_EXTENSION}`;
+
+      downloadBlob(new Blob([JSON.stringify(backup)], { type: 'application/json' }), filename);
+      exportSuccess = true;
+      exportMessage = `Backup exported with ${records.length} entries.`;
+    } catch {
+      exportMessage = 'Backup export failed.';
+    } finally {
+      exportingBackup = false;
+    }
+  }
+
+  function handleBackupFileChange() {
+    importMessage = '';
+    importSuccess = false;
+    resetPreparedImport();
+  }
+
+  async function prepareBackupImport() {
+    importMessage = '';
+    importSuccess = false;
+    resetPreparedImport();
+
+    if (!importFile) {
+      importMessage = 'Choose a backup file.';
+      return;
+    }
+    if (!importVaultPassphrase) {
+      importMessage = 'Enter the backup vault passphrase.';
+      return;
+    }
+
+    preparingImport = true;
+    try {
+      const backup = parseBackupFile(JSON.parse(await importFile.text()));
+      const backupKEK = await deriveKEK(importVaultPassphrase, backup.keyMaterial.kekSalt);
+      const backupDEK = await decryptDEK(backupKEK, backup.keyMaterial.encryptedDEK, backup.keyMaterial.dekIV);
+      const payload = parseBackupPayload(JSON.parse(await decrypt(backupDEK, backup.payload.ciphertext, backup.payload.iv)));
+
+      preparedImportBackup = backup;
+      preparedImportDEK = backupDEK;
+      preparedImportPayload = payload;
+      confirmImportOpen = true;
+    } catch {
+      importMessage = 'Backup could not be decrypted. Check the file and backup vault passphrase.';
+    } finally {
+      preparingImport = false;
+    }
+  }
+
+  async function restorePreparedBackup() {
+    importMessage = '';
+    importSuccess = false;
+
+    if (!preparedImportBackup || !preparedImportDEK || !preparedImportPayload) {
+      importMessage = 'Prepare a backup import first.';
+      return;
+    }
+
+    restoringImport = true;
+    try {
+      const response = await fetch('/api/backup/import', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          keyMaterial: preparedImportBackup.keyMaterial,
+          records: preparedImportPayload.records
+        })
+      });
+
+      await parseResponse<{ ok: true; count: number }>(response);
+      sessionDEK.set(preparedImportDEK);
+      dek = preparedImportDEK;
+      updatedKeyMaterial = preparedImportBackup.keyMaterial;
+      if (data.user) {
+        await forgetRememberedDEK(data.user.email).catch(() => undefined);
+        rememberedDevice = false;
+      }
+      importFiles = undefined;
+      if (importFileInput) importFileInput.value = '';
+      importVaultPassphrase = '';
+      importSuccess = true;
+      importMessage = `Backup imported with ${preparedImportPayload.records.length} entries.`;
+      resetPreparedImport();
+      await invalidateAll();
+    } catch {
+      importMessage = 'Backup import failed. Current entries were not changed.';
+    } finally {
+      restoringImport = false;
     }
   }
 </script>
@@ -281,6 +470,83 @@
     </form>
   </section>
 
+  <section class="border-border grid gap-6 border-b py-8">
+    <div class="grid gap-3">
+      <div class="bg-muted text-foreground flex size-10 items-center justify-center rounded-lg">
+        <Download class="size-4.5" />
+      </div>
+      <div class="grid gap-2">
+        <h2 class="text-xl font-semibold tracking-tight">Vault backup</h2>
+        <p class="text-muted-foreground max-w-2xl text-sm leading-6">
+          Export an encrypted backup file or restore one by replacing all current entries.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid max-w-xl gap-6">
+      <div class="grid gap-3">
+        <div class="grid gap-1">
+          <h3 class="text-sm font-semibold">Export</h3>
+          <p class="text-muted-foreground text-sm leading-6">
+            Downloads one encrypted file that can be restored with the vault passphrase from export time.
+          </p>
+        </div>
+        {#if exportMessage}
+          <p class="text-sm font-medium {exportSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
+            {exportMessage}
+          </p>
+        {/if}
+        <Button disabled={exportingBackup} onclick={exportBackup} class="justify-self-start">
+          <Download class="size-4" />
+          {exportingBackup ? 'Exporting…' : 'Download backup'}
+        </Button>
+      </div>
+
+      <div class="border-border grid gap-4 border-t pt-6">
+        <div class="grid gap-1">
+          <h3 class="text-sm font-semibold">Import</h3>
+          <p class="text-muted-foreground text-sm leading-6">
+            Decrypts the backup in this browser first. Importing destroys all current entries on this server.
+          </p>
+        </div>
+        <div class="grid gap-2">
+          <Label for="backup-file">Backup file</Label>
+          <Input
+            id="backup-file"
+            type="file"
+            accept=".mvault,application/json"
+            bind:ref={importFileInput}
+            bind:files={importFiles}
+            onchange={handleBackupFileChange}
+          />
+        </div>
+        <div class="grid gap-2">
+          <Label for="backup-vault-passphrase">Backup vault passphrase</Label>
+          <Input
+            id="backup-vault-passphrase"
+            type="password"
+            bind:value={importVaultPassphrase}
+            autocomplete="current-password"
+          />
+        </div>
+        {#if importMessage}
+          <p class="text-sm font-medium {importSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
+            {importMessage}
+          </p>
+        {/if}
+        <Button
+          variant="destructive"
+          disabled={preparingImport || restoringImport}
+          onclick={prepareBackupImport}
+          class="justify-self-start"
+        >
+          <Upload class="size-4" />
+          {preparingImport ? 'Checking…' : 'Review import'}
+        </Button>
+      </div>
+    </div>
+  </section>
+
   <section class="grid gap-6 py-8">
     <div class="grid gap-3">
       <div class="bg-muted text-foreground flex size-10 items-center justify-center rounded-lg">
@@ -314,3 +580,32 @@
     </div>
   </section>
 </div>
+
+<AlertDialog.Root bind:open={confirmImportOpen}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Media>
+        <Trash2 class="text-destructive size-8" />
+      </AlertDialog.Media>
+      <AlertDialog.Title>Destroy current entries and import backup?</AlertDialog.Title>
+      <AlertDialog.Description>
+        This will permanently delete all current entries on this server and replace them with
+        {preparedImportPayload?.records.length ?? 0} entries from the backup exported on
+        {preparedImportPayload ? backupDateLabel(preparedImportPayload.exportedAt) : 'unknown date'}.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={restoringImport}>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action
+        variant="destructive"
+        disabled={restoringImport}
+        onclick={(event) => {
+          event.preventDefault();
+          restorePreparedBackup();
+        }}
+      >
+        {restoringImport ? 'Importing…' : 'Destroy current entries and import'}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
