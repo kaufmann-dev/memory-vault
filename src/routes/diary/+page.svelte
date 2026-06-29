@@ -122,7 +122,7 @@
   {:else if $diaryEntries.length === 0}
     <EmptyState title="No diary entries yet" description="Create the first encrypted entry when you are ready." />
   {:else}
-    <div class="grid grid-cols-2 gap-3 border-y py-3 sm:flex sm:flex-wrap sm:items-end">
+    <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-y py-3 sm:flex sm:flex-wrap sm:items-end">
       <div class="relative order-1 min-w-0 self-end sm:order-none sm:flex-1">
         <Search class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
         <Input bind:value={query} placeholder="Search entries, tags, languages" class="pl-9" aria-label="Search diary entries" />
@@ -130,14 +130,23 @@
 
       <div class="order-3 grid min-w-0 gap-1.5 sm:order-none">
         <Label for="diary-from" class="text-muted-foreground text-xs">From</Label>
-        <Input id="diary-from" type="date" bind:value={fromDate} class="w-full min-w-0" />
+        <Input
+          id="diary-from"
+          type="date"
+          bind:value={fromDate}
+          class="h-8 w-full min-w-0 max-w-full appearance-none overflow-hidden py-1 text-sm leading-5 [min-inline-size:0] [&::-webkit-date-and-time-value]:m-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left"
+        />
       </div>
       <div class="order-4 grid min-w-0 gap-1.5 sm:order-none">
         <Label for="diary-to" class="text-muted-foreground text-xs">To</Label>
-        <Input id="diary-to" type="date" bind:value={toDate} class="w-full min-w-0" />
+        <Input
+          id="diary-to"
+          type="date"
+          bind:value={toDate}
+          class="h-8 w-full min-w-0 max-w-full appearance-none overflow-hidden py-1 text-sm leading-5 [min-inline-size:0] [&::-webkit-date-and-time-value]:m-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left"
+        />
       </div>
-      <div class="order-2 grid min-w-0 gap-1.5 sm:order-none">
-        <Label class="text-muted-foreground text-xs">Sort</Label>
+      <div class="order-2 min-w-0 self-end sm:order-none">
         <Select.Root type="single" value={sortOrder} onValueChange={(value) => (sortOrder = value as SortOrder)}>
           <Select.Trigger class="w-full sm:w-40">{sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}</Select.Trigger>
           <Select.Content>
