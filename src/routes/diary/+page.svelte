@@ -134,7 +134,7 @@
           id="diary-from"
           type="date"
           bind:value={fromDate}
-          class="h-8 w-full min-w-0 max-w-full appearance-none overflow-hidden py-1 text-sm leading-5 [min-inline-size:0] [&::-webkit-date-and-time-value]:m-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left"
+          class="h-8 w-full min-w-0 max-w-full appearance-none overflow-hidden py-1 text-sm leading-5 [color-scheme:light] [min-inline-size:0] dark:[color-scheme:dark] [&::-webkit-date-and-time-value]:m-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left"
         />
       </div>
       <div class="order-4 grid min-w-0 gap-1.5 sm:order-none">
@@ -143,7 +143,7 @@
           id="diary-to"
           type="date"
           bind:value={toDate}
-          class="h-8 w-full min-w-0 max-w-full appearance-none overflow-hidden py-1 text-sm leading-5 [min-inline-size:0] [&::-webkit-date-and-time-value]:m-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left"
+          class="h-8 w-full min-w-0 max-w-full appearance-none overflow-hidden py-1 text-sm leading-5 [color-scheme:light] [min-inline-size:0] dark:[color-scheme:dark] [&::-webkit-date-and-time-value]:m-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left"
         />
       </div>
       <div class="order-2 min-w-0 self-end sm:order-none">
