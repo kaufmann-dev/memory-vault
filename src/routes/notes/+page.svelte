@@ -357,20 +357,20 @@
   </aside>
 
   <section class="min-w-0">
-    <div class="bg-background sticky top-14 z-[5] flex flex-wrap items-center gap-3 border-y py-3">
-      <div class="relative min-w-0 flex-1">
+    <div class="bg-background sticky top-14 z-[5] grid grid-cols-2 gap-3 border-y py-3 sm:flex sm:flex-wrap sm:items-center">
+      <div class="relative min-w-0 sm:flex-1">
         <Search class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
         <Input bind:value={query} placeholder="Search notes and groups" class="pl-9" aria-label="Search notes" />
       </div>
       <Select.Root type="single" value={sortOrder} onValueChange={(value) => (sortOrder = value as SortOrder)}>
-        <Select.Trigger class="w-44">{sortOrder === 'newest' ? 'Newest updated' : 'Oldest updated'}</Select.Trigger>
+        <Select.Trigger class="w-full sm:w-44">{sortOrder === 'newest' ? 'Newest updated' : 'Oldest updated'}</Select.Trigger>
         <Select.Content>
           <Select.Item value="newest" label="Newest updated">Newest updated</Select.Item>
           <Select.Item value="oldest" label="Oldest updated">Oldest updated</Select.Item>
         </Select.Content>
       </Select.Root>
       {#if hasFilters}
-        <Button variant="ghost" size="sm" onclick={clearFilters}>
+        <Button variant="ghost" size="sm" class="col-span-2 justify-self-start sm:col-span-1" onclick={clearFilters}>
           <X class="size-4" /> Clear
         </Button>
       {/if}
