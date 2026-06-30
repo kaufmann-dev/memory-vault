@@ -423,7 +423,7 @@
   });
 </script>
 
-<PageHeader title="Secrets" description="Encrypted credentials, keys, accounts, and connection details.">
+<PageHeader title="Secrets" description="Encrypted passwords, keys, accounts, connections, and more.">
   <Button onclick={openCreateSecret}>
     <Plus class="size-4" />
     New

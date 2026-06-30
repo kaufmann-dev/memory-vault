@@ -63,7 +63,7 @@
     {
       href: '/secrets',
       label: 'Secrets',
-      description: 'Encrypted credentials, keys, accounts, and connection details.',
+      description: 'Encrypted passwords, keys, accounts, connections, and more.',
       icon: KeyRound,
       type: 'secret' as RecordType,
       one: 'secret',
