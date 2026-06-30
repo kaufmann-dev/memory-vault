@@ -36,7 +36,8 @@ export type SecretCategory =
   | 'wifi'
   | 'pgp_key'
   | 'bank_account'
-  | 'vpn';
+  | 'vpn'
+  | 'remote_connection';
 
 export type DiaryPayload = {
   title: string;
@@ -88,6 +89,9 @@ export type SecretPayload = {
   vpnProtocol: string;
   vpnGateway: string;
   vpnNtDomain: string;
+  remoteProtocol: string;
+  remoteServer: string;
+  remoteDomain: string;
   notes: string;
   createdAt: string;
   updatedAt: string;

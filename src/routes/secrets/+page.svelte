@@ -28,6 +28,7 @@
     Landmark,
     Plus,
     Search,
+    Server,
     ShieldCheck,
     Trash2,
     Wifi,
@@ -71,6 +72,8 @@
   ] as const;
 
   const defaultVpnProtocol = vpnProtocols[0];
+  const remoteProtocols = ['RDP', 'SSH', 'VNC', 'SPICE', 'SFTP'] as const;
+  const defaultRemoteProtocol = remoteProtocols[0];
 
   const secretCategories: SecretCategoryMeta[] = [
     {
@@ -128,6 +131,14 @@
       icon: ShieldCheck,
       secretLabel: 'Password',
       usernameLabel: 'Username'
+    },
+    {
+      id: 'remote_connection',
+      label: 'Remote Connections',
+      singular: 'Remote Connection',
+      icon: Server,
+      secretLabel: 'Password',
+      usernameLabel: 'Username'
     }
   ];
 
@@ -150,6 +161,9 @@
     vpnProtocol: category === 'vpn' ? defaultVpnProtocol : '',
     vpnGateway: '',
     vpnNtDomain: '',
+    remoteProtocol: category === 'remote_connection' ? defaultRemoteProtocol : '',
+    remoteServer: '',
+    remoteDomain: '',
     notes: '',
     createdAt: nowIso(),
     updatedAt: nowIso()
@@ -178,7 +192,7 @@
         if (!normalizedQuery) return true;
 
         const category = categoryById.get(item.payload.category) ?? fallbackCategory;
-        return `${item.payload.title} ${item.payload.username} ${item.payload.publicKey} ${item.payload.fingerprint} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.vpnProtocol} ${item.payload.vpnGateway} ${item.payload.vpnNtDomain} ${item.payload.notes} ${category.label}`
+        return `${item.payload.title} ${item.payload.username} ${item.payload.publicKey} ${item.payload.fingerprint} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.vpnProtocol} ${item.payload.vpnGateway} ${item.payload.vpnNtDomain} ${item.payload.remoteProtocol} ${item.payload.remoteServer} ${item.payload.remoteDomain} ${item.payload.notes} ${category.label}`
           .toLowerCase()
           .includes(normalizedQuery);
       })
@@ -204,6 +218,7 @@
   let formIsBankAccount = $derived(form.category === 'bank_account');
   let formIsPgpKey = $derived(form.category === 'pgp_key');
   let formIsVpn = $derived(form.category === 'vpn');
+  let formIsRemoteConnection = $derived(form.category === 'remote_connection');
   let canSaveSecret = $derived(
     formIsBankAccount
       ? Boolean(form.title.trim() && form.iban.trim())
@@ -211,6 +226,8 @@
         ? Boolean(form.title.trim() && (form.secret.trim() || form.publicKey.trim()))
         : formIsVpn
           ? Boolean(form.title.trim() && form.vpnGateway.trim())
+          : formIsRemoteConnection
+            ? Boolean(form.title.trim() && form.remoteServer.trim())
           : Boolean(form.title.trim() && form.secret.trim())
   );
 
@@ -242,6 +259,11 @@
     return defaultVpnProtocol;
   }
 
+  function normalizeRemoteProtocol(value: string | undefined) {
+    if (value && remoteProtocols.includes(value as (typeof remoteProtocols)[number])) return value;
+    return defaultRemoteProtocol;
+  }
+
   function normalizeSecretPayload(payload: RawSecretPayload): SecretPayload {
     const category =
       payload.category && categoryById.has(payload.category) ? payload.category : fallbackCategory.id;
@@ -261,6 +283,9 @@
       vpnProtocol: category === 'vpn' ? normalizeVpnProtocol(payload.vpnProtocol) : '',
       vpnGateway: category === 'vpn' ? (payload.vpnGateway ?? '') : '',
       vpnNtDomain: category === 'vpn' ? (payload.vpnNtDomain ?? '') : '',
+      remoteProtocol: category === 'remote_connection' ? normalizeRemoteProtocol(payload.remoteProtocol) : '',
+      remoteServer: category === 'remote_connection' ? (payload.remoteServer ?? '') : '',
+      remoteDomain: category === 'remote_connection' ? (payload.remoteDomain ?? '') : '',
       notes: payload.notes ?? '',
       createdAt: payload.createdAt ?? nowIso(),
       updatedAt: payload.updatedAt ?? payload.createdAt ?? nowIso()
@@ -322,6 +347,7 @@
       const isBankAccount = form.category === 'bank_account';
       const isPgpKey = form.category === 'pgp_key';
       const isVpn = form.category === 'vpn';
+      const isRemoteConnection = form.category === 'remote_connection';
       const payload: SecretPayload = {
         title: form.title.trim(),
         category: form.category,
@@ -337,6 +363,9 @@
         vpnProtocol: isVpn ? normalizeVpnProtocol(form.vpnProtocol) : '',
         vpnGateway: isVpn ? form.vpnGateway.trim() : '',
         vpnNtDomain: isVpn ? form.vpnNtDomain.trim() : '',
+        remoteProtocol: isRemoteConnection ? normalizeRemoteProtocol(form.remoteProtocol) : '',
+        remoteServer: isRemoteConnection ? form.remoteServer.trim() : '',
+        remoteDomain: isRemoteConnection ? form.remoteDomain.trim() : '',
         notes: form.notes.trim(),
         createdAt: editingSecretId ? form.createdAt : timestamp,
         updatedAt: timestamp
@@ -394,7 +423,7 @@
   });
 </script>
 
-<PageHeader title="Secrets" description="Encrypted passwords, API keys, encryption keys, WiFi credentials, VPN profiles, PGP keys, and bank accounts.">
+<PageHeader title="Secrets" description="Encrypted passwords, API keys, encryption keys, WiFi credentials, VPN profiles, remote connections, PGP keys, and bank accounts.">
   <Button onclick={openCreateSecret}>
     <Plus class="size-4" />
     New
@@ -477,6 +506,9 @@
                       {:else if item.payload.category === 'vpn' && (item.payload.vpnGateway || item.payload.username)}
                         <span class="text-border">/</span>
                         <span class="min-w-0 truncate">{item.payload.vpnGateway || item.payload.username}</span>
+                      {:else if item.payload.category === 'remote_connection' && (item.payload.remoteServer || item.payload.username)}
+                        <span class="text-border">/</span>
+                        <span class="min-w-0 truncate">{item.payload.remoteServer || item.payload.username}</span>
                       {:else if item.payload.username}
                         <span class="text-border">/</span>
                         <span class="min-w-0 truncate">{item.payload.username}</span>
@@ -522,6 +554,7 @@
         onValueChange={(value) => {
           form.category = value as SecretCategory;
           if (form.category === 'vpn' && !form.vpnProtocol) form.vpnProtocol = defaultVpnProtocol;
+          if (form.category === 'remote_connection' && !form.remoteProtocol) form.remoteProtocol = defaultRemoteProtocol;
         }}
       >
         <Select.Trigger id="secret-category" class="w-full">{formCategory.label}</Select.Trigger>
@@ -621,6 +654,70 @@
       <div class="grid gap-2">
         <Label for="secret-vpn-nt-domain">NT Domain</Label>
         <Input id="secret-vpn-nt-domain" bind:value={form.vpnNtDomain} maxlength={240} autocomplete="off" spellcheck="false" />
+      </div>
+    {:else if formIsRemoteConnection}
+      <div class="grid gap-2">
+        <Label for="secret-remote-protocol">Protocol</Label>
+        <Select.Root
+          type="single"
+          value={normalizeRemoteProtocol(form.remoteProtocol)}
+          onValueChange={(value) => {
+            form.remoteProtocol = normalizeRemoteProtocol(value);
+          }}
+        >
+          <Select.Trigger id="secret-remote-protocol" class="w-full">{normalizeRemoteProtocol(form.remoteProtocol)}</Select.Trigger>
+          <Select.Content>
+            {#each remoteProtocols as protocol (protocol)}
+              <Select.Item value={protocol} label={protocol}>{protocol}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-remote-server">Server</Label>
+        <Input id="secret-remote-server" bind:value={form.remoteServer} maxlength={240} required autocomplete="off" spellcheck="false" />
+      </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-username">Username</Label>
+        <Input id="secret-username" bind:value={form.username} maxlength={240} autocomplete="off" spellcheck="false" />
+      </div>
+
+      <div class="grid gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Label for="secret-value">Password</Label>
+          <div class="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onclick={() => (secretVisible = !secretVisible)}
+              aria-pressed={secretVisible}
+            >
+              {#if secretVisible}
+                <EyeOff class="size-4" /> Hide
+              {:else}
+                <Eye class="size-4" /> Reveal
+              {/if}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(form.secret, 'Password')} disabled={!form.secret}>
+              <Copy class="size-4" /> Copy
+            </Button>
+          </div>
+        </div>
+        <Input
+          id="secret-value"
+          bind:value={form.secret}
+          type={secretVisible ? 'text' : 'password'}
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-remote-domain">Domain</Label>
+        <Input id="secret-remote-domain" bind:value={form.remoteDomain} maxlength={240} autocomplete="off" spellcheck="false" />
       </div>
     {:else}
       <div class="grid gap-2">
