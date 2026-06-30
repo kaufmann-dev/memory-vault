@@ -29,7 +29,14 @@ export const RECORD_TYPES = [
 
 export type RecordType = (typeof RECORD_TYPES)[number];
 
-export type SecretCategory = 'password' | 'api_key' | 'encryption_key' | 'wifi' | 'pgp_key' | 'bank_account';
+export type SecretCategory =
+  | 'password'
+  | 'api_key'
+  | 'encryption_key'
+  | 'wifi'
+  | 'pgp_key'
+  | 'bank_account'
+  | 'vpn';
 
 export type DiaryPayload = {
   title: string;
@@ -78,6 +85,9 @@ export type SecretPayload = {
   accountHolder: string;
   bank: string;
   bic: string;
+  vpnProtocol: string;
+  vpnGateway: string;
+  vpnNtDomain: string;
   notes: string;
   createdAt: string;
   updatedAt: string;

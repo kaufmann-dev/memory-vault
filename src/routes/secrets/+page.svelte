@@ -28,6 +28,7 @@
     Landmark,
     Plus,
     Search,
+    ShieldCheck,
     Trash2,
     Wifi,
     X
@@ -56,6 +57,20 @@
     secretLabel: string;
     usernameLabel: string;
   };
+
+  const vpnProtocols = [
+    'OpenVPN',
+    'WireGuard',
+    'IKEv2/IPsec',
+    'L2TP/IPsec',
+    'IPsec',
+    'SSTP',
+    'PPTP',
+    'SSL VPN',
+    'Other'
+  ] as const;
+
+  const defaultVpnProtocol = vpnProtocols[0];
 
   const secretCategories: SecretCategoryMeta[] = [
     {
@@ -105,6 +120,14 @@
       icon: Landmark,
       secretLabel: 'IBAN',
       usernameLabel: 'Account holder'
+    },
+    {
+      id: 'vpn',
+      label: 'VPN',
+      singular: 'VPN',
+      icon: ShieldCheck,
+      secretLabel: 'Password',
+      usernameLabel: 'Username'
     }
   ];
 
@@ -124,6 +147,9 @@
     accountHolder: '',
     bank: '',
     bic: '',
+    vpnProtocol: category === 'vpn' ? defaultVpnProtocol : '',
+    vpnGateway: '',
+    vpnNtDomain: '',
     notes: '',
     createdAt: nowIso(),
     updatedAt: nowIso()
@@ -152,7 +178,7 @@
         if (!normalizedQuery) return true;
 
         const category = categoryById.get(item.payload.category) ?? fallbackCategory;
-        return `${item.payload.title} ${item.payload.username} ${item.payload.publicKey} ${item.payload.fingerprint} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.notes} ${category.label}`
+        return `${item.payload.title} ${item.payload.username} ${item.payload.publicKey} ${item.payload.fingerprint} ${item.payload.iban} ${item.payload.accountHolder} ${item.payload.bank} ${item.payload.bic} ${item.payload.vpnProtocol} ${item.payload.vpnGateway} ${item.payload.vpnNtDomain} ${item.payload.notes} ${category.label}`
           .toLowerCase()
           .includes(normalizedQuery);
       })
@@ -177,12 +203,15 @@
   let formCategory = $derived(categoryById.get(form.category) ?? fallbackCategory);
   let formIsBankAccount = $derived(form.category === 'bank_account');
   let formIsPgpKey = $derived(form.category === 'pgp_key');
+  let formIsVpn = $derived(form.category === 'vpn');
   let canSaveSecret = $derived(
     formIsBankAccount
       ? Boolean(form.title.trim() && form.iban.trim())
       : formIsPgpKey
         ? Boolean(form.title.trim() && (form.secret.trim() || form.publicKey.trim()))
-      : Boolean(form.title.trim() && form.secret.trim())
+        : formIsVpn
+          ? Boolean(form.title.trim() && form.vpnGateway.trim())
+          : Boolean(form.title.trim() && form.secret.trim())
   );
 
   function categoryCount(category: SecretCategory) {
@@ -208,6 +237,11 @@
     return activeCategory === 'all' ? 'password' : activeCategory;
   }
 
+  function normalizeVpnProtocol(value: string | undefined) {
+    if (value && vpnProtocols.includes(value as (typeof vpnProtocols)[number])) return value;
+    return defaultVpnProtocol;
+  }
+
   function normalizeSecretPayload(payload: RawSecretPayload): SecretPayload {
     const category =
       payload.category && categoryById.has(payload.category) ? payload.category : fallbackCategory.id;
@@ -224,6 +258,9 @@
       accountHolder: payload.accountHolder ?? '',
       bank: payload.bank ?? '',
       bic: payload.bic ?? '',
+      vpnProtocol: category === 'vpn' ? normalizeVpnProtocol(payload.vpnProtocol) : '',
+      vpnGateway: category === 'vpn' ? (payload.vpnGateway ?? '') : '',
+      vpnNtDomain: category === 'vpn' ? (payload.vpnNtDomain ?? '') : '',
       notes: payload.notes ?? '',
       createdAt: payload.createdAt ?? nowIso(),
       updatedAt: payload.updatedAt ?? payload.createdAt ?? nowIso()
@@ -284,6 +321,7 @@
       const timestamp = nowIso();
       const isBankAccount = form.category === 'bank_account';
       const isPgpKey = form.category === 'pgp_key';
+      const isVpn = form.category === 'vpn';
       const payload: SecretPayload = {
         title: form.title.trim(),
         category: form.category,
@@ -296,6 +334,9 @@
         accountHolder: isBankAccount ? form.accountHolder.trim() : '',
         bank: isBankAccount ? form.bank.trim() : '',
         bic: isBankAccount ? form.bic.trim() : '',
+        vpnProtocol: isVpn ? normalizeVpnProtocol(form.vpnProtocol) : '',
+        vpnGateway: isVpn ? form.vpnGateway.trim() : '',
+        vpnNtDomain: isVpn ? form.vpnNtDomain.trim() : '',
         notes: form.notes.trim(),
         createdAt: editingSecretId ? form.createdAt : timestamp,
         updatedAt: timestamp
@@ -353,7 +394,7 @@
   });
 </script>
 
-<PageHeader title="Secrets" description="Encrypted passwords, API keys, encryption keys, WiFi credentials, PGP keys, and bank accounts.">
+<PageHeader title="Secrets" description="Encrypted passwords, API keys, encryption keys, WiFi credentials, VPN profiles, PGP keys, and bank accounts.">
   <Button onclick={openCreateSecret}>
     <Plus class="size-4" />
     New
@@ -433,6 +474,9 @@
                       {#if item.payload.category === 'bank_account' && (item.payload.bank || item.payload.accountHolder)}
                         <span class="text-border">/</span>
                         <span class="min-w-0 truncate">{item.payload.bank || item.payload.accountHolder}</span>
+                      {:else if item.payload.category === 'vpn' && (item.payload.vpnGateway || item.payload.username)}
+                        <span class="text-border">/</span>
+                        <span class="min-w-0 truncate">{item.payload.vpnGateway || item.payload.username}</span>
                       {:else if item.payload.username}
                         <span class="text-border">/</span>
                         <span class="min-w-0 truncate">{item.payload.username}</span>
@@ -477,6 +521,7 @@
         value={form.category}
         onValueChange={(value) => {
           form.category = value as SecretCategory;
+          if (form.category === 'vpn' && !form.vpnProtocol) form.vpnProtocol = defaultVpnProtocol;
         }}
       >
         <Select.Trigger id="secret-category" class="w-full">{formCategory.label}</Select.Trigger>
@@ -512,6 +557,70 @@
       <div class="grid gap-2">
         <Label for="secret-bic">BIC</Label>
         <Input id="secret-bic" bind:value={form.bic} maxlength={80} autocomplete="off" spellcheck="false" />
+      </div>
+    {:else if formIsVpn}
+      <div class="grid gap-2">
+        <Label for="secret-vpn-protocol">Protocol</Label>
+        <Select.Root
+          type="single"
+          value={normalizeVpnProtocol(form.vpnProtocol)}
+          onValueChange={(value) => {
+            form.vpnProtocol = normalizeVpnProtocol(value);
+          }}
+        >
+          <Select.Trigger id="secret-vpn-protocol" class="w-full">{normalizeVpnProtocol(form.vpnProtocol)}</Select.Trigger>
+          <Select.Content>
+            {#each vpnProtocols as protocol (protocol)}
+              <Select.Item value={protocol} label={protocol}>{protocol}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-vpn-gateway">Gateway</Label>
+        <Input id="secret-vpn-gateway" bind:value={form.vpnGateway} maxlength={240} required autocomplete="off" spellcheck="false" />
+      </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-username">Username</Label>
+        <Input id="secret-username" bind:value={form.username} maxlength={240} autocomplete="off" spellcheck="false" />
+      </div>
+
+      <div class="grid gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Label for="secret-value">Password</Label>
+          <div class="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onclick={() => (secretVisible = !secretVisible)}
+              aria-pressed={secretVisible}
+            >
+              {#if secretVisible}
+                <EyeOff class="size-4" /> Hide
+              {:else}
+                <Eye class="size-4" /> Reveal
+              {/if}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(form.secret, 'Password')} disabled={!form.secret}>
+              <Copy class="size-4" /> Copy
+            </Button>
+          </div>
+        </div>
+        <Input
+          id="secret-value"
+          bind:value={form.secret}
+          type={secretVisible ? 'text' : 'password'}
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+
+      <div class="grid gap-2">
+        <Label for="secret-vpn-nt-domain">NT Domain</Label>
+        <Input id="secret-vpn-nt-domain" bind:value={form.vpnNtDomain} maxlength={240} autocomplete="off" spellcheck="false" />
       </div>
     {:else}
       <div class="grid gap-2">
