@@ -452,7 +452,7 @@
   </aside>
 
   <section class="min-w-0">
-    <div class="bg-background sticky top-14 z-[5] flex flex-wrap items-center gap-3 border-y py-3">
+    <div class="bg-background flex flex-wrap items-center gap-3 border-y py-3">
       <div class="relative min-w-0 flex-1">
         <Search class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
         <Input bind:value={query} placeholder="Search secrets" class="pl-9" aria-label="Search secrets" />
