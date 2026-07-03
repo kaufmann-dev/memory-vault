@@ -36,6 +36,7 @@
 
   type SortOrder = 'newest' | 'oldest';
 
+  const noteTextMaxLength = 50000;
   const groupColors = ['#2563eb', '#0f766e', '#7c3aed', '#be123c', '#64748b', '#a16207'];
   const nowIso = () => new Date().toISOString();
   const emptyNote = (): NotePayload => ({
@@ -451,7 +452,7 @@
 
     <div class="grid gap-2">
       <Label for="note-text">Note</Label>
-      <Textarea id="note-text" bind:value={noteForm.text} maxlength={20000} required class="min-h-36" />
+      <Textarea id="note-text" bind:value={noteForm.text} maxlength={noteTextMaxLength} required class="min-h-36" />
     </div>
 
     <Label for="note-pinned" class="flex items-center gap-2 font-normal">
@@ -484,7 +485,7 @@
     </div>
 
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <span class="text-muted-foreground text-sm">{noteForm.text.length}/20000</span>
+      <span class="text-muted-foreground text-sm">{noteForm.text.length}/{noteTextMaxLength}</span>
       <div class="flex gap-2">
         {#if editingNoteId}
           <Button
