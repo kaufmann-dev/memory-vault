@@ -451,6 +451,7 @@
 
     <form
       class="grid max-w-xl gap-4"
+      autocomplete="off"
       onsubmit={(event) => {
         event.preventDefault();
         changeVaultPassphrase();
@@ -458,15 +459,33 @@
     >
       <div class="grid gap-2">
         <Label for="current-vault-passphrase">Current vault passphrase</Label>
-        <Input id="current-vault-passphrase" type="password" bind:value={currentVaultPassphrase} required />
+        <Input
+          id="current-vault-passphrase"
+          type="password"
+          bind:value={currentVaultPassphrase}
+          autocomplete="off"
+          required
+        />
       </div>
       <div class="grid gap-2">
         <Label for="new-vault-passphrase">New vault passphrase</Label>
-        <Input id="new-vault-passphrase" type="password" bind:value={newVaultPassphrase} required />
+        <Input
+          id="new-vault-passphrase"
+          type="password"
+          bind:value={newVaultPassphrase}
+          autocomplete="off"
+          required
+        />
       </div>
       <div class="grid gap-2">
         <Label for="confirm-vault-passphrase">Confirm new vault passphrase</Label>
-        <Input id="confirm-vault-passphrase" type="password" bind:value={confirmVaultPassphrase} required />
+        <Input
+          id="confirm-vault-passphrase"
+          type="password"
+          bind:value={confirmVaultPassphrase}
+          autocomplete="off"
+          required
+        />
       </div>
       {#if vaultMessage}
         <p class="text-sm font-medium {vaultSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
@@ -568,7 +587,7 @@
             id="backup-vault-passphrase"
             type="password"
             bind:value={importVaultPassphrase}
-            autocomplete="current-password"
+            autocomplete="off"
           />
         </div>
         {#if importMessage}

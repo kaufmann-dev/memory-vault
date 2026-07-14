@@ -82,6 +82,7 @@
         {:else}
           <form
             class="grid gap-4"
+            autocomplete="off"
             onsubmit={(event) => {
               event.preventDefault();
               unlock();
@@ -93,7 +94,7 @@
                 id="vault-passphrase"
                 type="password"
                 bind:value={vaultPassphrase}
-                autocomplete="current-password"
+                autocomplete="off"
                 required
               />
             </div>
