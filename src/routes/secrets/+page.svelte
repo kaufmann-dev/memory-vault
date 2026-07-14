@@ -541,6 +541,7 @@
 >
   <form
     class="grid gap-4"
+    autocomplete="off"
     onsubmit={(event) => {
       event.preventDefault();
       saveSecret();

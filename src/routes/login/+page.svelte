@@ -189,7 +189,7 @@
                 id="vault-passphrase"
                 type="password"
                 bind:value={vaultPassphrase}
-                autocomplete="new-password"
+                autocomplete="off"
                 required
               />
             </div>
@@ -200,7 +200,7 @@
                 id="confirm-vault-passphrase"
                 type="password"
                 bind:value={confirmVaultPassphrase}
-                autocomplete="new-password"
+                autocomplete="off"
                 required
               />
             </div>
