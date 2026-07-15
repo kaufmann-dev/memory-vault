@@ -187,9 +187,12 @@
               <Label for="vault-passphrase">Vault passphrase</Label>
               <Input
                 id="vault-passphrase"
-                type="password"
+                type="text"
                 bind:value={vaultPassphrase}
+                class="masked-text-input"
                 autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
                 required
               />
             </div>
@@ -198,9 +201,12 @@
               <Label for="confirm-vault-passphrase">Confirm vault passphrase</Label>
               <Input
                 id="confirm-vault-passphrase"
-                type="password"
+                type="text"
                 bind:value={confirmVaultPassphrase}
+                class="masked-text-input"
                 autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
                 required
               />
             </div>
