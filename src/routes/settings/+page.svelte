@@ -461,9 +461,12 @@
         <Label for="current-vault-passphrase">Current vault passphrase</Label>
         <Input
           id="current-vault-passphrase"
-          type="password"
+          type="text"
           bind:value={currentVaultPassphrase}
+          class="masked-text-input"
           autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
           required
         />
       </div>
@@ -471,9 +474,12 @@
         <Label for="new-vault-passphrase">New vault passphrase</Label>
         <Input
           id="new-vault-passphrase"
-          type="password"
+          type="text"
           bind:value={newVaultPassphrase}
+          class="masked-text-input"
           autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
           required
         />
       </div>
@@ -481,9 +487,12 @@
         <Label for="confirm-vault-passphrase">Confirm new vault passphrase</Label>
         <Input
           id="confirm-vault-passphrase"
-          type="password"
+          type="text"
           bind:value={confirmVaultPassphrase}
+          class="masked-text-input"
           autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
           required
         />
       </div>
@@ -585,9 +594,12 @@
           <Label for="backup-vault-passphrase">Backup vault passphrase</Label>
           <Input
             id="backup-vault-passphrase"
-            type="password"
+            type="text"
             bind:value={importVaultPassphrase}
+            class="masked-text-input"
             autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
           />
         </div>
         {#if importMessage}

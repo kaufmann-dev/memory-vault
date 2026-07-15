@@ -646,8 +646,10 @@
         <Input
           id="secret-value"
           bind:value={form.secret}
-          type={secretVisible ? 'text' : 'password'}
+          type="text"
+          class={secretVisible ? undefined : 'masked-text-input'}
           autocomplete="off"
+          autocapitalize="none"
           spellcheck="false"
         />
       </div>
@@ -710,8 +712,10 @@
         <Input
           id="secret-value"
           bind:value={form.secret}
-          type={secretVisible ? 'text' : 'password'}
+          type="text"
+          class={secretVisible ? undefined : 'masked-text-input'}
           autocomplete="off"
+          autocapitalize="none"
           spellcheck="false"
         />
       </div>
@@ -757,8 +761,10 @@
           <Input
             id="secret-passphrase"
             bind:value={form.passphrase}
-            type={passphraseVisible ? 'text' : 'password'}
+            type="text"
+            class={passphraseVisible ? undefined : 'masked-text-input'}
             autocomplete="off"
+            autocapitalize="none"
             spellcheck="false"
           />
         </div>
@@ -833,9 +839,11 @@
           <Input
             id="secret-value"
             bind:value={form.secret}
-            type={secretVisible ? 'text' : 'password'}
+            type="text"
+            class={secretVisible ? undefined : 'masked-text-input'}
             required
             autocomplete="off"
+            autocapitalize="none"
             spellcheck="false"
           />
         </div>
