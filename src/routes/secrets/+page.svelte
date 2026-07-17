@@ -812,7 +812,7 @@
               id="secret-private-key"
               value={maskSecret(form.secret)}
               readonly
-              class="min-h-24 font-mono text-xs"
+              class="masked-text-input min-h-24 font-mono text-xs"
               aria-label="Hidden private key"
             />
           {/if}
