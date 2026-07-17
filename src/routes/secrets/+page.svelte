@@ -74,6 +74,7 @@
   const defaultVpnProtocol = vpnProtocols[0];
   const remoteProtocols = ['RDP', 'SSH', 'VNC', 'SPICE', 'SFTP'] as const;
   const defaultRemoteProtocol = remoteProtocols[0];
+  const copyableGenericUsernameCategories = new Set<SecretCategory>(['password', 'api_key', 'wifi']);
 
   const secretCategories: SecretCategoryMeta[] = [
     {
@@ -423,6 +424,15 @@
   });
 </script>
 
+{#snippet copyableFieldLabel(forId: string, label: string, value: string)}
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <Label for={forId}>{label}</Label>
+    <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(value, label)} disabled={!value}>
+      <Copy class="size-4" /> Copy
+    </Button>
+  </div>
+{/snippet}
+
 <PageHeader title="Secrets" description="Encrypted passwords, keys, accounts, connections, and more.">
   <Button onclick={openCreateSecret}>
     <Plus class="size-4" />
@@ -574,12 +584,12 @@
 
     {#if formIsBankAccount}
       <div class="grid gap-2">
-        <Label for="secret-iban">IBAN</Label>
+        {@render copyableFieldLabel('secret-iban', 'IBAN', form.iban)}
         <Input id="secret-iban" bind:value={form.iban} maxlength={80} required autocomplete="off" spellcheck="false" />
       </div>
 
       <div class="grid gap-2">
-        <Label for="secret-account-holder">Account holder</Label>
+        {@render copyableFieldLabel('secret-account-holder', 'Account holder', form.accountHolder)}
         <Input id="secret-account-holder" bind:value={form.accountHolder} maxlength={240} />
       </div>
 
@@ -589,7 +599,7 @@
       </div>
 
       <div class="grid gap-2">
-        <Label for="secret-bic">BIC</Label>
+        {@render copyableFieldLabel('secret-bic', 'BIC', form.bic)}
         <Input id="secret-bic" bind:value={form.bic} maxlength={80} autocomplete="off" spellcheck="false" />
       </div>
     {:else if formIsVpn}
@@ -612,12 +622,12 @@
       </div>
 
       <div class="grid gap-2">
-        <Label for="secret-vpn-gateway">Gateway</Label>
+        {@render copyableFieldLabel('secret-vpn-gateway', 'Gateway', form.vpnGateway)}
         <Input id="secret-vpn-gateway" bind:value={form.vpnGateway} maxlength={240} required autocomplete="off" spellcheck="false" />
       </div>
 
       <div class="grid gap-2">
-        <Label for="secret-username">Username</Label>
+        {@render copyableFieldLabel('secret-username', 'Username', form.username)}
         <Input id="secret-username" bind:value={form.username} maxlength={240} autocomplete="off" spellcheck="false" />
       </div>
 
@@ -655,7 +665,7 @@
       </div>
 
       <div class="grid gap-2">
-        <Label for="secret-vpn-nt-domain">NT Domain</Label>
+        {@render copyableFieldLabel('secret-vpn-nt-domain', 'NT Domain', form.vpnNtDomain)}
         <Input id="secret-vpn-nt-domain" bind:value={form.vpnNtDomain} maxlength={240} autocomplete="off" spellcheck="false" />
       </div>
     {:else if formIsRemoteConnection}
@@ -678,12 +688,12 @@
       </div>
 
       <div class="grid gap-2">
-        <Label for="secret-remote-server">Server</Label>
+        {@render copyableFieldLabel('secret-remote-server', 'Server', form.remoteServer)}
         <Input id="secret-remote-server" bind:value={form.remoteServer} maxlength={240} required autocomplete="off" spellcheck="false" />
       </div>
 
       <div class="grid gap-2">
-        <Label for="secret-username">Username</Label>
+        {@render copyableFieldLabel('secret-username', 'Username', form.username)}
         <Input id="secret-username" bind:value={form.username} maxlength={240} autocomplete="off" spellcheck="false" />
       </div>
 
@@ -721,18 +731,22 @@
       </div>
 
       <div class="grid gap-2">
-        <Label for="secret-remote-domain">Domain</Label>
+        {@render copyableFieldLabel('secret-remote-domain', 'Domain', form.remoteDomain)}
         <Input id="secret-remote-domain" bind:value={form.remoteDomain} maxlength={240} autocomplete="off" spellcheck="false" />
       </div>
     {:else}
       <div class="grid gap-2">
-        <Label for="secret-username">{formCategory.usernameLabel}</Label>
+        {#if copyableGenericUsernameCategories.has(form.category)}
+          {@render copyableFieldLabel('secret-username', formCategory.usernameLabel, form.username)}
+        {:else}
+          <Label for="secret-username">{formCategory.usernameLabel}</Label>
+        {/if}
         <Input id="secret-username" bind:value={form.username} maxlength={240} />
       </div>
 
       {#if formIsPgpKey}
         <div class="grid gap-2">
-          <Label for="secret-fingerprint">Fingerprint</Label>
+          {@render copyableFieldLabel('secret-fingerprint', 'Fingerprint', form.fingerprint)}
           <Input id="secret-fingerprint" bind:value={form.fingerprint} maxlength={240} autocomplete="off" spellcheck="false" />
         </div>
 
