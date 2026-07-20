@@ -13,7 +13,8 @@
 ## Data & Auth
 - postgresql
 - drizzle
-- Custom session-based auth (token hash, httpOnly cookie)
+- OpenID Connect Authorization Code flow with PKCE S256
+- Custom server-side session (hashed token, HttpOnly cookie)
 
 ---
 
@@ -27,11 +28,11 @@ No additional dependencies are required — everything uses the browser-native W
 
 Two keys are used, each with a distinct role:
 
-- **KEK (Key Encryption Key)** — derived from the user's password via PBKDF2. Used only to encrypt/decrypt the DEK. Never touches content directly.
-- **DEK (Data Encryption Key)** — a random AES-256-GCM key generated once at account creation. Used to encrypt all vault content. Stored in the database encrypted by the KEK.
+- **KEK (Key Encryption Key)** — derived from the user's separate vault passphrase via PBKDF2. Used only to encrypt/decrypt the DEK. Never touches content directly.
+- **DEK (Data Encryption Key)** — a random AES-256-GCM key generated once at vault creation. Used to encrypt all vault content. Stored in the database encrypted by the KEK.
 
 ```
-Login password
+Vault passphrase
       │
       ▼
 PBKDF2  ◄── kek_salt (stored in DB, not secret)
@@ -46,12 +47,12 @@ KEK  ──── decrypt(encrypted_dek)
                   └── decrypt(ciphertext + IV)       ◄── ciphertext + IV ◄── DB
 ```
 
-**Why two keys?** When the password changes, only the DEK needs to be re-encrypted (a single row update). All diary entries remain untouched. This makes password changes O(1) regardless of how many entries exist, and eliminates any risk of partial failure mid-update.
+**Why two keys?** When the vault passphrase changes, only the DEK needs to be re-encrypted (a single row update). All encrypted records remain untouched. This makes passphrase changes O(1) regardless of how many entries exist and eliminates any risk of partial failure mid-update.
 
 Additional principles:
 - **Algorithm:** AES-256-GCM for all encryption
 - **PBKDF2:** 310,000 iterations, SHA-256
-- **Salt:** 16 random bytes, generated at account creation, stored in plaintext (not secret)
+- **Salt:** 16 random bytes, generated at vault creation, stored in plaintext (not secret)
 - **IV:** 12 random bytes, generated fresh for every encrypt call, stored alongside ciphertext
 - **Key lifetime:** DEK held in a memory-only Svelte store, never written to `localStorage`, `sessionStorage`, a cookie, or the DOM. Gone when the tab closes. As an optional convenience, a non-extractable copy of the DEK may be persisted to IndexedDB for "remember this device" functionality (see `src/lib/client/rememberedDevice.ts`).
 - **SSR:** Decryption must always happen client-side (e.g. `onMount`), never during server-side rendering
@@ -60,7 +61,7 @@ Additional principles:
 
 Add these columns to the users table:
 
-- `kek_salt` — text, non-null. 16 random bytes as base64. Generated at registration.
+- `kek_salt` — text, non-null. 16 random bytes as base64. Generated at vault creation.
 - `encrypted_dek` — text, non-null. The DEK encrypted by the KEK, as base64.
 - `dek_iv` — text, non-null. The IV used when encrypting the DEK, as base64.
 
@@ -175,36 +176,46 @@ export function lockVault() {
 }
 ```
 
-### Account creation (client-side)
+### Vault creation (client-side)
 
-All key generation happens in the browser during registration. The server never sees
-the plaintext DEK or KEK — only the encrypted DEK and the salt arrive in the payload.
+On a fresh database, OIDC authentication completes before vault setup is allowed. All key generation
+happens in the browser. The server never sees the vault passphrase, plaintext DEK, or KEK — only the
+encrypted DEK and salt arrive in the payload.
 
 ```
 1. Generate kekSalt  →  crypto.getRandomValues(new Uint8Array(16))
-2. Derive KEK        →  deriveKEK(password, kekSalt)
+2. Derive KEK        →  deriveKEK(vaultPassphrase, kekSalt)
 3. Generate DEK      →  generateDEK()
 4. Encrypt DEK       →  encryptDEK(kek, dek)  →  { encryptedDEK, dekIV }
-5. POST to server:  { email, password, kekSalt, encryptedDEK, dekIV }
-6. Server stores kek_salt, encrypted_dek, dek_iv — it never sees the plaintext DEK
+5. POST to server:   { kekSalt, encryptedDEK, dekIV }
+6. Server stores kek_salt, encrypted_dek, dek_iv and attaches the OIDC-authenticated setup session
 ```
 
 ### Login flow
 
-Account authentication and vault unlocking are two separate steps.
+Provider authentication and vault unlocking are two separate steps.
 
-**Step 1 — Account login:**
-The login page (`src/routes/login/+page.server.ts`) only checks whether an admin user exists and
-returns `{ hasAdmin }`. No crypto fields are exposed at this stage.
+**Step 1 — OIDC login:**
+The login page links to `/auth/login`. The server discovers the provider from `OIDC_ISSUER_URL`, starts
+Authorization Code flow with state, nonce, and PKCE S256, then validates the response at
+`/auth/callback`. The confidential client authenticates with `client_secret_basic`.
 
-- If `hasAdmin` is true: the user submits email + account password → POST `/api/auth/login` →
-  server validates credentials, creates a session cookie → redirect to `/`.
-- If `hasAdmin` is false (first setup): the user fills in name, email, account password, and vault
-  passphrase → client-side key generation (see Account Creation above) → POST `/api/auth/setup` →
-  server creates the user and session → DEK stored in `sessionDEK` → redirect to `/`.
+- Provider access policy is the sole admission control. The application has no identity or claim allowlist.
+- On an existing installation, every admitted OIDC administrator maps to the existing singleton vault owner,
+  preserving its ID, key metadata, remembered-device lookup key, and encrypted records.
+- On a fresh installation, the validated OIDC identity creates a temporary local setup session. The browser
+  performs Vault Creation, stores the DEK in `sessionDEK`, and attaches that session to the new singleton owner.
+- A successful callback creates a database-backed local session with an HttpOnly cookie. It has a 24-hour
+  sliding idle timeout and seven-day absolute lifetime. Only throttled same-origin signals from trusted
+  pointer, keyboard, or click activity reset idle; navigation preloads and background requests do not.
+- OIDC access and refresh tokens are not used as the application session. No refresh token is requested or
+  stored. The ID token remains server-side only until it is used as `id_token_hint` for RP-Initiated Logout.
+- User logout clears remembered and in-memory vault key material, then submits `POST /auth/logout`. The server
+  deletes the local session before redirecting to the provider. Orphaned setup sessions are cleaned up locally
+  by the login loader and do not invoke provider logout.
 
 **Step 2 — Vault unlock:**
-After account login, the app renders `VaultUnlockGate` (`src/lib/components/VaultUnlockGate.svelte`).
+After OIDC login, the app renders `VaultUnlockGate` (`src/lib/components/VaultUnlockGate.svelte`).
 This component gates all content behind the in-memory DEK:
 
 1. On mount, try `loadRememberedDEK(email)` from IndexedDB. If found, restore it to `sessionDEK`.
@@ -213,9 +224,9 @@ This component gates all content behind the in-memory DEK:
    → DEK stored in `sessionDEK`.
 4. If "remember this device" is checked, `saveRememberedDEK(email, dek)` persists the raw DEK to IndexedDB.
 
-The `SafeUser` type (returned by `toSafeUser` in `src/lib/server/auth.ts`) carries `kekSalt`,
-`encryptedDEK`, and `dekIV` alongside the user identity fields, so they are available everywhere
-after authentication without additional API calls.
+The `SafeUser` type (returned by `toSafeUser` in `src/lib/server/auth.ts`) carries the singleton owner ID,
+remembered-device key, `kekSalt`, `encryptedDEK`, and `dekIV`, so the existing vault remains available
+without tying data access to an OIDC claim.
 
 ### Encrypting content (write path)
 
@@ -233,19 +244,19 @@ in `onMount` using `decrypt(dek, ciphertext, iv)`. If the DEK is missing, redire
 Never pass ciphertext through a `load` function expecting to decrypt server-side.
 Never render ciphertext directly into the page as a fallback.
 
-### Password change
+### Vault passphrase change
 
-Because all content is encrypted with the DEK (not the KEK), changing the password only
+Because all content is encrypted with the DEK (not the KEK), changing the vault passphrase only
 requires re-encrypting the DEK — a single row update. All diary entries are untouched.
 
 ```
-1. Derive oldKEK from oldPassword + existing kekSalt
-2. Decrypt DEK using oldKEK  (verify the password is correct before proceeding)
+1. Derive oldKEK from currentVaultPassphrase + existing kekSalt
+2. Decrypt DEK using oldKEK  (verify the vault passphrase is correct before proceeding)
 3. Generate new kekSalt
-4. Derive newKEK from newPassword + newKekSalt
+4. Derive newKEK from newVaultPassphrase + newKekSalt
 5. Re-encrypt the same DEK with newKEK  →  { newEncryptedDEK, newDekIV }
-6. POST to server: { newPassword, newKekSalt, newEncryptedDEK, newDekIV }
-7. Server updates password + kek_salt + encrypted_dek + dek_iv in a single transaction
+6. POST to server: { newKekSalt, newEncryptedDEK, newDekIV }
+7. Server updates kek_salt + encrypted_dek + dek_iv in one row
 8. sessionDEK is unchanged — the DEK itself never changed
 ```
 
@@ -281,12 +292,11 @@ Import flow:
 5. Server updates the current user's vault key metadata, deletes current encrypted records, and inserts backup encrypted records in one transaction.
 6. Browser replaces `sessionDEK` with the imported DEK and clears the remembered-device key for the current account.
 
-Import intentionally does not restore account passwords, password hashes, sessions, or cookies.
-The current server account remains the login identity. After restore, the vault passphrase is
-the passphrase that unlocked the imported backup.
+Import intentionally does not restore OIDC identity data, sessions, or cookies. Provider admission remains
+unchanged. After restore, the vault passphrase is the passphrase that unlocked the imported backup.
 
 ### Constraints
 
 - **Search** is not possible on encrypted fields. To filter entries, decrypt all records into memory client-side and use `Array.filter`.
-- **Forgotten password** means the DEK cannot be decrypted and all content is permanently unrecoverable. There is no server-side reset path.
+- **Forgotten vault passphrase** means the DEK cannot be decrypted and all content is permanently unrecoverable. There is no server-side reset path.
 - The **kek_salt** is not secret and can be returned in plaintext from `load`. Its only role is to make the derived KEK unique and prevent precomputed dictionary attacks.

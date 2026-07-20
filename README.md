@@ -7,6 +7,7 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 - [Features](#features)
 - [Stack](#stack)
 - [Prerequisites](#prerequisites)
+- [Authentication Setup](#authentication-setup)
 - [Installation](#installation)
 - [Development Commands](#development-commands)
 - [Project Structure](#project-structure)
@@ -15,11 +16,10 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 
 ## Features
 
-- Admin-only access with first-run account setup from `/login`
-- Separate account password and vault passphrase
+- Admin-only access through an OpenID Connect provider access policy
+- Separate provider authentication and client-only vault passphrase
 - Client-side encryption using the browser Web Crypto API
 - Encrypted diary entries, notes, lists, diagrams, milestones, and secrets
-- Account password changes without re-encrypting vault data
 - Vault passphrase rotation by re-encrypting only the data encryption key
 - Encrypted `.mvault` exports and destructive restores from Settings
 - PostgreSQL persistence through Drizzle ORM
@@ -38,7 +38,29 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 - Node.js compatible with the installed SvelteKit/Vite toolchain
 - npm
 - PostgreSQL
+- An OpenID Connect provider that supports Authorization Code flow, PKCE, and RP-Initiated Logout
 - A `DATABASE_URL` connection string
+
+## Authentication Setup
+
+Memory Vault delegates admission entirely to the OIDC provider. After Authorization Code login with PKCE S256, the app maps every provider-admitted administrator to the existing singleton vault owner and creates an HttpOnly database session; there is no application identity or claim allowlist. A fresh database asks the first admitted administrator to create the client-only vault passphrase after OIDC login.
+
+- `Public Client: Off`
+- Callback path: `/auth/callback`
+- Logout endpoint: `POST /auth/logout`
+- Post-logout redirect path: `/login`
+- Client authentication: `client_secret_basic`
+- Requested scopes: `openid profile email` (no offline access or refresh token)
+
+Required environment variables:
+
+- `DATABASE_URL`: PostgreSQL connection string.
+- `OIDC_ISSUER_URL`: exact issuer identifier used for OIDC discovery; use HTTPS except for localhost development.
+- `OIDC_CLIENT_ID`: confidential client identifier.
+- `OIDC_CLIENT_SECRET`: confidential client secret; keep it only in server-side secret storage.
+- `OIDC_APP_URL`: public application origin, such as `https://vault.example.com`, with no credentials, path, query, or fragment; use HTTPS except for localhost development.
+
+In the provider, enable Authorization Code flow, require PKCE S256, register `<OIDC_APP_URL>/auth/callback` as the redirect URI, and register `<OIDC_APP_URL>/login` as the post-logout redirect URI. The provider must advertise an `end_session_endpoint`. Restrict the provider application access policy to the administrators who may open the shared vault; Memory Vault intentionally performs no second identity check. User logout is a same-origin POST: the browser clears client-held vault key material first, then the server deletes the local session before redirecting to the provider.
 
 ## Installation
 
@@ -58,7 +80,7 @@ Choose one path: local development or deployment to Coolify.
    cp .env.example .env
    ```
 
-3. Set `DATABASE_URL` in `.env`:
+3. Set `DATABASE_URL` and all OIDC variables listed in [Authentication Setup](#authentication-setup) in `.env`:
 
    ```env
    DATABASE_URL=postgres://user:password@localhost:5432/memory_vault
@@ -76,7 +98,7 @@ Choose one path: local development or deployment to Coolify.
    npm run dev
    ```
 
-6. Open the Vite URL shown in the terminal and create the first admin account at `/login`.
+6. Open `/login`, authenticate through the OIDC provider, and create the client-only vault passphrase if the database is new.
 
 ### Deploy To Coolify
 
@@ -84,7 +106,7 @@ Choose one path: local development or deployment to Coolify.
 
 2. Create a new application for this repository and configure it as a Node application.
 
-3. Add this environment variable to the application:
+3. Add `DATABASE_URL` and every required OIDC variable from [Authentication Setup](#authentication-setup) to the application. Store `OIDC_CLIENT_SECRET` as a secret:
 
    ```env
    DATABASE_URL=<internal PostgreSQL connection URL from the Coolify database service>
@@ -115,6 +137,7 @@ npm run dev          # Start Vite on 0.0.0.0
 npm run build        # Build the SvelteKit app
 npm run preview      # Preview the production build
 npm run check        # Run svelte-kit sync and svelte-check
+npm test             # Run focused authentication policy tests
 npm run db:generate  # Generate Drizzle migrations
 npm run db:migrate   # Run migrations with scripts/migrate.mjs
 ```
@@ -135,17 +158,18 @@ npm run db:migrate   # Run migrations with scripts/migrate.mjs
     |-- lib/
     |   |-- client/          # Browser-side encrypted record helpers
     |   |-- components/      # Shared Svelte components
-    |   |-- server/          # Auth, password, and database modules
+    |   |-- server/          # OIDC, local session, and database modules
     |   |-- stores/          # In-memory client stores (crypto key, decrypted caches)
     |   |-- crypto.ts        # Web Crypto helpers
     |   `-- types.ts         # Shared application types
     `-- routes/
         |-- api/             # Auth and encrypted record endpoints
+        |-- auth/            # OIDC login, callback, activity, and logout endpoints
         |-- day-counters/    # Milestone UI
         |-- diagrams/        # Diagram and measurement UI
         |-- diary/           # Diary UI
         |-- lists/           # Lists UI
-        |-- login/           # Setup and account login UI
+        |-- login/           # OIDC entry and first vault setup UI
         |-- notes/           # Quick notes and encrypted note groups
         |-- secrets/         # Passwords, keys, accounts, connections, and more
         `-- settings/        # Account and vault settings
@@ -153,13 +177,13 @@ npm run db:migrate   # Run migrations with scripts/migrate.mjs
 
 ## Database And Encryption
 
-The database stores users, sessions, and typed encrypted records. User-created content is encrypted in the browser with a data encryption key before it is sent to `/api/records`; the server stores ciphertext and IV values only.
+The database stores the singleton vault owner, local OIDC-backed sessions, and typed encrypted records. User-created content is encrypted in the browser with a data encryption key before it is sent to `/api/records`; the server stores ciphertext and IV values only.
 
-At setup, the browser generates a random AES-256-GCM data encryption key. The account password is sent to the server only for account authentication and is stored as a scrypt hash. The vault passphrase is never sent to the server; it derives a key encryption key with PBKDF2 and SHA-256, and that key encrypts the data encryption key for storage.
+At first setup, after OIDC authentication, the browser generates a random AES-256-GCM data encryption key. The vault passphrase is never sent to the server; it derives a key encryption key with PBKDF2 and SHA-256, and that key encrypts the data encryption key for storage. Existing key metadata and ciphertext are unchanged by the authentication migration.
 
-After account login, Memory Vault shows an unlock step when the in-memory data encryption key is missing. Unlocking happens in the browser with the vault passphrase. The decrypted data encryption key is kept only in a memory-backed Svelte store and is cleared when the tab session ends.
+After OIDC login, Memory Vault creates an HttpOnly local session with a 24-hour sliding idle timeout and a seven-day absolute lifetime. Idle time is refreshed only by throttled same-origin signals from trusted pointer, keyboard, or click activity; navigation preloads and background requests do not extend it. The OIDC ID token stays server-side only for RP-Initiated Logout; access tokens and refresh tokens are not used as application sessions.
 
-Account password changes update only the server-side password hash. Vault passphrase changes re-encrypt only the data encryption key. Existing encrypted records do not need to be rewritten.
+When the in-memory data encryption key is missing, unlocking happens in the browser with the vault passphrase. The decrypted data encryption key is kept only in a memory-backed Svelte store and is cleared when the tab session ends. Vault passphrase changes re-encrypt only the data encryption key, so existing encrypted records do not need to be rewritten.
 
 Settings can export one `.mvault` backup file. The backup payload is encrypted in the browser with the active vault key and includes the encrypted records plus the encrypted data-key metadata required for disaster recovery. Import decrypts and validates the file in the browser first, then replaces the current server entries with the encrypted backup records in one transaction. The server never receives plaintext vault content or the raw data encryption key.
 
@@ -167,7 +191,7 @@ See `ARCHITECTURE.md` for the detailed encryption model.
 
 ## Usage
 
-- Visit `/login` on a fresh database to create the first admin account and vault passphrase.
-- Sign in with the account password, then unlock the vault with the separate vault passphrase.
+- Visit `/login` and sign in through the configured OIDC provider. On a fresh database, create the separate vault passphrase after OIDC login.
+- On later visits, sign in through OIDC and unlock the vault with the existing vault passphrase.
 - Use `/diary`, `/notes`, `/lists`, `/diagrams`, `/day-counters`, and `/secrets` to manage encrypted records.
-- Use `/settings` to change either password, remember the current device, or export/import encrypted backups.
+- Use `/settings` to change the vault passphrase, remember the current device, or export/import encrypted backups.

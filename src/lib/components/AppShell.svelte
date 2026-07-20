@@ -21,6 +21,7 @@
   } from '@lucide/svelte';
 
   let { user, children }: { user: SafeUser; children: Snippet } = $props();
+  let logoutForm: HTMLFormElement;
 
   const nav = [
     { href: '/', label: 'Home', icon: Home },
@@ -34,10 +35,9 @@
   ];
 
   async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
     await forgetRememberedDEK(user.email).catch(() => undefined);
     lockVault();
-    location.href = '/login';
+    logoutForm.submit();
   }
 </script>
 
@@ -116,6 +116,8 @@
     </Sidebar.Footer>
     <Sidebar.Rail />
   </Sidebar.Root>
+
+  <form bind:this={logoutForm} method="POST" action="/auth/logout" target="_top" hidden></form>
 
   <Sidebar.Inset>
     <header class="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-4">

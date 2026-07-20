@@ -4,19 +4,21 @@
 - Install with `npm install`; this repo uses `package-lock.json`, not pnpm/yarn/bun.
 - Dev server: `npm run dev` (`vite --host 0.0.0.0`).
 - Production build: `npm run build`; production start is `npm start`, which runs `npm run db:migrate` before `node build/index.js`.
-- Main verification: `npm run check` (`svelte-kit sync && svelte-check --tsconfig ./tsconfig.json`). No test, lint, or formatter scripts are currently configured.
+- Main verification: `npm run check` (`svelte-kit sync && svelte-check --tsconfig ./tsconfig.json`). Run focused authentication policy tests with `npm test`; no lint or formatter scripts are currently configured.
 - Database commands require `DATABASE_URL`: `npm run db:generate` creates Drizzle migrations from `src/lib/server/db/schema.ts`; `npm run db:migrate` runs `scripts/migrate.mjs`; `npm run db:migrate:kit` is the raw Drizzle Kit migrator for local debugging.
 - Always generate and run migrations through Drizzle Kit. Keep schema files and migrations aligned with `drizzle.config.ts`.
 - Do not run the application or test it locally. The app needs a database; the user will run it and give feedback if something is wrong.
 
 ## Runtime And Data
-- The only required env var shown in `.env.example` is `DATABASE_URL`.
+- Required env vars are `DATABASE_URL`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_APP_URL`; see the README Authentication Setup section.
 - Drizzle config points at `src/lib/server/db/schema.ts` and writes migrations to `migrations/`; keep `migrations/meta/_journal.json` with generated SQL because `scripts/migrate.mjs` refuses to run without it.
 - `src/lib/server/db/index.ts` reads `DATABASE_URL` from `$env/dynamic/private` and memoizes one postgres-js Drizzle connection.
 - SvelteKit uses `@sveltejs/adapter-node`; generated production entrypoint is `build/index.js`.
 
 ## App Boundaries
-- `src/hooks.server.ts` loads `locals.user` from `readSession`; `src/routes/+layout.server.ts` redirects every non-`/login` route to `/login` when unauthenticated.
+- `src/hooks.server.ts` loads the database-backed OIDC session and `locals.user`; `src/routes/+layout.server.ts` redirects every non-`/login` page to `/login` when unauthenticated.
+- OIDC Authorization Code + PKCE routes are under `src/routes/auth/`. Provider admission is the only identity admission control, and every admitted administrator maps to the existing singleton vault owner. Do not add application identity or claim allowlists.
+- Local sessions use a 24-hour sliding idle timeout and seven-day absolute lifetime. Reset idle only for authenticated user-driven traffic. Keep the ID token server-side only for RP-Initiated Logout; do not store OIDC access or refresh tokens.
 - Server APIs are under `src/routes/api/`; encrypted user content is stored through `src/routes/api/records/+server.ts`.
 - User-created content must stay client-encrypted. Use `src/lib/client/records.ts` plus `src/lib/crypto.ts`; do not send plaintext payloads to server routes or try to decrypt in `load`/SSR.
 - The in-memory DEK lives in `src/lib/stores/cryptoKey.ts`; do not persist it to localStorage, sessionStorage, cookies, the DOM, or the database.

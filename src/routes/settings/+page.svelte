@@ -20,6 +20,7 @@
   import { invalidateAll } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
+  import type { Attachment } from 'svelte/attachments';
   import type { PageProps } from './$types';
   import { Download, KeyRound, Save, Shield, Trash2, Upload, X } from '@lucide/svelte';
   import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
@@ -34,13 +35,6 @@
   let updatedKeyMaterial = $state<KeyMaterial | null>(null);
   let keyMaterial = $derived(updatedKeyMaterial ?? data.keyMaterial);
   let dek: CryptoKey | null = null;
-
-  let currentAccountPassword = $state('');
-  let newAccountPassword = $state('');
-  let confirmAccountPassword = $state('');
-  let accountMessage = $state('');
-  let accountSuccess = $state(false);
-  let savingAccount = $state(false);
 
   let currentVaultPassphrase = $state('');
   let newVaultPassphrase = $state('');
@@ -57,7 +51,7 @@
   let exportSuccess = $state(false);
   let importFiles = $state<FileList>();
   let importFile = $derived(importFiles?.item(0) ?? null);
-  let importFileInput = $state<HTMLInputElement | null>(null);
+  let importFileInput: HTMLInputElement | null = null;
   let importVaultPassphrase = $state('');
   let importMessage = $state('');
   let importSuccess = $state(false);
@@ -112,43 +106,6 @@
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return 'unknown date';
     return date.toLocaleString();
-  }
-
-  async function changeAccountPassword() {
-    accountMessage = '';
-    accountSuccess = false;
-
-    if (newAccountPassword.length < 12) {
-      accountMessage = 'Use at least 12 characters.';
-      return;
-    }
-    if (newAccountPassword !== confirmAccountPassword) {
-      accountMessage = 'Account passwords do not match.';
-      return;
-    }
-
-    savingAccount = true;
-    try {
-      const response = await fetch('/api/auth/password', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: currentAccountPassword,
-          newPassword: newAccountPassword
-        })
-      });
-
-      if (!response.ok) throw new Error(await response.text());
-      currentAccountPassword = '';
-      newAccountPassword = '';
-      confirmAccountPassword = '';
-      accountSuccess = true;
-      accountMessage = 'Account password changed.';
-    } catch {
-      accountMessage = 'Account password change failed.';
-    } finally {
-      savingAccount = false;
-    }
   }
 
   async function changeVaultPassphrase() {
@@ -308,6 +265,14 @@
     importFileInput?.click();
   }
 
+  const captureImportFileInput: Attachment<HTMLInputElement> = (element) => {
+    importFileInput = element;
+
+    return () => {
+      importFileInput = null;
+    };
+  };
+
   function clearBackupFile() {
     importFiles = undefined;
     if (importFileInput) importFileInput.value = '';
@@ -389,54 +354,10 @@
   }
 </script>
 
-<PageHeader title="Settings" description="Account security and vault controls." />
+<PageHeader title="Settings" description="Vault security, backups, and remembered-device controls for your OIDC account." />
 
 <div class="max-w-3xl">
-  <section class="border-border grid gap-6 border-b py-8 first:pt-0 last:border-b-0 last:pb-0">
-    <div class="grid gap-3">
-      <div class="bg-muted text-foreground flex size-10 items-center justify-center rounded-lg">
-        <Shield class="size-4.5" />
-      </div>
-      <div class="grid gap-2">
-        <h2 class="text-xl font-semibold tracking-tight">Account password</h2>
-        <p class="text-muted-foreground max-w-2xl text-sm leading-6">
-          This password signs in to the server and creates the session cookie.
-        </p>
-      </div>
-    </div>
-
-    <form
-      class="grid max-w-xl gap-4"
-      onsubmit={(event) => {
-        event.preventDefault();
-        changeAccountPassword();
-      }}
-    >
-      <div class="grid gap-2">
-        <Label for="current-account-password">Current account password</Label>
-        <Input id="current-account-password" type="password" bind:value={currentAccountPassword} required />
-      </div>
-      <div class="grid gap-2">
-        <Label for="new-account-password">New account password</Label>
-        <Input id="new-account-password" type="password" bind:value={newAccountPassword} required />
-      </div>
-      <div class="grid gap-2">
-        <Label for="confirm-account-password">Confirm new account password</Label>
-        <Input id="confirm-account-password" type="password" bind:value={confirmAccountPassword} required />
-      </div>
-      {#if accountMessage}
-        <p class="text-sm font-medium {accountSuccess ? 'text-green-600 dark:text-green-500' : 'text-destructive'}">
-          {accountMessage}
-        </p>
-      {/if}
-      <Button type="submit" disabled={savingAccount} class="justify-self-start">
-        <Save class="size-4" />
-        {savingAccount ? 'Saving…' : 'Save account password'}
-      </Button>
-    </form>
-  </section>
-
-  <section class="border-border grid gap-6 border-b py-8">
+  <section class="border-border grid gap-6 border-b pb-8">
     <div class="grid gap-3">
       <div class="bg-muted text-foreground flex size-10 items-center justify-center rounded-lg">
         <KeyRound class="size-4.5" />
@@ -555,7 +476,7 @@
             type="file"
             accept=".mvault,application/json"
             aria-labelledby="backup-file-label"
-            bind:this={importFileInput}
+            {@attach captureImportFileInput}
             bind:files={importFiles}
             onchange={handleBackupFileChange}
           />
