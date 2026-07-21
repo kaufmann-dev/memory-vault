@@ -46,8 +46,8 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 Memory Vault uses OIDC Authorization Code + PKCE and maps admitted users to a single vault owner, then stores an HttpOnly server session; user content remains client-encrypted and never leaves the browser in plaintext.
 
 - Public Client: Off
-- Callback URL: `${OIDC_APP_URL}/auth/callback`
-- Logout Callback URL: `${OIDC_APP_URL}/login`
+- Callback URL: `/auth/callback`
+- Logout Callback URL: `/login`
 - Authentication environment variables:
   - `OIDC_ISSUER_URL` (required) — OIDC issuer URL for discovery.
   - `OIDC_CLIENT_ID` (required) — Confidential client ID.
