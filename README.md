@@ -43,24 +43,16 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 
 ## Authentication Setup
 
-Memory Vault delegates admission entirely to the OIDC provider. After Authorization Code login with PKCE S256, the app maps every provider-admitted administrator to the existing singleton vault owner and creates an HttpOnly database session; there is no application identity or claim allowlist. A fresh database asks the first admitted administrator to create the client-only vault passphrase after OIDC login.
+Memory Vault uses OIDC Authorization Code + PKCE and maps admitted users to a single vault owner, then stores an HttpOnly server session; user content remains client-encrypted and never leaves the browser in plaintext.
 
-- `Public Client: Off`
-- Callback path: `/auth/callback`
-- Logout endpoint: `POST /auth/logout`
-- Post-logout redirect path: `/login`
-- Client authentication: `client_secret_basic`
-- Requested scopes: `openid profile email` (no offline access or refresh token)
-
-Required environment variables:
-
-- `DATABASE_URL`: PostgreSQL connection string.
-- `OIDC_ISSUER_URL`: exact issuer identifier used for OIDC discovery; use HTTPS except for localhost development.
-- `OIDC_CLIENT_ID`: confidential client identifier.
-- `OIDC_CLIENT_SECRET`: confidential client secret; keep it only in server-side secret storage.
-- `OIDC_APP_URL`: public application origin, such as `https://vault.example.com`, with no credentials, path, query, or fragment; use HTTPS except for localhost development.
-
-In the provider, enable Authorization Code flow, require PKCE S256, register `<OIDC_APP_URL>/auth/callback` as the redirect URI, and register `<OIDC_APP_URL>/login` as the post-logout redirect URI. The provider must advertise an `end_session_endpoint`. Restrict the provider application access policy to the administrators who may open the shared vault; Memory Vault intentionally performs no second identity check. User logout is a same-origin POST: the browser clears client-held vault key material first, then the server deletes the local session before redirecting to the provider.
+- Public Client: Off
+- Callback URL: `${OIDC_APP_URL}/auth/callback`
+- Logout Callback URL: `${OIDC_APP_URL}/login`
+- Authentication environment variables:
+  - `OIDC_ISSUER_URL` (required) — OIDC issuer URL for discovery.
+  - `OIDC_CLIENT_ID` (required) — Confidential client ID.
+  - `OIDC_CLIENT_SECRET` (required) — Confidential client secret.
+  - `OIDC_APP_URL` (required) — Public app origin (no path, query, or fragment).
 
 ## Installation
 
