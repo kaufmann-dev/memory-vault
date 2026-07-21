@@ -72,7 +72,7 @@ async function getConfiguration() {
         settings.issuerUrl,
         settings.clientId,
         { client_secret: settings.clientSecret },
-        oidc.ClientSecretBasic(settings.clientSecret),
+        oidc.ClientSecretPost(settings.clientSecret),
         settings.issuerUrl.protocol === 'http:'
           ? { execute: [oidc.allowInsecureRequests] }
           : undefined
