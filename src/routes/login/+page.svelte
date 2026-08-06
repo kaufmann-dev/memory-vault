@@ -160,6 +160,15 @@
             {/if}
           </Button>
         </form>
+      {:else}
+        <div class="grid gap-4">
+          {#if data.oidcError}
+            <p class="text-destructive text-sm font-medium">Single sign-on failed. Please try again.</p>
+          {/if}
+          <Button href="/auth/login" class="w-full">
+            <Shield class="size-4" /> Continue with single sign-on
+          </Button>
+        </div>
 
         <nav aria-label="Legal" class="text-muted-foreground mt-5 flex justify-center gap-4 text-xs">
           <a
@@ -175,15 +184,6 @@
             Privacy
           </a>
         </nav>
-      {:else}
-        <div class="grid gap-4">
-          {#if data.oidcError}
-            <p class="text-destructive text-sm font-medium">Single sign-on failed. Please try again.</p>
-          {/if}
-          <Button href="/auth/login" class="w-full">
-            <Shield class="size-4" /> Continue with single sign-on
-          </Button>
-        </div>
       {/if}
     </Card.Content>
   </Card.Root>
