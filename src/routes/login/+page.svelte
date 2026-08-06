@@ -160,6 +160,21 @@
             {/if}
           </Button>
         </form>
+
+        <nav aria-label="Legal" class="text-muted-foreground mt-5 flex justify-center gap-4 text-xs">
+          <a
+            href="https://legal.kaufmann.dev/imprint?site=vault.kaufmann.dev"
+            class="underline-offset-4 hover:underline focus-visible:underline"
+          >
+            Imprint
+          </a>
+          <a
+            href="https://legal.kaufmann.dev/privacy?site=vault.kaufmann.dev"
+            class="underline-offset-4 hover:underline focus-visible:underline"
+          >
+            Privacy
+          </a>
+        </nav>
       {:else}
         <div class="grid gap-4">
           {#if data.oidcError}
