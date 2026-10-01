@@ -1,6 +1,6 @@
-import { getDb } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
-import { error, json } from '@sveltejs/kit';
+import { getDb } from '#lib/server/db/index.js';
+import { users } from '#lib/server/db/schema.js';
+import { error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
 export async function POST({ request, locals }) {
@@ -26,5 +26,5 @@ export async function POST({ request, locals }) {
     })
     .where(eq(users.id, locals.user.id));
 
-  return json({ ok: true });
+  return Response.json({ ok: true });
 }

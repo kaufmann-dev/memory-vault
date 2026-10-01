@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
-import { decryptRecords, fetchEncryptedRecords } from '$lib/client/records';
-import type { DiaryPayload, EncryptedRecord } from '$lib/types';
+import { decryptRecords, fetchEncryptedRecords } from '#lib/client/records.js';
+import type { DiaryPayload, EncryptedRecord } from '#lib/types.js';
 
 export type DiaryItem = {
   record: EncryptedRecord;

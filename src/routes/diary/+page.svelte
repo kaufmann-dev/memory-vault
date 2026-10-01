@@ -1,8 +1,8 @@
 <script lang="ts">
-  import EmptyState from '$lib/components/EmptyState.svelte';
-  import LoadingState from '$lib/components/LoadingState.svelte';
-  import DiaryEntryModal from '$lib/components/DiaryEntryModal.svelte';
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import EmptyState from '#lib/components/EmptyState.svelte';
+  import LoadingState from '#lib/components/LoadingState.svelte';
+  import DiaryEntryModal from '#lib/components/DiaryEntryModal.svelte';
+  import PageHeader from '#lib/components/PageHeader.svelte';
   import {
     diaryEntries,
     excerpt,
@@ -10,17 +10,17 @@
     formatShortDate,
     loadDiary,
     type DiaryItem
-  } from '$lib/stores/diary';
-  import { sessionDEK } from '$lib/stores/cryptoKey';
+  } from '#lib/stores/diary.js';
+  import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { Plus, Search, X } from '@lucide/svelte';
-  import * as Card from '$lib/components/ui/card/index.js';
-  import * as Select from '$lib/components/ui/select/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Label } from '$lib/components/ui/label/index.js';
+  import * as Card from '#lib/components/ui/card/index.js';
+  import * as Select from '#lib/components/ui/select/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import { Label } from '#lib/components/ui/label/index.js';
 
   type SortOrder = 'newest' | 'oldest';
 

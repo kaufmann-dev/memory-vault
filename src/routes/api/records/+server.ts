@@ -1,7 +1,7 @@
-import { getDb } from '$lib/server/db';
-import { encryptedRecords } from '$lib/server/db/schema';
-import { RECORD_TYPES, type EncryptedRecord, type RecordType } from '$lib/types';
-import { error, json } from '@sveltejs/kit';
+import { getDb } from '#lib/server/db/index.js';
+import { encryptedRecords } from '#lib/server/db/schema.js';
+import { RECORD_TYPES, type EncryptedRecord, type RecordType } from '#lib/types.js';
+import { error } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
 
 const recordTypes = new Set<RecordType>(RECORD_TYPES);
@@ -38,7 +38,7 @@ export async function GET({ url, locals }) {
     )
     .orderBy(desc(encryptedRecords.updatedAt));
 
-  return json({ records: rows.map(toRecord) });
+  return Response.json({ records: rows.map(toRecord) });
 }
 
 export async function POST({ request, locals }) {
@@ -61,7 +61,7 @@ export async function POST({ request, locals }) {
     })
     .returning();
 
-  return json({ record: toRecord(record) });
+  return Response.json({ record: toRecord(record) });
 }
 
 export async function PATCH({ request, locals }) {
@@ -88,7 +88,7 @@ export async function PATCH({ request, locals }) {
 
   if (!record) error(404, 'Record not found');
 
-  return json({ record: toRecord(record) });
+  return Response.json({ record: toRecord(record) });
 }
 
 export async function DELETE({ request, locals }) {
@@ -103,5 +103,5 @@ export async function DELETE({ request, locals }) {
     .delete(encryptedRecords)
     .where(and(eq(encryptedRecords.id, id), eq(encryptedRecords.userId, locals.user.id)));
 
-  return json({ ok: true });
+  return Response.json({ ok: true });
 }

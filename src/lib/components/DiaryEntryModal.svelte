@@ -1,18 +1,18 @@
 <script lang="ts">
-  import EntryModal from '$lib/components/EntryModal.svelte';
+  import EntryModal from '#lib/components/EntryModal.svelte';
   import {
     createEncryptedRecord,
     updateEncryptedRecord,
     wordCount
-  } from '$lib/client/records';
-  import { upsertDiaryEntry, type DiaryItem } from '$lib/stores/diary';
-  import type { DiaryPayload } from '$lib/types';
+  } from '#lib/client/records.js';
+  import { upsertDiaryEntry, type DiaryItem } from '#lib/stores/diary.js';
+  import type { DiaryPayload } from '#lib/types.js';
   import { Save } from '@lucide/svelte';
-  import * as Select from '$lib/components/ui/select/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Textarea } from '$lib/components/ui/textarea/index.js';
-  import { Label } from '$lib/components/ui/label/index.js';
+  import * as Select from '#lib/components/ui/select/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import { Textarea } from '#lib/components/ui/textarea/index.js';
+  import { Label } from '#lib/components/ui/label/index.js';
 
   let {
     open,

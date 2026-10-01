@@ -1,28 +1,28 @@
 <script lang="ts">
-  import EmptyState from '$lib/components/EmptyState.svelte';
-  import LoadingState from '$lib/components/LoadingState.svelte';
-  import EntryModal from '$lib/components/EntryModal.svelte';
-  import PageHeader from '$lib/components/PageHeader.svelte';
-  import CollectionNav from '$lib/components/CollectionNav.svelte';
+  import EmptyState from '#lib/components/EmptyState.svelte';
+  import LoadingState from '#lib/components/LoadingState.svelte';
+  import EntryModal from '#lib/components/EntryModal.svelte';
+  import PageHeader from '#lib/components/PageHeader.svelte';
+  import CollectionNav from '#lib/components/CollectionNav.svelte';
   import {
     createEncryptedRecord,
     decryptRecords,
     deleteEncryptedRecord,
     fetchEncryptedRecords,
     updateEncryptedRecord
-  } from '$lib/client/records';
-  import { sessionDEK } from '$lib/stores/cryptoKey';
-  import type { EncryptedRecord, NoteGroupPayload, NotePayload } from '$lib/types';
+  } from '#lib/client/records.js';
+  import { sessionDEK } from '#lib/stores/cryptoKey.js';
+  import type { EncryptedRecord, NoteGroupPayload, NotePayload } from '#lib/types.js';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { Pencil, Pin, Plus, Search, Settings2, Trash2, X } from '@lucide/svelte';
-  import * as Card from '$lib/components/ui/card/index.js';
-  import * as Select from '$lib/components/ui/select/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Textarea } from '$lib/components/ui/textarea/index.js';
-  import { Label } from '$lib/components/ui/label/index.js';
-  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+  import * as Card from '#lib/components/ui/card/index.js';
+  import * as Select from '#lib/components/ui/select/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import { Textarea } from '#lib/components/ui/textarea/index.js';
+  import { Label } from '#lib/components/ui/label/index.js';
+  import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 
   type NoteItem = {
     record: EncryptedRecord;
