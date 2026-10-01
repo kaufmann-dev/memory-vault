@@ -1,6 +1,6 @@
-import { isTrustedLogoutRequest } from '$lib/auth-policy';
-import { deleteSession } from '$lib/server/auth';
-import { buildLogoutUrl } from '$lib/server/oidc';
+import { isTrustedLogoutRequest } from '#lib/auth-policy.js';
+import { deleteSession } from '#lib/server/auth.js';
+import { buildLogoutUrl } from '#lib/server/oidc.js';
 import { error, redirect } from '@sveltejs/kit';
 
 export async function POST({ cookies, request, url }) {
@@ -10,5 +10,5 @@ export async function POST({ cookies, request, url }) {
   if (!idToken) redirect(303, '/login');
 
   const logoutUrl = await buildLogoutUrl(idToken);
-  redirect(303, logoutUrl.href);
+  redirect(303, logoutUrl.href, { external: true });
 }

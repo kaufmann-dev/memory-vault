@@ -160,7 +160,7 @@ Create a Svelte store (e.g. `src/lib/stores/cryptoKey.ts`) to hold the DEK in me
 
 ```ts
 import { writable } from 'svelte/store';
-import { deriveKEK, decryptDEK } from '$lib/crypto';
+import { deriveKEK, decryptDEK } from '#lib/crypto.js';
 
 export const sessionDEK = writable<CryptoKey | null>(null);
 

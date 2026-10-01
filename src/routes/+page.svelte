@@ -1,8 +1,8 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
-  import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-  import { fetchRecordCounts } from '$lib/client/records';
-  import type { RecordType } from '$lib/types';
+  import PageHeader from '#lib/components/PageHeader.svelte';
+  import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { fetchRecordCounts } from '#lib/client/records.js';
+  import type { RecordType } from '#lib/types.js';
   import { onMount } from 'svelte';
   import {
     Activity,

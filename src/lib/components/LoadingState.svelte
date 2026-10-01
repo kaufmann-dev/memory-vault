@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Spinner } from '$lib/components/ui/spinner/index.js';
-  import { cn } from '$lib/utils';
+  import { Spinner } from '#lib/components/ui/spinner/index.js';
+  import { cn } from '#lib/utils.js';
 
   let { message, class: className }: { message: string; class?: string } = $props();
 </script>

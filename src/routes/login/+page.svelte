@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { saveRememberedDEK } from '$lib/client/rememberedDevice';
-  import { deriveKEK, encryptDEK, generateDEK, makeDEKNonExtractable } from '$lib/crypto';
-  import { lockVault, sessionDEK } from '$lib/stores/cryptoKey';
+  import { saveRememberedDEK } from '#lib/client/rememberedDevice.js';
+  import { deriveKEK, encryptDEK, generateDEK, makeDEKNonExtractable } from '#lib/crypto.js';
+  import { lockVault, sessionDEK } from '#lib/stores/cryptoKey.js';
   import { goto } from '$app/navigation';
   import type { PageProps } from './$types';
   import { Shield } from '@lucide/svelte';
-  import * as Card from '$lib/components/ui/card/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Label } from '$lib/components/ui/label/index.js';
-  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-  import { Spinner } from '$lib/components/ui/spinner/index.js';
+  import * as Card from '#lib/components/ui/card/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import { Label } from '#lib/components/ui/label/index.js';
+  import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+  import { Spinner } from '#lib/components/ui/spinner/index.js';
 
   let { data }: PageProps = $props();
 

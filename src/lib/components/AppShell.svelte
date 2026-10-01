@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { forgetRememberedDEK } from '$lib/client/rememberedDevice';
-  import { lockVault } from '$lib/stores/cryptoKey';
-  import type { SafeUser } from '$lib/types';
+  import { forgetRememberedDEK } from '#lib/client/rememberedDevice.js';
+  import { lockVault } from '#lib/stores/cryptoKey.js';
+  import type { SafeUser } from '#lib/types.js';
   import type { Snippet } from 'svelte';
-  import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-  import AppSidebarNav from '$lib/components/AppSidebarNav.svelte';
-  import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-  import { Separator } from '$lib/components/ui/separator/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
+  import AppSidebarNav from '#lib/components/AppSidebarNav.svelte';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import { Separator } from '#lib/components/ui/separator/index.js';
   import {
     Activity,
     BookOpen,

@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { loadRememberedDEK, saveRememberedDEK } from '$lib/client/rememberedDevice';
-  import { sessionDEK, unlockVault } from '$lib/stores/cryptoKey';
-  import type { SafeUser } from '$lib/types';
+  import { loadRememberedDEK, saveRememberedDEK } from '#lib/client/rememberedDevice.js';
+  import { sessionDEK, unlockVault } from '#lib/stores/cryptoKey.js';
+  import type { SafeUser } from '#lib/types.js';
   import type { Snippet } from 'svelte';
   import { onMount } from 'svelte';
   import { KeyRound, Shield } from '@lucide/svelte';
-  import * as Card from '$lib/components/ui/card/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Label } from '$lib/components/ui/label/index.js';
-  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-  import { Spinner } from '$lib/components/ui/spinner/index.js';
+  import * as Card from '#lib/components/ui/card/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import { Label } from '#lib/components/ui/label/index.js';
+  import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+  import { Spinner } from '#lib/components/ui/spinner/index.js';
 
   let { user, children }: { user: SafeUser; children: Snippet } = $props();
 
