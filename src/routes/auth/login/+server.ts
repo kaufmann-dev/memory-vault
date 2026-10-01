@@ -1,4 +1,4 @@
-import { beginAuthorization } from '$lib/server/oidc';
+import { beginAuthorization } from '#lib/server/oidc.js';
 import { redirect } from '@sveltejs/kit';
 
 export async function GET({ cookies, locals }) {
@@ -6,5 +6,5 @@ export async function GET({ cookies, locals }) {
   if (locals.authSession) redirect(303, '/login');
 
   const authorizationUrl = await beginAuthorization(cookies);
-  redirect(303, authorizationUrl.href);
+  redirect(303, authorizationUrl.href, { external: true });
 }

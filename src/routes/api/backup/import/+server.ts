@@ -1,7 +1,7 @@
-import { parseRestoreBackupRequest, type RestoreBackupRequest } from '$lib/backup';
-import { getDb } from '$lib/server/db';
-import { encryptedRecords, users } from '$lib/server/db/schema';
-import { error, json } from '@sveltejs/kit';
+import { parseRestoreBackupRequest, type RestoreBackupRequest } from '#lib/backup.js';
+import { getDb } from '#lib/server/db/index.js';
+import { encryptedRecords, users } from '#lib/server/db/schema.js';
+import { error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
 export async function POST({ request, locals }) {
@@ -46,5 +46,5 @@ export async function POST({ request, locals }) {
     }
   });
 
-  return json({ ok: true, count: backup.records.length });
+  return Response.json({ ok: true, count: backup.records.length });
 }

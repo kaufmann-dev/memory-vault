@@ -12,7 +12,7 @@
 ## Runtime And Data
 - Required env vars are `DATABASE_URL`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_APP_URL`; see the README Authentication Setup section.
 - Drizzle config points at `src/lib/server/db/schema.ts` and writes migrations to `migrations/`; keep `migrations/meta/_journal.json` with generated SQL because `scripts/migrate.mjs` refuses to run without it.
-- `src/lib/server/db/index.ts` reads `DATABASE_URL` from `$env/dynamic/private` and memoizes one postgres-js Drizzle connection.
+- `src/lib/server/db/index.ts` reads `DATABASE_URL` from `$app/env/private` (declared in `src/env.ts`) and memoizes one postgres-js Drizzle connection.
 - SvelteKit uses `@sveltejs/adapter-node`; generated production entrypoint is `build/index.js`.
 
 ## App Boundaries
@@ -80,7 +80,7 @@ Always write effects as browser-only by nature. For global event listeners, use 
 - Shared shell and small UI components live in `src/lib/components/`; feature pages live directly under `src/routes/{diary,lists,diagrams,day-counters,family,settings}`.
 - All shadcn-svelte components are pre-installed in `src/lib/components/ui/`. **Never run the CLI to install components, and never delete unused shadcn components during codebase cleanup.**
   - Never import components from a package named `shadcn-svelte`.
-  - Import them only from local `$lib/components/ui/...` paths.
+  - Import them only from local `#lib/components/ui/...` paths (SvelteKit 3 subpath imports, with explicit `.js`/`.svelte` extensions).
   - Use local component source as the final source of truth; customize with Tailwind classes using `class` and the local `cn()` helper.
 - **Icons**: Always use `@lucide/svelte` (e.g., `<Search class="size-4" />`).
 - **Theming**: Use `setMode("light" | "dark" | "system")` or `toggleMode` from `mode-watcher` for controls. Add `ModeWatcher` once in the root layout:

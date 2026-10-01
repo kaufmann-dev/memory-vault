@@ -1,4 +1,4 @@
-import { decryptDEK, deriveKEK } from '$lib/crypto';
+import { decryptDEK, deriveKEK } from '#lib/crypto.js';
 import { writable } from 'svelte/store';
 
 export const sessionDEK = writable<CryptoKey | null>(null);

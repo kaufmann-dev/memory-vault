@@ -1,5 +1,5 @@
-import { decrypt, encrypt } from '$lib/crypto';
-import type { EncryptedRecord, RecordType } from '$lib/types';
+import { decrypt, encrypt } from '#lib/crypto.js';
+import type { EncryptedRecord, RecordType } from '#lib/types.js';
 
 type RecordResponse = {
   records: EncryptedRecord[];

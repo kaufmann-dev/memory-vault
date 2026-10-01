@@ -1,4 +1,4 @@
-import { RECORD_TYPES, type EncryptedRecord, type RecordType } from '$lib/types';
+import { RECORD_TYPES, type EncryptedRecord, type RecordType } from '#lib/types.js';
 
 export const BACKUP_APP = 'memory-vault';
 export const BACKUP_VERSION = 1;

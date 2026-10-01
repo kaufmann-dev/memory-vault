@@ -52,7 +52,7 @@ Memory Vault uses OIDC Authorization Code + PKCE and maps admitted users to a si
   - `OIDC_ISSUER_URL` (required) — OIDC issuer URL for discovery.
   - `OIDC_CLIENT_ID` (required) — Confidential client ID.
   - `OIDC_CLIENT_SECRET` (required) — Confidential client secret.
-  - `OIDC_APP_URL` (required) — Public app origin (no path, query, or fragment).
+  - `OIDC_APP_URL` (required) — Public app origin (no path, query, or fragment). Also needed at build time, where it becomes SvelteKit's `paths.origin` for CSRF checks behind the reverse proxy.
 
 ## Installation
 

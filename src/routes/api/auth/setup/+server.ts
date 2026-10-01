@@ -1,7 +1,7 @@
-import { attachSessionToUser, getAdminCount } from '$lib/server/auth';
-import { getDb } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
-import { error, json } from '@sveltejs/kit';
+import { attachSessionToUser, getAdminCount } from '#lib/server/auth.js';
+import { getDb } from '#lib/server/db/index.js';
+import { users } from '#lib/server/db/schema.js';
+import { error } from '@sveltejs/kit';
 
 export async function POST({ request, locals }) {
   const authSession = locals.authSession;
@@ -35,5 +35,5 @@ export async function POST({ request, locals }) {
 
   await attachSessionToUser(authSession.id, user.id);
 
-  return json({ ok: true, email: user.email });
+  return Response.json({ ok: true, email: user.email });
 }

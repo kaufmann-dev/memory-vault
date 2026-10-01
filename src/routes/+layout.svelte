@@ -5,10 +5,10 @@
     USER_ACTIVITY_HEADER_VALUE,
     USER_ACTIVITY_PATH,
     shouldSendActivitySignal
-  } from '$lib/auth-policy';
-  import AppShell from '$lib/components/AppShell.svelte';
-  import VaultUnlockGate from '$lib/components/VaultUnlockGate.svelte';
-  import { Toaster } from '$lib/components/ui/sonner/index.js';
+  } from '#lib/auth-policy.js';
+  import AppShell from '#lib/components/AppShell.svelte';
+  import VaultUnlockGate from '#lib/components/VaultUnlockGate.svelte';
+  import { Toaster } from '#lib/components/ui/sonner/index.js';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();

@@ -1,7 +1,7 @@
-import { env } from '$env/dynamic/private';
-import { parseOidcAppUrl, parseOidcIssuerUrl } from '$lib/auth-policy';
-import { getDb } from '$lib/server/db';
-import { oidcLoginStates } from '$lib/server/db/schema';
+import * as env from '$app/env/private';
+import { parseOidcAppUrl, parseOidcIssuerUrl } from '#lib/auth-policy.js';
+import { getDb } from '#lib/server/db/index.js';
+import { oidcLoginStates } from '#lib/server/db/schema.js';
 import type { Cookies } from '@sveltejs/kit';
 import { and, eq, gt, lt } from 'drizzle-orm';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -21,7 +21,13 @@ type OidcSettings = {
 
 let configurationPromise: Promise<oidc.Configuration> | null = null;
 
-function requireEnv(name: 'OIDC_ISSUER_URL' | 'OIDC_CLIENT_ID' | 'OIDC_CLIENT_SECRET' | 'OIDC_APP_URL') {
+function requireEnv(
+  name: 
+    'OIDC_ISSUER_URL' |
+    'OIDC_CLIENT_ID' |
+    'OIDC_CLIENT_SECRET' |
+    'OIDC_APP_URL'
+) {
   const value = env[name]?.trim();
   if (!value) throw new Error(`${name} is required`);
   return value;

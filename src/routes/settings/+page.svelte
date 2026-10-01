@@ -1,10 +1,10 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import PageHeader from '#lib/components/PageHeader.svelte';
   import {
     forgetRememberedDEK,
     hasRememberedDEK,
     saveRememberedDEK
-  } from '$lib/client/rememberedDevice';
+  } from '#lib/client/rememberedDevice.js';
   import {
     BACKUP_APP,
     BACKUP_EXTENSION,
@@ -13,20 +13,20 @@
     parseBackupPayload,
     type BackupPayload,
     type VaultBackupFile
-  } from '$lib/backup';
-  import { decrypt, decryptDEK, deriveKEK, encrypt, encryptDEK } from '$lib/crypto';
-  import { sessionDEK } from '$lib/stores/cryptoKey';
-  import type { EncryptedRecord } from '$lib/types';
+  } from '#lib/backup.js';
+  import { decrypt, decryptDEK, deriveKEK, encrypt, encryptDEK } from '#lib/crypto.js';
+  import { sessionDEK } from '#lib/stores/cryptoKey.js';
+  import type { EncryptedRecord } from '#lib/types.js';
   import { invalidateAll } from '$app/navigation';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import type { Attachment } from 'svelte/attachments';
   import type { PageProps } from './$types';
   import { Download, KeyRound, Save, Shield, Trash2, Upload, X } from '@lucide/svelte';
-  import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Label } from '$lib/components/ui/label/index.js';
+  import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import { Label } from '#lib/components/ui/label/index.js';
 
   let { data }: PageProps = $props();
 

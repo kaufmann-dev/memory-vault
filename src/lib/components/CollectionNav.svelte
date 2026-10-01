@@ -1,10 +1,10 @@
 <script lang="ts" generics="T extends { id: string; label: string; tone?: string }">
   import type { Snippet } from 'svelte';
-  import * as Popover from '$lib/components/ui/popover/index.js';
-  import * as Command from '$lib/components/ui/command/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
+  import * as Popover from '#lib/components/ui/popover/index.js';
+  import * as Command from '#lib/components/ui/command/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
   import { ChevronsUpDown } from '@lucide/svelte';
-  import { cn } from '$lib/utils.js';
+  import { cn } from '#lib/utils.js';
 
   let {
     items,

@@ -1,4 +1,4 @@
-import { isTrustedActivityRequest } from '$lib/auth-policy';
+import { isTrustedActivityRequest } from '#lib/auth-policy.js';
 import { error } from '@sveltejs/kit';
 
 export function POST({ locals, request, url }) {

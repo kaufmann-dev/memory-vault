@@ -1,21 +1,21 @@
 <script lang="ts">
-  import LoadingState from '$lib/components/LoadingState.svelte';
-  import DiaryEntryModal from '$lib/components/DiaryEntryModal.svelte';
-  import { deleteEncryptedRecord } from '$lib/client/records';
+  import LoadingState from '#lib/components/LoadingState.svelte';
+  import DiaryEntryModal from '#lib/components/DiaryEntryModal.svelte';
+  import { deleteEncryptedRecord } from '#lib/client/records.js';
   import {
     diaryEntries,
     formatDate,
     loadDiary,
     removeDiaryEntry
-  } from '$lib/stores/diary';
-  import { sessionDEK } from '$lib/stores/cryptoKey';
+  } from '#lib/stores/diary.js';
+  import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { ArrowLeft, Pencil, Trash2 } from '@lucide/svelte';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Badge } from '$lib/components/ui/badge/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Badge } from '#lib/components/ui/badge/index.js';
 
   let dek: CryptoKey | null = $state(null);
   let loading = $state(true);

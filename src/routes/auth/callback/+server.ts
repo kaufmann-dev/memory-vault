@@ -1,5 +1,5 @@
-import { createSession, getAdminUser } from '$lib/server/auth';
-import { completeAuthorization } from '$lib/server/oidc';
+import { createSession, getAdminUser } from '#lib/server/auth.js';
+import { completeAuthorization } from '#lib/server/oidc.js';
 import { redirect } from '@sveltejs/kit';
 
 export async function GET({ url, cookies }) {

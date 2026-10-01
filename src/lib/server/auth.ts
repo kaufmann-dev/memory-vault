@@ -1,6 +1,6 @@
-import { getDb } from '$lib/server/db';
-import { sessions, users } from '$lib/server/db/schema';
-import type { SafeUser } from '$lib/types';
+import { getDb } from '#lib/server/db/index.js';
+import { sessions, users } from '#lib/server/db/schema.js';
+import type { SafeUser } from '#lib/types.js';
 import type { Cookies } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';

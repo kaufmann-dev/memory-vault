@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import * as Dialog from '$lib/components/ui/dialog/index.js';
+  import * as Dialog from '#lib/components/ui/dialog/index.js';
 
   let {
     open,

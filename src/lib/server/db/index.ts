@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/private';
+import { DATABASE_URL } from '$app/env/private';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
@@ -10,7 +10,7 @@ let database: Database | null = null;
 export function getDb() {
   if (database) return database;
 
-  const databaseUrl = env.DATABASE_URL;
+  const databaseUrl = DATABASE_URL;
   if (!databaseUrl) {
     throw new Error('DATABASE_URL is required');
   }
