@@ -68,7 +68,7 @@
         <div class="bg-muted text-foreground mb-2 flex size-11 items-center justify-center rounded-lg">
           <KeyRound class="size-5" />
         </div>
-        <Card.Description>Signed in as {user.email}</Card.Description>
+        <Card.Description class="wrap-anywhere">Signed in as {user.email}</Card.Description>
         <Card.Title class="text-2xl">Unlock vault</Card.Title>
         <Card.Description>
           Your account session is active. Enter the separate vault passphrase to decrypt this browser tab.

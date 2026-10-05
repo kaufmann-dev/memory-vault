@@ -185,7 +185,7 @@
     />
   </aside>
 
-  <section>
+  <section class="min-w-0">
     {#if loading}
       <LoadingState message="Decrypting lists…" />
     {:else if !selected}
@@ -193,9 +193,9 @@
     {:else}
       <Card.Root>
         <Card.Header>
-          <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
+          <Card.Title class="text-lg wrap-anywhere">{selected.payload.title}</Card.Title>
           {#if selected.payload.description}
-            <Card.Description>{selected.payload.description}</Card.Description>
+            <Card.Description class="wrap-anywhere">{selected.payload.description}</Card.Description>
           {/if}
           <Card.Action class="flex gap-1">
             <Button variant="ghost" size="icon" onclick={() => (taskFormOpen = true)} aria-label="Add task">
@@ -223,7 +223,7 @@
                 {#if selected.payload.checklist}
                   <Checkbox checked={task.done} onCheckedChange={() => toggleTask(selected, task.id)} />
                 {/if}
-                <span class="flex-1 text-sm" class:line-through={task.done} class:text-muted-foreground={task.done}>
+                <span class={['min-w-0 flex-1 text-sm wrap-anywhere', task.done && 'text-muted-foreground line-through']}>
                   {task.text}
                 </span>
                 <Button

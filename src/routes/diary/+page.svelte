@@ -185,7 +185,7 @@
               <span class="text-muted-foreground text-xs font-medium">{formatShortDate(item.payload.occurredAt)}</span>
               <span class="grid min-w-0 gap-1">
                 <strong class="truncate text-sm font-semibold">{item.payload.title || 'Untitled'}</strong>
-                <span class="text-muted-foreground line-clamp-2 text-[0.8125rem] leading-snug">
+                <span class="text-muted-foreground line-clamp-2 text-[0.8125rem] leading-snug wrap-anywhere">
                   {excerpt(item.payload.body) || 'No body text'}
                 </span>
               </span>
