@@ -19,7 +19,7 @@
 
 <Dialog.Root {open} onOpenChange={(value) => { if (!value) onClose(); }}>
   <Dialog.Content class="max-h-[min(90vh,760px)] gap-0 overflow-y-auto sm:max-w-2xl">
-    <Dialog.Header class="mb-5">
+    <Dialog.Header class="mb-5 wrap-anywhere">
       <Dialog.Title>{title}</Dialog.Title>
       {#if description}
         <Dialog.Description>{description}</Dialog.Description>
