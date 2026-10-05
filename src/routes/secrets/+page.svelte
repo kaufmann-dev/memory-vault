@@ -4,6 +4,7 @@
   import LoadingState from '#lib/components/LoadingState.svelte';
   import PageHeader from '#lib/components/PageHeader.svelte';
   import CollectionNav from '#lib/components/CollectionNav.svelte';
+  import QrCodeReader from '#lib/components/QrCodeReader.svelte';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -13,6 +14,21 @@
   } from '#lib/client/records.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { EncryptedRecord, SecretCategory, SecretPayload } from '#lib/types.js';
+  import {
+    DEFAULT_TOTP_PERIOD,
+    TOTP_ALGORITHMS,
+    TOTP_DIGITS,
+    generateTotp,
+    isValidTotpSecret,
+    normalizeTotpAlgorithm,
+    normalizeTotpDigits,
+    normalizeTotpPeriod,
+    normalizeTotpSecret,
+    parseOtpQr,
+    totpSecondsLeft,
+    type OtpQrResult,
+    type TotpAccount
+  } from '#lib/totp.js';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import type { Component } from 'svelte';
@@ -27,6 +43,7 @@
     KeyRound,
     Landmark,
     Plus,
+    RectangleEllipsis,
     Search,
     Server,
     ShieldCheck,
@@ -39,6 +56,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Label } from '#lib/components/ui/label/index.js';
+  import { Progress } from '#lib/components/ui/progress/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
 
   type SecretItem = {
@@ -140,6 +158,14 @@
       icon: Server,
       secretLabel: 'Password',
       usernameLabel: 'Username'
+    },
+    {
+      id: 'totp',
+      label: '2FA Codes',
+      singular: '2FA Code',
+      icon: RectangleEllipsis,
+      secretLabel: 'Secret key',
+      usernameLabel: 'Account'
     }
   ];
 
@@ -165,6 +191,9 @@
     remoteProtocol: category === 'remote_connection' ? defaultRemoteProtocol : '',
     remoteServer: '',
     remoteDomain: '',
+    otpAlgorithm: category === 'totp' ? 'SHA1' : '',
+    otpDigits: category === 'totp' ? 6 : 0,
+    otpPeriod: category === 'totp' ? DEFAULT_TOTP_PERIOD : 0,
     notes: '',
     createdAt: nowIso(),
     updatedAt: nowIso()
@@ -183,6 +212,9 @@
   let query = $state('');
   let activeCategory = $state<SecretFilter>('all');
   let sortOrder = $state<SortOrder>('newest');
+  let now = $state(Date.now());
+  let codes = $state.raw<Record<string, string>>({});
+  let formCode = $state('');
 
   let filteredSecrets = $derived.by(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -220,6 +252,8 @@
   let formIsPgpKey = $derived(form.category === 'pgp_key');
   let formIsVpn = $derived(form.category === 'vpn');
   let formIsRemoteConnection = $derived(form.category === 'remote_connection');
+  let formIsTotp = $derived(form.category === 'totp');
+  let totpSecretInvalid = $derived(formIsTotp && Boolean(form.secret.trim()) && !isValidTotpSecret(form.secret));
   let canSaveSecret = $derived(
     formIsBankAccount
       ? Boolean(form.title.trim() && form.iban.trim())
@@ -229,7 +263,9 @@
           ? Boolean(form.title.trim() && form.vpnGateway.trim())
           : formIsRemoteConnection
             ? Boolean(form.title.trim() && form.remoteServer.trim())
-          : Boolean(form.title.trim() && form.secret.trim())
+            : formIsTotp
+              ? Boolean(form.title.trim() && isValidTotpSecret(form.secret))
+              : Boolean(form.title.trim() && form.secret.trim())
   );
 
   function categoryCount(category: SecretCategory) {
@@ -287,6 +323,9 @@
       remoteProtocol: category === 'remote_connection' ? normalizeRemoteProtocol(payload.remoteProtocol) : '',
       remoteServer: category === 'remote_connection' ? (payload.remoteServer ?? '') : '',
       remoteDomain: category === 'remote_connection' ? (payload.remoteDomain ?? '') : '',
+      otpAlgorithm: category === 'totp' ? normalizeTotpAlgorithm(payload.otpAlgorithm) : '',
+      otpDigits: category === 'totp' ? normalizeTotpDigits(payload.otpDigits) : 0,
+      otpPeriod: category === 'totp' ? normalizeTotpPeriod(payload.otpPeriod) : 0,
       notes: payload.notes ?? '',
       createdAt: payload.createdAt ?? nowIso(),
       updatedAt: payload.updatedAt ?? payload.createdAt ?? nowIso()
@@ -307,14 +346,135 @@
     secretVisible = false;
     passphraseVisible = false;
     secretFormOpen = true;
+    void refreshCodes();
   }
 
   function closeSecretForm() {
     secretFormOpen = false;
     editingSecretId = null;
     form = emptySecret();
+    formCode = '';
     secretVisible = false;
     passphraseVisible = false;
+  }
+
+  function formatCode(code: string) {
+    const middle = Math.ceil(code.length / 2);
+    return `${code.slice(0, middle)} ${code.slice(middle)}`;
+  }
+
+  async function safeTotp(payload: SecretPayload, time: number) {
+    if (!isValidTotpSecret(payload.secret)) return '';
+    try {
+      return await generateTotp(
+        {
+          secret: payload.secret,
+          algorithm: normalizeTotpAlgorithm(payload.otpAlgorithm),
+          digits: normalizeTotpDigits(payload.otpDigits),
+          period: normalizeTotpPeriod(payload.otpPeriod)
+        },
+        time
+      );
+    } catch {
+      return '';
+    }
+  }
+
+  async function refreshCodes() {
+    const time = Date.now();
+    now = time;
+    const totpItems = secrets.filter((item) => item.payload.category === 'totp');
+    const [entries, nextFormCode] = await Promise.all([
+      Promise.all(totpItems.map(async (item) => [item.record.id, await safeTotp(item.payload, time)] as const)),
+      secretFormOpen && form.category === 'totp' ? safeTotp(form, time) : ''
+    ]);
+    codes = Object.fromEntries(entries);
+    formCode = secretFormOpen ? nextFormCode : '';
+  }
+
+  function applyOtpQr(text: string) {
+    let result: OtpQrResult;
+    try {
+      result = parseOtpQr(text);
+    } catch {
+      toast.error('This QR code is not a supported 2FA code.');
+      return;
+    }
+
+    const { accounts, skipped } = result;
+    if (accounts.length === 0) {
+      toast.error('No supported 2FA codes found in this QR code.');
+      return;
+    }
+    if (accounts.length > 1) {
+      void importTotpAccounts(accounts, skipped);
+      return;
+    }
+
+    const [account] = accounts;
+    form.category = 'totp';
+    form.title = form.title.trim() || account.issuer || account.account;
+    form.username = account.account;
+    form.secret = account.secret;
+    form.otpAlgorithm = account.algorithm;
+    form.otpDigits = account.digits;
+    form.otpPeriod = account.period;
+    void refreshCodes();
+  }
+
+  async function importTotpAccounts(accounts: TotpAccount[], skipped: number) {
+    if (!dek || saving) return;
+    saving = true;
+
+    const knownSecrets = new Set(
+      secrets.filter((item) => item.payload.category === 'totp').map((item) => normalizeTotpSecret(item.payload.secret))
+    );
+    const freshAccounts = accounts.filter((account) => {
+      if (knownSecrets.has(account.secret)) return false;
+      knownSecrets.add(account.secret);
+      return true;
+    });
+    const imported: SecretItem[] = [];
+    let failed = false;
+
+    try {
+      for (const account of freshAccounts) {
+        const timestamp = nowIso();
+        const payload: SecretPayload = {
+          ...emptySecret('totp'),
+          title: account.issuer || account.account || '2FA Code',
+          username: account.account,
+          secret: account.secret,
+          otpAlgorithm: account.algorithm,
+          otpDigits: account.digits,
+          otpPeriod: account.period,
+          createdAt: timestamp,
+          updatedAt: timestamp
+        };
+        const record = await createEncryptedRecord('secret', payload, dek);
+        imported.push({ record, payload });
+      }
+    } catch {
+      failed = true;
+    } finally {
+      saving = false;
+    }
+
+    secrets = [...secrets, ...imported];
+    closeSecretForm();
+    void refreshCodes();
+
+    const skippedTotal = skipped + accounts.length - freshAccounts.length;
+    const summary = `Imported ${imported.length} 2FA ${imported.length === 1 ? 'code' : 'codes'}.${skippedTotal ? ` Skipped ${skippedTotal}.` : ''}`;
+    if (failed) toast.error(`Import stopped early. ${summary}`);
+    else toast.success(summary);
+  }
+
+  function handleSecretPaste(event: ClipboardEvent) {
+    const text = event.clipboardData?.getData('text').trim() ?? '';
+    if (!text.toLowerCase().startsWith('otpauth')) return;
+    event.preventDefault();
+    applyOtpQr(text);
   }
 
   function maskSecret(value: string) {
@@ -332,6 +492,7 @@
         record: item.record,
         payload: normalizeSecretPayload(item.payload)
       }));
+      void refreshCodes();
     } catch {
       loadError = 'Could not decrypt secrets.';
       toast.error('Could not decrypt secrets.');
@@ -349,11 +510,12 @@
       const isPgpKey = form.category === 'pgp_key';
       const isVpn = form.category === 'vpn';
       const isRemoteConnection = form.category === 'remote_connection';
+      const isTotp = form.category === 'totp';
       const payload: SecretPayload = {
         title: form.title.trim(),
         category: form.category,
         username: isBankAccount ? '' : form.username.trim(),
-        secret: isBankAccount ? '' : form.secret,
+        secret: isBankAccount ? '' : isTotp ? normalizeTotpSecret(form.secret) : form.secret,
         publicKey: isPgpKey ? form.publicKey : '',
         fingerprint: isPgpKey ? form.fingerprint.trim() : '',
         passphrase: isPgpKey ? form.passphrase : '',
@@ -367,6 +529,9 @@
         remoteProtocol: isRemoteConnection ? normalizeRemoteProtocol(form.remoteProtocol) : '',
         remoteServer: isRemoteConnection ? form.remoteServer.trim() : '',
         remoteDomain: isRemoteConnection ? form.remoteDomain.trim() : '',
+        otpAlgorithm: isTotp ? normalizeTotpAlgorithm(form.otpAlgorithm) : '',
+        otpDigits: isTotp ? normalizeTotpDigits(form.otpDigits) : 0,
+        otpPeriod: isTotp ? normalizeTotpPeriod(form.otpPeriod) : 0,
         notes: form.notes.trim(),
         createdAt: editingSecretId ? form.createdAt : timestamp,
         updatedAt: timestamp
@@ -382,6 +547,7 @@
       }
 
       closeSecretForm();
+      void refreshCodes();
     } catch {
       toast.error('Could not save this secret.');
     } finally {
@@ -414,13 +580,19 @@
     }
   }
 
-  onMount(async () => {
+  async function init() {
     dek = get(sessionDEK);
     if (!dek) {
       loading = false;
       return;
     }
     await loadSecrets();
+  }
+
+  onMount(() => {
+    const timer = setInterval(() => void refreshCodes(), 1000);
+    void init();
+    return () => clearInterval(timer);
   });
 </script>
 
@@ -433,7 +605,36 @@
   </div>
 {/snippet}
 
-<PageHeader title="Secrets" description="Encrypted passwords, keys, accounts, connections, and more.">
+{#snippet totpCode(code: string | undefined, period: number)}
+  {@const secondsLeft = totpSecondsLeft(normalizeTotpPeriod(period), now)}
+  {@const expiring = secondsLeft <= 5}
+  <div class="flex items-center gap-3">
+    <div class="grid min-w-0 flex-1 gap-1.5">
+      {#if code}
+        <span class={['font-mono text-2xl font-semibold tracking-wider tabular-nums', expiring && 'text-destructive']}>
+          {formatCode(code)}
+        </span>
+      {:else if code === ''}
+        <span class="text-destructive text-sm">Invalid secret key</span>
+      {:else}
+        <span class="text-muted-foreground font-mono text-2xl font-semibold tracking-wider">··· ···</span>
+      {/if}
+      <div class="flex items-center gap-2">
+        <Progress
+          value={(secondsLeft / normalizeTotpPeriod(period)) * 100}
+          class={['h-1 max-w-40', expiring && '[&_[data-slot=progress-indicator]]:bg-destructive']}
+          aria-label="Time until the next code"
+        />
+        <span class={['text-muted-foreground text-xs tabular-nums', expiring && 'text-destructive']}>{secondsLeft}s</span>
+      </div>
+    </div>
+    <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(code ?? '', 'Code')} disabled={!code}>
+      <Copy class="size-4" /> Copy
+    </Button>
+  </div>
+{/snippet}
+
+<PageHeader title="Secrets" description="Encrypted passwords, 2FA codes, keys, accounts, connections, and more.">
   <Button onclick={openCreateSecret}>
     <Plus class="size-4" />
     New
@@ -535,6 +736,11 @@
                   <time datetime={item.payload.updatedAt}>{formatDate(item.payload.updatedAt)}</time>
                 </span>
               </button>
+              {#if item.payload.category === 'totp'}
+                <div class="border-t px-4 py-3">
+                  {@render totpCode(codes[item.record.id], item.payload.otpPeriod)}
+                </div>
+              {/if}
             </Card.Root>
           {/each}
         </div>
@@ -566,6 +772,12 @@
           form.category = value as SecretCategory;
           if (form.category === 'vpn' && !form.vpnProtocol) form.vpnProtocol = defaultVpnProtocol;
           if (form.category === 'remote_connection' && !form.remoteProtocol) form.remoteProtocol = defaultRemoteProtocol;
+          if (form.category === 'totp' && !form.otpAlgorithm) {
+            form.otpAlgorithm = 'SHA1';
+            form.otpDigits = 6;
+            form.otpPeriod = DEFAULT_TOTP_PERIOD;
+          }
+          void refreshCodes();
         }}
       >
         <Select.Trigger id="secret-category" class="w-full">{formCategory.label}</Select.Trigger>
@@ -577,12 +789,111 @@
       </Select.Root>
     </div>
 
+    {#if formIsTotp && !editingSecretId}
+      <QrCodeReader onDecode={applyOtpQr} />
+    {/if}
+
     <div class="grid gap-2">
       <Label for="secret-title">Title</Label>
       <Input id="secret-title" bind:value={form.title} maxlength={160} required />
     </div>
 
-    {#if formIsBankAccount}
+    {#if formIsTotp}
+      {#if formCode}
+        <div class="bg-muted/40 rounded-lg border p-4">
+          {@render totpCode(formCode, form.otpPeriod)}
+        </div>
+      {/if}
+
+      <div class="grid gap-2">
+        {@render copyableFieldLabel('secret-username', 'Account', form.username)}
+        <Input id="secret-username" bind:value={form.username} maxlength={240} autocomplete="off" spellcheck="false" />
+      </div>
+
+      <div class="grid gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Label for="secret-value">Secret key</Label>
+          <div class="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onclick={() => (secretVisible = !secretVisible)}
+              aria-pressed={secretVisible}
+            >
+              {#if secretVisible}
+                <EyeOff class="size-4" /> Hide
+              {:else}
+                <Eye class="size-4" /> Reveal
+              {/if}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(form.secret, 'Secret key')} disabled={!form.secret}>
+              <Copy class="size-4" /> Copy
+            </Button>
+          </div>
+        </div>
+        <Input
+          id="secret-value"
+          bind:value={form.secret}
+          type="text"
+          class={['font-mono', !secretVisible && 'masked-text-input']}
+          required
+          autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
+          aria-invalid={totpSecretInvalid}
+          onpaste={handleSecretPaste}
+        />
+        {#if totpSecretInvalid}
+          <p class="text-destructive text-sm">Secret key must be Base32 (A–Z, 2–7).</p>
+        {/if}
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-2">
+          <Label for="secret-otp-algorithm">Algorithm</Label>
+          <Select.Root
+            type="single"
+            value={normalizeTotpAlgorithm(form.otpAlgorithm)}
+            onValueChange={(value) => {
+              form.otpAlgorithm = normalizeTotpAlgorithm(value);
+              void refreshCodes();
+            }}
+          >
+            <Select.Trigger id="secret-otp-algorithm" class="w-full">{normalizeTotpAlgorithm(form.otpAlgorithm)}</Select.Trigger>
+            <Select.Content>
+              {#each TOTP_ALGORITHMS as algorithm (algorithm)}
+                <Select.Item value={algorithm} label={algorithm}>{algorithm}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
+
+        <div class="grid gap-2">
+          <Label for="secret-otp-digits">Digits</Label>
+          <Select.Root
+            type="single"
+            value={String(normalizeTotpDigits(form.otpDigits))}
+            onValueChange={(value) => {
+              form.otpDigits = normalizeTotpDigits(value);
+              void refreshCodes();
+            }}
+          >
+            <Select.Trigger id="secret-otp-digits" class="w-full">{normalizeTotpDigits(form.otpDigits)}</Select.Trigger>
+            <Select.Content>
+              {#each TOTP_DIGITS as digits (digits)}
+                <Select.Item value={String(digits)} label={String(digits)}>{digits}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
+
+        <div class="grid gap-2">
+          <Label for="secret-otp-period">Period (seconds)</Label>
+          <Input id="secret-otp-period" type="number" min={1} max={300} step={1} bind:value={form.otpPeriod} />
+        </div>
+      </div>
+    {:else if formIsBankAccount}
       <div class="grid gap-2">
         {@render copyableFieldLabel('secret-iban', 'IBAN', form.iban)}
         <Input id="secret-iban" bind:value={form.iban} maxlength={80} required autocomplete="off" spellcheck="false" />
