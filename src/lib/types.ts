@@ -37,7 +37,8 @@ export type SecretCategory =
   | 'pgp_key'
   | 'bank_account'
   | 'vpn'
-  | 'remote_connection';
+  | 'remote_connection'
+  | 'totp';
 
 export type DiaryPayload = {
   title: string;
@@ -92,6 +93,9 @@ export type SecretPayload = {
   remoteProtocol: string;
   remoteServer: string;
   remoteDomain: string;
+  otpAlgorithm: string;
+  otpDigits: number;
+  otpPeriod: number;
   notes: string;
   createdAt: string;
   updatedAt: string;

@@ -20,6 +20,7 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 - Separate provider authentication and client-only vault passphrase
 - Client-side encryption using the browser Web Crypto API
 - Encrypted diary entries, notes, lists, diagrams, milestones, and secrets
+- 2FA (TOTP) codes added by camera, image, or pasted QR scan, including Google Authenticator transfer QR codes
 - Vault passphrase rotation by re-encrypting only the data encryption key
 - Encrypted `.mvault` exports and destructive restores from Settings
 - PostgreSQL persistence through Drizzle ORM
@@ -129,7 +130,7 @@ npm run dev          # Start Vite on 0.0.0.0
 npm run build        # Build the SvelteKit app
 npm run preview      # Preview the production build
 npm run check        # Run svelte-kit sync and svelte-check
-npm test             # Run focused authentication policy tests
+npm test             # Run focused unit tests (auth policy, TOTP)
 npm run db:generate  # Generate Drizzle migrations
 npm run db:migrate   # Run migrations with scripts/migrate.mjs
 ```
@@ -153,6 +154,7 @@ npm run db:migrate   # Run migrations with scripts/migrate.mjs
     |   |-- server/          # OIDC, local session, and database modules
     |   |-- stores/          # In-memory client stores (crypto key, decrypted caches)
     |   |-- crypto.ts        # Web Crypto helpers
+    |   |-- totp.ts          # TOTP codes and 2FA QR parsing
     |   `-- types.ts         # Shared application types
     `-- routes/
         |-- api/             # Auth and encrypted record endpoints
@@ -163,7 +165,7 @@ npm run db:migrate   # Run migrations with scripts/migrate.mjs
         |-- lists/           # Lists UI
         |-- login/           # OIDC entry and first vault setup UI
         |-- notes/           # Quick notes and encrypted note groups
-        |-- secrets/         # Passwords, keys, accounts, connections, and more
+        |-- secrets/         # Passwords, 2FA codes, keys, accounts, connections, and more
         `-- settings/        # Account and vault settings
 ```
 
