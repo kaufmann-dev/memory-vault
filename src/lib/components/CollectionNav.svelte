@@ -62,7 +62,7 @@
 
 {#if items.length}
   <!-- Below md: inline selector that opens a searchable popover -->
-  <div class="grid gap-2 md:hidden">
+  <div class="grid grid-cols-1 gap-2 md:hidden">
     <Popover.Root bind:open>
       <Popover.Trigger>
         {#snippet child({ props })}
@@ -96,7 +96,7 @@
   </div>
 
   <!-- md and up: searchable left rail -->
-  <div class="hidden md:grid md:content-start md:gap-2">
+  <div class="hidden md:grid md:grid-cols-1 md:content-start md:gap-2">
     {#if title || action}
       <div class="flex items-center justify-between gap-2">
         {#if title}<h2 class="text-sm font-semibold">{title}</h2>{/if}

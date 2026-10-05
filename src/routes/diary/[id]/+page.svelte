@@ -71,7 +71,7 @@
       </div>
 
       <div class="mt-2 flex items-start justify-between gap-4">
-        <h1 class="text-3xl font-bold break-words">{entry.payload.title || 'Untitled'}</h1>
+        <h1 class="min-w-0 text-3xl font-bold wrap-anywhere">{entry.payload.title || 'Untitled'}</h1>
         <div class="flex shrink-0 items-center gap-1">
           <Button variant="ghost" size="icon" onclick={() => (editOpen = true)} aria-label="Edit entry">
             <Pencil class="size-4" />
@@ -91,12 +91,12 @@
       {#if entry.payload.tags.length}
         <div class="mt-4 flex flex-wrap gap-2">
           {#each entry.payload.tags as tag (tag)}
-            <Badge variant="secondary">{tag}</Badge>
+            <Badge variant="secondary" class="max-w-full"><span class="truncate">{tag}</span></Badge>
           {/each}
         </div>
       {/if}
 
-      <div class="mt-6 text-[1.0625rem] leading-8 break-words whitespace-pre-wrap">
+      <div class="mt-6 text-[1.0625rem] leading-8 wrap-anywhere whitespace-pre-wrap">
         {entry.payload.body}
       </div>
     </article>

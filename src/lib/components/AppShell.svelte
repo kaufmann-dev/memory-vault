@@ -119,7 +119,7 @@
 
   <form bind:this={logoutForm} method="POST" action="/auth/logout" target="_top" hidden></form>
 
-  <Sidebar.Inset>
+  <Sidebar.Inset class="min-w-0">
     <header class="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-4">
       <Sidebar.Trigger class="-ml-1" />
       <Separator orientation="vertical" class="mr-1 data-[orientation=vertical]:h-4" />

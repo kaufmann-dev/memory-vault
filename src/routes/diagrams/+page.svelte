@@ -515,9 +515,9 @@
       <div class="grid gap-6">
         <Card.Root class="min-w-0">
           <Card.Header>
-            <Card.Title class="text-lg break-words">{selected.payload.title}</Card.Title>
+            <Card.Title class="text-lg wrap-anywhere">{selected.payload.title}</Card.Title>
             {#if selected.payload.description}
-              <Card.Description class="break-words">{selected.payload.description}</Card.Description>
+              <Card.Description class="wrap-anywhere">{selected.payload.description}</Card.Description>
             {/if}
             <Card.Action class="flex gap-1">
               <Button variant="ghost" size="icon" onclick={() => openCreateMeasurement(selected)} aria-label="Add measurement">
@@ -563,7 +563,7 @@
                       <p class="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
                         {measurementHeading(selected.payload)}
                       </p>
-                      <p class="mt-1 break-words text-sm font-medium sm:text-base">{xLabel(selected.payload, measurement)}</p>
+                      <p class="mt-1 text-sm font-medium wrap-anywhere sm:text-base">{xLabel(selected.payload, measurement)}</p>
                     </div>
                     <div class="flex items-center gap-1 self-start">
                       <Button
@@ -593,8 +593,8 @@
                         <div class="flex items-start gap-2">
                           <span class="mt-1 size-2.5 shrink-0 rounded-full" style="background: {entry.color}"></span>
                           <div class="min-w-0">
-                            <p class="text-muted-foreground text-xs font-semibold">{entry.label}</p>
-                            <p class="mt-1 break-words text-sm font-medium">{entry.value}</p>
+                            <p class="text-muted-foreground text-xs font-semibold wrap-anywhere">{entry.label}</p>
+                            <p class="mt-1 text-sm font-medium wrap-anywhere">{entry.value}</p>
                           </div>
                         </div>
                       </div>
@@ -771,7 +771,7 @@
       {:else}
         {#if isNumberAxis(selected.payload)}
           <div class="grid gap-2">
-            <Label for="measurement-x">
+            <Label for="measurement-x" class="wrap-anywhere">
               {xAxis(selected.payload).unit
                 ? `${xAxis(selected.payload).label} (${xAxis(selected.payload).unit})`
                 : xAxis(selected.payload).label}
@@ -787,7 +787,7 @@
         <div class="grid gap-3 sm:grid-cols-2">
           {#each selected.payload.fields as field (field.id)}
             <div class="grid gap-2">
-              <Label for={`measurement-${field.id}`}>{field.unit ? `${field.label} (${field.unit})` : field.label}</Label>
+              <Label for={`measurement-${field.id}`} class="wrap-anywhere">{field.unit ? `${field.label} (${field.unit})` : field.label}</Label>
               <Input
                 id={`measurement-${field.id}`}
                 type="number"

@@ -128,7 +128,7 @@
       {#each counters as item (item.record.id)}
         <Card.Root>
           <Card.Header>
-            <Card.Title>{item.payload.name}</Card.Title>
+            <Card.Title class="wrap-anywhere">{item.payload.name}</Card.Title>
             <Card.Description>Since {item.payload.initiated}</Card.Description>
             <Card.Action class="flex gap-1">
               <Button variant="ghost" size="icon" onclick={() => openEditCounter(item)} aria-label="Edit milestone">

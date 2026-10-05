@@ -728,7 +728,7 @@
                   </span>
                 </span>
                 {#if item.payload.notes}
-                  <span class="text-muted-foreground line-clamp-2 text-sm leading-relaxed break-words">
+                  <span class="text-muted-foreground line-clamp-2 text-sm leading-relaxed wrap-anywhere">
                     {item.payload.notes}
                   </span>
                 {/if}

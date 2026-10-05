@@ -407,15 +407,15 @@
                   {#if item.payload.title}
                     <span class="truncate pr-8 font-semibold">{item.payload.title}</span>
                   {/if}
-                  <span class="line-clamp-5 text-sm leading-relaxed break-words whitespace-pre-wrap">{item.payload.text}</span>
+                  <span class="line-clamp-5 text-sm leading-relaxed wrap-anywhere whitespace-pre-wrap">{item.payload.text}</span>
                 </span>
-                <span class="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-muted-foreground flex min-w-0 flex-wrap items-center gap-2 text-xs">
                   <time datetime={item.payload.updatedAt}>{formatDate(item.payload.updatedAt)}</time>
                   {#each item.payload.groupIds as groupId (groupId)}
                     {@const group = groupById.get(groupId)}
                     {#if group}
                       <span
-                        class="rounded-full border px-2 py-0.5 text-[0.6875rem] font-semibold"
+                        class="max-w-full truncate rounded-full border px-2 py-0.5 text-[0.6875rem] font-semibold"
                         style="border-color: color-mix(in srgb, {group.payload.color} 45%, transparent); background: color-mix(in srgb, {group.payload.color} 12%, transparent); color: var(--foreground)"
                       >
                         {group.payload.name}
@@ -467,13 +467,13 @@
       {:else}
         <div class="flex flex-wrap gap-3">
           {#each groups as group (group.record.id)}
-            <Label class="flex items-center gap-2 font-normal">
+            <Label class="flex max-w-full items-center gap-2 font-normal">
               <Checkbox
                 checked={noteForm.groupIds.includes(group.record.id)}
                 onCheckedChange={() => toggleGroup(group.record.id)}
               />
               <span
-                class="rounded-full border px-2 py-0.5 text-xs font-semibold"
+                class="min-w-0 truncate rounded-full border px-2 py-0.5 text-xs font-semibold"
                 style="border-color: color-mix(in srgb, {group.payload.color} 45%, transparent); background: color-mix(in srgb, {group.payload.color} 12%, transparent)"
               >
                 {group.payload.name}

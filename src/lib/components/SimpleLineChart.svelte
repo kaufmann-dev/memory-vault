@@ -110,7 +110,7 @@
         {#each series as item, index (`${item.label}-${index}`)}
           <li class="bg-muted/35 border-border/70 flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs sm:text-sm">
             <span class="size-2.5 shrink-0 rounded-full" style="background-color: {item.color};"></span>
-            <span class="min-w-0 break-words">{item.label}</span>
+            <span class="min-w-0 wrap-anywhere">{item.label}</span>
           </li>
         {/each}
       </ul>
