@@ -19,7 +19,7 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 - Admin-only access through an OpenID Connect provider access policy
 - Separate provider authentication and client-only vault passphrase
 - Client-side encryption using the browser Web Crypto API
-- Encrypted diary entries with Markdown formatting (toolbar and preview) tag filtering, and tag renaming and deletion, plus notes, lists, diagrams, milestones, and secrets
+- Encrypted diary entries with Markdown formatting (toolbar and preview), tag filtering, and tag renaming and deletion, plus notes, lists, diagrams, milestones, and secrets
 - Batch import of diagram measurements (tab-separated) and diary entries (JSON), pasted or uploaded from a file
 - 2FA (TOTP) codes added by camera, image, or pasted QR scan, including Google Authenticator transfer QR codes
 - Vault passphrase rotation by re-encrypting only the data encryption key
