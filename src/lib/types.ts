@@ -46,7 +46,6 @@ export type DiaryPayload = {
   occurredAt: string;
   language: 'English' | 'German' | 'Other';
   tags: string[];
-  wordCount: number;
 };
 
 export type ListPayload = {

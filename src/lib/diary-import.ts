@@ -2,8 +2,6 @@ import type { DiaryPayload } from '#lib/types.js';
 
 export const DIARY_LANGUAGES = ['English', 'German', 'Other'] as const;
 
-export type DiaryImportEntry = Omit<DiaryPayload, 'wordCount'>;
-
 const allowedKeys = new Set(['date', 'title', 'body', 'language', 'tags']);
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -13,7 +11,7 @@ function isValidDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function parseEntry(value: unknown, entryNumber: number): DiaryImportEntry {
+function parseEntry(value: unknown, entryNumber: number): DiaryPayload {
   const fail = (message: string): never => {
     throw new Error(`Entry ${entryNumber}: ${message}`);
   };
@@ -39,11 +37,11 @@ function parseEntry(value: unknown, entryNumber: number): DiaryImportEntry {
     title: ((item.title as string | undefined) ?? '').trim(),
     body: (item.body as string).trim(),
     language: (item.language as DiaryPayload['language'] | undefined) ?? 'English',
-    tags: ((item.tags as string[] | undefined) ?? []).map((tag) => tag.trim()).filter(Boolean)
+    tags: [...new Set(((item.tags as string[] | undefined) ?? []).map((tag) => tag.trim()).filter(Boolean))]
   };
 }
 
-export function parseDiaryImport(text: string): DiaryImportEntry[] {
+export function parseDiaryImport(text: string): DiaryPayload[] {
   let data: unknown;
   try {
     data = JSON.parse(text);

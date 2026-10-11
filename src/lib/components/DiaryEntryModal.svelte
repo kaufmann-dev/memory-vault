@@ -2,13 +2,10 @@
   import EntryModal from '#lib/components/EntryModal.svelte';
   import BatchImportHelp from '#lib/components/BatchImportHelp.svelte';
   import TextFileButton from '#lib/components/TextFileButton.svelte';
-  import {
-    createEncryptedRecord,
-    createEncryptedRecords,
-    updateEncryptedRecord,
-    wordCount
-  } from '#lib/client/records.js';
-  import { DIARY_LANGUAGES, parseDiaryImport, type DiaryImportEntry } from '#lib/diary-import.js';
+  import MarkdownEditor from '#lib/components/MarkdownEditor.svelte';
+  import { createEncryptedRecord, createEncryptedRecords, updateEncryptedRecord } from '#lib/client/records.js';
+  import { wordCount } from '#lib/markdown.js';
+  import { DIARY_LANGUAGES, parseDiaryImport } from '#lib/diary-import.js';
   import { addDiaryEntries, upsertDiaryEntry, type DiaryItem } from '#lib/stores/diary.js';
   import type { DiaryPayload } from '#lib/types.js';
   import { Save } from '@lucide/svelte';
@@ -41,14 +38,14 @@
     body: '',
     occurredAt: new Date().toISOString().slice(0, 10),
     language: 'English',
-    tags: [],
-    wordCount: 0
+    tags: []
   });
 
   const batchInstructions = [
     'Paste exactly one JSON array; every element is one diary entry object.',
     '"date" is required and must be YYYY-MM-DD text such as 2024-05-01.',
     '"body" is required and must be a non-empty string; write line breaks as \\n inside the JSON string.',
+    '"body" supports Markdown: "## " headings, "- " or "1. " lists, **bold**, _italic_, and "> " quotes. A single line break stays a line break.',
     '"title" is optional and must be a string.',
     `"language" is optional and must be one of ${DIARY_LANGUAGES.join(', ')}; it defaults to English.`,
     '"tags" is optional and must be an array of strings.',
@@ -67,7 +64,7 @@
       },
       {
         date: '2024-05-03',
-        body: 'First paragraph.\n\nSecond paragraph.'
+        body: '## Morning\nFirst paragraph with **bold** text.\n\n- one point\n- another point'
       }
     ],
     null,
@@ -88,7 +85,8 @@
   $effect(() => {
     if (!open) return;
     if (entry) {
-      form = { ...entry.payload, tags: [...entry.payload.tags] };
+      const { title, body, occurredAt, language, tags } = entry.payload;
+      form = { title, body, occurredAt, language, tags: [...tags] };
       tagInput = entry.payload.tags.join(', ');
     } else {
       form = emptyForm();
@@ -112,11 +110,14 @@
         ...form,
         title: form.title.trim(),
         body: form.body.trim(),
-        wordCount: wordCount(form.body),
-        tags: tagInput
-          .split(',')
-          .map((tag) => tag.trim())
-          .filter(Boolean)
+        tags: [
+          ...new Set(
+            tagInput
+              .split(',')
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        ]
       };
 
       if (entry) {
@@ -139,7 +140,7 @@
   async function saveBatch() {
     if (saving) return;
     batchError = '';
-    let imported: DiaryImportEntry[];
+    let imported: DiaryPayload[];
     try {
       imported = parseDiaryImport(batchText);
     } catch (error) {
@@ -149,9 +150,8 @@
 
     saving = true;
     try {
-      const payloads: DiaryPayload[] = imported.map((item) => ({ ...item, wordCount: wordCount(item.body) }));
-      const records = await createEncryptedRecords('diary', payloads, dek);
-      const items: DiaryItem[] = records.map((record, index) => ({ record, payload: payloads[index] }));
+      const records = await createEncryptedRecords('diary', imported, dek);
+      const items: DiaryItem[] = records.map((record, index) => ({ record, payload: imported[index] }));
       addDiaryEntries(items);
       onBatchSaved?.(items.length);
     } catch (error) {
@@ -239,12 +239,12 @@
 
       <div class="grid gap-2">
         <Label for="entry-body">Body</Label>
-        <Textarea id="entry-body" bind:value={form.body} required class="min-h-64 leading-relaxed" />
+        <MarkdownEditor id="entry-body" bind:value={form.body} required />
       </div>
 
       <div class="flex items-center justify-between">
         <span class="text-muted-foreground text-sm">{wordCount(form.body)} words</span>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving || !form.body.trim()}>
           <Save class="size-4" />
           {saving ? 'Saving…' : 'Save'}
         </Button>
