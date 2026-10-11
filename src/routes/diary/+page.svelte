@@ -55,6 +55,7 @@
 
   let wordCounts = $derived(new Map($diaryEntries.map((item) => [item.record.id, wordCount(item.payload.body)])));
   let maxWords = $derived(Math.max(1, ...wordCounts.values()));
+  const compactNumberFormat = new Intl.NumberFormat(undefined, { notation: 'compact' });
 
   let activeFilterCount = $derived(
     [fromDate || toDate, language !== 'all', selectedTags.length > 0, wordRange !== null].filter(Boolean).length
@@ -111,6 +112,8 @@
         return a.record.createdAt.localeCompare(b.record.createdAt) * direction;
       });
   });
+
+  let filteredWords = $derived(filteredEntries.reduce((sum, item) => sum + (wordCounts.get(item.record.id) ?? 0), 0));
 
   let groupedEntries: DiaryGroup[] = $derived.by(() => {
     const groups: DiaryGroup[] = [];
@@ -202,7 +205,9 @@
         </Select.Root>
 
         <div class="text-muted-foreground ml-auto flex items-center gap-2 text-sm">
-          <span class="tabular-nums">{filteredEntries.length} of {$diaryEntries.length}</span>
+          <span class="whitespace-nowrap tabular-nums" title="{filteredWords.toLocaleString()} words">
+            {filteredEntries.length} of {$diaryEntries.length} · {compactNumberFormat.format(filteredWords)} words
+          </span>
           {#if hasFilters}
             <Button variant="ghost" size="sm" onclick={clearFilters}>
               <X class="size-4" /> Clear
