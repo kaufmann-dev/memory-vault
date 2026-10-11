@@ -153,6 +153,8 @@ The palette is strictly monochromatic. Black, white, and grays only.
 - **Success ({colors.success}):** Emerald green for functional positive states only.
 - **Danger ({colors.danger}):** Red for destructive actions and errors only.
 
+Dark mode inverts the same monochrome palette through the `.dark` tokens in `src/app.css`: near-black background, near-white foreground and primary, dark-gray surfaces and muted fills, and translucent white borders. It follows the system preference by default; the user menu offers System, Light, and Dark. Black-on-transparent artwork such as the logo is inverted with `dark:invert`.
+
 ## Typography
 
 All text is set in **Inter** with system fallbacks. Headlines are bold and tightly tracked. Body text is neutral and readable. Labels are crisp and medium-weight.

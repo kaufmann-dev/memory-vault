@@ -16,9 +16,13 @@
     KeyRound,
     ListChecks,
     LogOut,
+    Monitor,
+    Moon,
     Settings,
-    StickyNote
+    StickyNote,
+    Sun
   } from '@lucide/svelte';
+  import { setMode, userPrefersMode } from 'mode-watcher';
 
   let { user, children }: { user: SafeUser; children: Snippet } = $props();
   let logoutForm: HTMLFormElement;
@@ -50,7 +54,7 @@
             {#snippet child({ props })}
               <a href="/" {...props}>
                 <div class="flex aspect-square size-8 items-center justify-center">
-                  <img src="/memory-vault.svg" alt="" class="size-8" />
+                  <img src="/memory-vault.svg" alt="" class="size-8 dark:invert" />
                 </div>
                 <div class="grid flex-1 text-left text-sm leading-tight">
                   <span class="truncate font-semibold">Memory Vault</span>
@@ -105,6 +109,25 @@
                 {/snippet}
               </DropdownMenu.Item>
               <DropdownMenu.Separator />
+              <DropdownMenu.Label class="text-muted-foreground text-xs font-normal">Theme</DropdownMenu.Label>
+              <DropdownMenu.RadioGroup
+                value={userPrefersMode.current}
+                onValueChange={(value) => setMode(value as 'light' | 'dark' | 'system')}
+              >
+                <DropdownMenu.RadioItem value="system" closeOnSelect={false}>
+                  <Monitor />
+                  System
+                </DropdownMenu.RadioItem>
+                <DropdownMenu.RadioItem value="light" closeOnSelect={false}>
+                  <Sun />
+                  Light
+                </DropdownMenu.RadioItem>
+                <DropdownMenu.RadioItem value="dark" closeOnSelect={false}>
+                  <Moon />
+                  Dark
+                </DropdownMenu.RadioItem>
+              </DropdownMenu.RadioGroup>
+              <DropdownMenu.Separator />
               <DropdownMenu.Item onSelect={logout}>
                 <LogOut />
                 Log out
@@ -124,7 +147,7 @@
       <Sidebar.Trigger class="-ml-1" />
       <Separator orientation="vertical" class="mr-1 data-[orientation=vertical]:h-4" />
       <a href="/" class="flex items-center gap-2 font-semibold lg:hidden">
-        <img src="/memory-vault.svg" alt="" class="size-6" />
+        <img src="/memory-vault.svg" alt="" class="size-6 dark:invert" />
         Memory Vault
       </a>
     </header>
