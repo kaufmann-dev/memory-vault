@@ -86,7 +86,7 @@
 <main class="bg-background grid min-h-screen place-items-center px-4 py-10">
   <Card.Root class="w-full max-w-md">
     <Card.Header class="text-center">
-      <img src="/memory-vault.svg" alt="" class="mx-auto mb-2 size-12" />
+      <img src="/memory-vault.svg" alt="" class="mx-auto mb-2 size-12 dark:invert" />
       <p class="text-xs font-semibold tracking-widest uppercase">
         {data.needsVaultSetup ? 'First vault setup' : 'Private vault'}
       </p>
