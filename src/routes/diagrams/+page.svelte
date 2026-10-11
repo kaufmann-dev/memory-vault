@@ -5,6 +5,8 @@
   import PageHeader from '#lib/components/PageHeader.svelte';
   import SimpleLineChart from '#lib/components/SimpleLineChart.svelte';
   import CollectionNav from '#lib/components/CollectionNav.svelte';
+  import BatchImportHelp from '#lib/components/BatchImportHelp.svelte';
+  import TextFileButton from '#lib/components/TextFileButton.svelte';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -456,6 +458,26 @@
     });
   }
 
+  function batchInstructions(payload: DiagramPayload) {
+    const firstHeader = isNumberAxis(payload) ? 'x' : 'date';
+    const seriesNames = payload.fields
+      .map((field) => (field.unit.trim() ? `${field.label} or ${field.label} (${field.unit})` : field.label))
+      .join(', ');
+    return [
+      'Paste exactly one tab-separated table. Row 1 is the header; every later non-empty row is one measurement.',
+      'Separate columns with real tab characters, not commas or spaces.',
+      'Every row must have the same number of columns as the header.',
+      `The first header must be "${firstHeader}".`,
+      isNumberAxis(payload)
+        ? 'The x column must contain a plain finite number such as 0, 30, or 120.'
+        : 'The date column must contain YYYY-MM-DD HH:mm text such as 2022-09-24 16:22, not Unix timestamps.',
+      `Every other header must exactly match one series name of this diagram: ${seriesNames}.`,
+      'Units are read from the diagram setup and must not be written in value cells.',
+      'Value cells must be plain finite numbers using dot decimals.',
+      'An empty value cell skips only that series for that row; every row needs at least one value.'
+    ];
+  }
+
   function batchExample(payload: DiagramPayload) {
     const firstHeader = isNumberAxis(payload) ? 'x' : 'date';
     const header = [firstHeader, ...payload.fields.map((field) => field.label)].join('\t');
@@ -744,26 +766,13 @@
       {/if}
 
       {#if measurementMode === 'batch' && !editingMeasurementId}
-        <div class="text-muted-foreground rounded-lg border p-3 text-sm">
-          <p>
-            Paste exactly one tab-separated table: row 1 is the header, every later non-empty row is one measurement, columns are
-            separated by real tab characters and not commas, every row must have the same number of columns as the header, the
-            first header must be <code>{isNumberAxis(selected.payload) ? 'x' : 'date'}</code>, {isNumberAxis(selected.payload)
-              ? 'the x column must contain a plain finite number such as 0, 30, or 120'
-              : 'the date column must contain YYYY-MM-DD HH:mm text such as 2022-09-24 16:22 and must not contain Unix timestamps'},
-            every other header must exactly match one existing series name in this diagram such as sys, dia, or pul, or
-            <code>Name (unit)</code> when that series has a unit, units are read from the diagram setup and must not be written in
-            value cells, value cells must be plain finite numbers using dot decimals, and an empty value cell skips only that series
-            for that row.
-          </p>
-        </div>
+        <BatchImportHelp instructions={batchInstructions(selected.payload)} example={batchExample(selected.payload)} />
         <div class="grid gap-2">
-          <Label for="batch-text">Batch measurements</Label>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <Label for="batch-text">Batch measurements</Label>
+            <TextFileButton accept=".tsv,.txt,text/tab-separated-values,text/plain" onLoad={(text) => (batchText = text)} />
+          </div>
           <Textarea id="batch-text" bind:value={batchText} spellcheck="false" class="min-h-60 font-mono text-xs" />
-        </div>
-        <div class="rounded-lg border p-3">
-          <p class="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">Example</p>
-          <pre class="overflow-auto text-xs whitespace-pre-wrap">{batchExample(selected.payload)}</pre>
         </div>
         {#if batchError}
           <p class="text-destructive text-sm font-medium">{batchError}</p>

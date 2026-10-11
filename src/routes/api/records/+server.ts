@@ -47,21 +47,21 @@ export async function POST({ request, locals }) {
   const db = getDb();
   const body = await request.json();
   const type = assertRecordType(body.type);
-  const ciphertext = String(body.ciphertext ?? '');
-  const iv = String(body.iv ?? '');
-  if (!ciphertext || !iv) error(400, 'Missing encrypted payload');
+  const records: unknown[] = Array.isArray(body.records) ? body.records : [];
+  if (records.length === 0) error(400, 'Missing encrypted payload');
 
-  const [record] = await db
-    .insert(encryptedRecords)
-    .values({
-      userId: locals.user.id,
-      type,
-      encryptedPayload: ciphertext,
-      payloadIv: iv
-    })
-    .returning();
+  const userId = locals.user.id;
+  const values = records.map((record) => {
+    const item = (record ?? {}) as Record<string, unknown>;
+    const ciphertext = String(item.ciphertext ?? '');
+    const iv = String(item.iv ?? '');
+    if (!ciphertext || !iv) error(400, 'Missing encrypted payload');
+    return { userId, type, encryptedPayload: ciphertext, payloadIv: iv };
+  });
 
-  return Response.json({ record: toRecord(record) });
+  const rows = await db.insert(encryptedRecords).values(values).returning();
+
+  return Response.json({ records: rows.map(toRecord) });
 }
 
 export async function PATCH({ request, locals }) {

@@ -32,6 +32,10 @@ export function upsertDiaryEntry(item: DiaryItem) {
   });
 }
 
+export function addDiaryEntries(newItems: DiaryItem[]) {
+  diaryEntries.update((items) => sortEntries([...items, ...newItems]));
+}
+
 export function removeDiaryEntry(id: string) {
   diaryEntries.update((items) => items.filter((entry) => entry.record.id !== id));
 }

@@ -48,15 +48,20 @@ export async function decryptRecords<T>(records: EncryptedRecord[], dek: CryptoK
   );
 }
 
-export async function createEncryptedRecord<T>(type: RecordType, payload: T, dek: CryptoKey) {
-  const encrypted = await encrypt(dek, JSON.stringify(payload));
+export async function createEncryptedRecords<T>(type: RecordType, payloads: T[], dek: CryptoKey) {
+  const records = await Promise.all(payloads.map((payload) => encrypt(dek, JSON.stringify(payload))));
   const response = await fetch('/api/records', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ type, ciphertext: encrypted.ciphertext, iv: encrypted.iv })
+    body: JSON.stringify({ type, records })
   });
 
-  return parseResponse<{ record: EncryptedRecord }>(response).then((body) => body.record);
+  return parseResponse<RecordResponse>(response).then((body) => body.records);
+}
+
+export async function createEncryptedRecord<T>(type: RecordType, payload: T, dek: CryptoKey) {
+  const [record] = await createEncryptedRecords(type, [payload], dek);
+  return record;
 }
 
 export async function updateEncryptedRecord<T>(

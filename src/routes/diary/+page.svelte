@@ -15,6 +15,7 @@
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { toast } from 'svelte-sonner';
   import { Plus, Search, X } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import * as Select from '#lib/components/ui/select/index.js';
@@ -206,6 +207,10 @@
     onSaved={(item) => {
       formOpen = false;
       goto(`/diary/${item.record.id}`);
+    }}
+    onBatchSaved={(count) => {
+      formOpen = false;
+      toast.success(`${count} ${count === 1 ? 'entry' : 'entries'} added.`);
     }}
   />
 {/if}
