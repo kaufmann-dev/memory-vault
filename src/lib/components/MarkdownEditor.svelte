@@ -67,7 +67,9 @@
 </script>
 
 <div class="grid gap-2">
-  <div class="flex flex-wrap items-center justify-between gap-2">
+  <!-- Sticky so the tools stay reachable while the dialog scrolls through a long entry; the
+       negative offsets cancel the dialog's p-6 so the bar pins flush to its top edge. -->
+  <div class="bg-popover sticky -top-6 z-10 -mx-6 flex flex-wrap items-center justify-between gap-2 px-6 py-2">
     <div class="bg-muted inline-flex gap-1 rounded-lg p-1">
       <Button variant={preview ? 'ghost' : 'default'} size="sm" onclick={() => (preview = false)}>
         <PenLine class="size-4" /> Write
