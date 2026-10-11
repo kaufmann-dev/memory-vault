@@ -9,12 +9,14 @@
     decryptRecords,
     deleteEncryptedRecord,
     fetchEncryptedRecords,
-    updateEncryptedRecord
+    updateEncryptedRecord,
+    updateEncryptedRecords
   } from '#lib/client/records.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { EncryptedRecord, NoteGroupPayload, NotePayload } from '#lib/types.js';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import { Pencil, Pin, Plus, Search, Settings2, Trash2, X } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import * as Select from '#lib/components/ui/select/index.js';
@@ -294,23 +296,30 @@
     const updates = notes
       .filter((note) => note.payload.groupIds.includes(groupId))
       .map((note) => ({
-        note,
+        id: note.record.id,
         payload: {
           ...note.payload,
           groupIds: note.payload.groupIds.filter((id) => id !== groupId),
           updatedAt: nowIso()
         }
       }));
-    const updatedById = new Map(updates.map((update) => [update.note.record.id, update.payload]));
-    notes = notes.map((note) =>
-      updatedById.has(note.record.id) ? { ...note, payload: updatedById.get(note.record.id)! } : note
-    );
+
+    try {
+      // Detach every note in one atomic update before deleting the group, so a failure
+      // can leave the group in place but never a note pointing at a deleted group.
+      if (updates.length > 0) {
+        const records = await updateEncryptedRecords('note', updates, activeDek);
+        const updatedById = new Map(records.map((record, index) => [record.id, { record, payload: updates[index].payload }]));
+        notes = notes.map((note) => updatedById.get(note.record.id) ?? note);
+      }
+      await deleteEncryptedRecord(groupId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The group could not be deleted.');
+      return;
+    }
+
     groups = groups.filter((group) => group.record.id !== groupId);
     if (activeGroupId === groupId) activeGroupId = 'all';
-    await Promise.all([
-      ...updates.map((update) => updateEncryptedRecord(update.note.record.id, 'note', update.payload, activeDek)),
-      deleteEncryptedRecord(groupId)
-    ]);
   }
 
   onMount(async () => {
