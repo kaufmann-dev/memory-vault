@@ -119,8 +119,10 @@ Choose one path: local development or deployment to Coolify.
 `npm start` runs pending migrations first and then starts the generated Node server:
 
 ```bash
-npm run db:migrate && node build/index.js
+npm run db:migrate && BODY_SIZE_LIMIT=${BODY_SIZE_LIMIT:-50M} node build/index.js
 ```
+
+The 50 MB request body limit (adapter-node defaults to 512 KB) lets batch imports and backup restores send all encrypted records in one atomic request. Set `BODY_SIZE_LIMIT` on the application to override it.
 
 Use the internal PostgreSQL URL from Coolify, not a public database URL, when the database service is in the same project.
 
