@@ -90,12 +90,6 @@ export async function deleteEncryptedRecord(id: string) {
   await parseResponse<{ ok: true }>(response);
 }
 
-export function wordCount(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return 0;
-  return trimmed.split(/[\s.?]+/).filter(Boolean).length;
-}
-
 export function randomId() {
   return crypto.randomUUID();
 }

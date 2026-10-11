@@ -135,6 +135,64 @@ html {
   }
 }
 
+@layer components {
+  .markdown {
+    @apply wrap-anywhere;
+
+    & > :where(* + *) {
+      margin-top: 1em;
+    }
+    & :where(h1, h2, h3, h4, h5, h6) {
+      @apply font-semibold tracking-tight;
+    }
+    & > :where(h1, h2, h3, h4, h5, h6):not(:first-child) {
+      margin-top: 1.5em;
+    }
+    & h1 {
+      @apply text-[1.5em] leading-tight;
+    }
+    & h2 {
+      @apply text-[1.3em] leading-snug;
+    }
+    & h3 {
+      @apply text-[1.125em] leading-snug;
+    }
+    & :where(ul, ol) {
+      @apply pl-6;
+    }
+    & ul {
+      @apply list-disc;
+    }
+    & ol {
+      @apply list-decimal;
+    }
+    & li::marker {
+      @apply text-muted-foreground;
+    }
+    & blockquote {
+      @apply border-l-2 pl-4 text-muted-foreground;
+    }
+    & a {
+      @apply text-primary underline underline-offset-4;
+    }
+    & :not(pre) > code {
+      @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.875em];
+    }
+    & pre {
+      @apply overflow-x-auto rounded-lg bg-muted p-4 font-mono text-[0.875em] leading-relaxed;
+    }
+    & table {
+      @apply block overflow-x-auto border-collapse;
+    }
+    & :where(th, td) {
+      @apply border px-2 py-1 text-left;
+    }
+    & img {
+      @apply max-w-full rounded-lg;
+    }
+  }
+}
+
 @layer utilities {
   .masked-text-input {
     -webkit-text-security: disc;

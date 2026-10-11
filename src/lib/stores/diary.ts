@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { decryptRecords, fetchEncryptedRecords } from '#lib/client/records.js';
+import { markdownToPlainText } from '#lib/markdown.js';
 import type { DiaryPayload, EncryptedRecord } from '#lib/types.js';
 
 export type DiaryItem = {
@@ -67,8 +68,8 @@ export function formatMonth(value: string) {
   }).format(new Date(`${value}-01T00:00:00`));
 }
 
-export function excerpt(value: string) {
-  const compact = value.replace(/\s+/g, ' ').trim();
+export function excerpt(markdown: string) {
+  const compact = markdownToPlainText(markdown).replace(/\s+/g, ' ').trim();
   if (compact.length <= 150) return compact;
   return `${compact.slice(0, 150).trim()}...`;
 }

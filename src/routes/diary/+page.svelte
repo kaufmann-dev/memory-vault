@@ -18,6 +18,7 @@
   import { toast } from 'svelte-sonner';
   import { Plus, Search, X } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Select from '#lib/components/ui/select/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -38,6 +39,19 @@
   let fromDate = $state('');
   let toDate = $state('');
   let sortOrder: SortOrder = $state('newest');
+  let selectedTags: string[] = $state([]);
+
+  let tagCounts = $derived.by(() => {
+    const counts = new Map<string, number>();
+    for (const item of $diaryEntries) {
+      for (const tag of item.payload.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+    return [...counts].sort(([a], [b]) => a.localeCompare(b));
+  });
+
+  let tagLabel = $derived(
+    selectedTags.length === 0 ? 'All tags' : selectedTags.length === 1 ? selectedTags[0] : `${selectedTags.length} tags`
+  );
 
   let filteredEntries = $derived.by(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -47,6 +61,7 @@
         const occurredAt = item.payload.occurredAt;
         if (fromDate && occurredAt < fromDate) return false;
         if (toDate && occurredAt > toDate) return false;
+        if (!selectedTags.every((tag) => item.payload.tags.includes(tag))) return false;
 
         if (!normalizedQuery) return true;
 
@@ -90,13 +105,16 @@
     return groups;
   });
 
-  let hasFilters = $derived(Boolean(query.trim() || fromDate || toDate || sortOrder !== 'newest'));
+  let hasFilters = $derived(
+    Boolean(query.trim() || fromDate || toDate || selectedTags.length || sortOrder !== 'newest')
+  );
 
   function clearFilters() {
     query = '';
     fromDate = '';
     toDate = '';
     sortOrder = 'newest';
+    selectedTags = [];
   }
 
   onMount(async () => {
@@ -157,7 +175,25 @@
         </Select.Root>
       </div>
 
-      <div class="text-muted-foreground order-5 col-span-2 flex items-center gap-2 text-sm sm:order-none sm:col-span-1 sm:ml-auto">
+      {#if tagCounts.length}
+        <div class="order-5 col-span-2 min-w-0 self-end sm:order-none sm:col-span-1">
+          <Select.Root type="multiple" bind:value={selectedTags}>
+            <Select.Trigger class="w-full sm:w-44" aria-label="Filter by tags">
+              <span class="truncate">{tagLabel}</span>
+            </Select.Trigger>
+            <Select.Content>
+              {#each tagCounts as [tag, count] (tag)}
+                <Select.Item value={tag} label={tag}>
+                  <span class="truncate">{tag}</span>
+                  <span class="text-muted-foreground ml-auto text-xs">{count}</span>
+                </Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
+      {/if}
+
+      <div class="text-muted-foreground order-6 col-span-2 flex items-center gap-2 text-sm sm:order-none sm:col-span-1 sm:ml-auto">
         <span>{filteredEntries.length} of {$diaryEntries.length}</span>
         {#if hasFilters}
           <Button variant="ghost" size="sm" onclick={clearFilters}>
@@ -189,6 +225,18 @@
                 <span class="text-muted-foreground line-clamp-2 text-[0.8125rem] leading-snug wrap-anywhere">
                   {excerpt(item.payload.body) || 'No body text'}
                 </span>
+                {#if item.payload.tags.length}
+                  <span class="mt-1 flex flex-wrap gap-1">
+                    {#each item.payload.tags as tag (tag)}
+                      <Badge
+                        variant={selectedTags.includes(tag) ? 'default' : 'secondary'}
+                        class="max-w-full text-[0.6875rem]"
+                      >
+                        <span class="truncate">{tag}</span>
+                      </Badge>
+                    {/each}
+                  </span>
+                {/if}
               </span>
             </a>
           {/each}

@@ -1,6 +1,8 @@
 <script lang="ts">
   import LoadingState from '#lib/components/LoadingState.svelte';
   import DiaryEntryModal from '#lib/components/DiaryEntryModal.svelte';
+  import Markdown from '#lib/components/Markdown.svelte';
+  import { wordCount } from '#lib/markdown.js';
   import { deleteEncryptedRecord } from '#lib/client/records.js';
   import {
     diaryEntries,
@@ -67,7 +69,7 @@
         <span>·</span>
         <span>{entry.payload.language}</span>
         <span>·</span>
-        <span>{entry.payload.wordCount} words</span>
+        <span>{wordCount(entry.payload.body)} words</span>
       </div>
 
       <div class="mt-2 flex items-start justify-between gap-4">
@@ -96,9 +98,7 @@
         </div>
       {/if}
 
-      <div class="mt-6 text-[1.0625rem] leading-8 wrap-anywhere whitespace-pre-wrap">
-        {entry.payload.body}
-      </div>
+      <Markdown source={entry.payload.body} class="mt-6 text-[1.0625rem] leading-8" />
     </article>
   {/if}
 </div>
