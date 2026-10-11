@@ -69,26 +69,37 @@ export async function PATCH({ request, locals }) {
 
   const db = getDb();
   const body = await request.json();
-  const id = String(body.id ?? '');
   const type = assertRecordType(body.type);
-  const ciphertext = String(body.ciphertext ?? '');
-  const iv = String(body.iv ?? '');
-  if (!id || !ciphertext || !iv) error(400, 'Missing encrypted payload');
+  const records: unknown[] = Array.isArray(body.records) ? body.records : [];
+  if (records.length === 0) error(400, 'Missing encrypted payload');
 
-  const [record] = await db
-    .update(encryptedRecords)
-    .set({
-      type,
-      encryptedPayload: ciphertext,
-      payloadIv: iv,
-      updatedAt: new Date()
-    })
-    .where(and(eq(encryptedRecords.id, id), eq(encryptedRecords.userId, locals.user.id)))
-    .returning();
+  const userId = locals.user.id;
+  const values = records.map((record) => {
+    const item = (record ?? {}) as Record<string, unknown>;
+    const id = String(item.id ?? '');
+    const ciphertext = String(item.ciphertext ?? '');
+    const iv = String(item.iv ?? '');
+    if (!id || !ciphertext || !iv) error(400, 'Missing encrypted payload');
+    return { id, ciphertext, iv };
+  });
 
-  if (!record) error(404, 'Record not found');
+  // All records update together so a multi-record change never lands half-applied.
+  const updatedAt = new Date();
+  const rows = await db.transaction(async (tx) => {
+    const updated = [];
+    for (const { id, ciphertext, iv } of values) {
+      const [row] = await tx
+        .update(encryptedRecords)
+        .set({ type, encryptedPayload: ciphertext, payloadIv: iv, updatedAt })
+        .where(and(eq(encryptedRecords.id, id), eq(encryptedRecords.userId, userId)))
+        .returning();
+      if (!row) error(404, 'Record not found');
+      updated.push(row);
+    }
+    return updated;
+  });
 
-  return Response.json({ record: toRecord(record) });
+  return Response.json({ records: rows.map(toRecord) });
 }
 
 export async function DELETE({ request, locals }) {

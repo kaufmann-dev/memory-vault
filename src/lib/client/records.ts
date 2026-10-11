@@ -64,20 +64,31 @@ export async function createEncryptedRecord<T>(type: RecordType, payload: T, dek
   return record;
 }
 
+export async function updateEncryptedRecords<T>(
+  type: RecordType,
+  updates: Array<{ id: string; payload: T }>,
+  dek: CryptoKey
+) {
+  const records = await Promise.all(
+    updates.map(async ({ id, payload }) => ({ id, ...(await encrypt(dek, JSON.stringify(payload))) }))
+  );
+  const response = await fetch('/api/records', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ type, records })
+  });
+
+  return parseResponse<RecordResponse>(response).then((body) => body.records);
+}
+
 export async function updateEncryptedRecord<T>(
   id: string,
   type: RecordType,
   payload: T,
   dek: CryptoKey
 ) {
-  const encrypted = await encrypt(dek, JSON.stringify(payload));
-  const response = await fetch('/api/records', {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id, type, ciphertext: encrypted.ciphertext, iv: encrypted.iv })
-  });
-
-  return parseResponse<{ record: EncryptedRecord }>(response).then((body) => body.record);
+  const [record] = await updateEncryptedRecords(type, [{ id, payload }], dek);
+  return record;
 }
 
 export async function deleteEncryptedRecord(id: string) {
