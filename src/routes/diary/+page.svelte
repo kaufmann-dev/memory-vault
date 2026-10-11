@@ -181,7 +181,7 @@
             <Select.Trigger class="w-full sm:w-44" aria-label="Filter by tags">
               <span class="truncate">{tagLabel}</span>
             </Select.Trigger>
-            <Select.Content>
+            <Select.Content class="max-h-[min(18rem,var(--bits-select-content-available-height))]">
               {#each tagCounts as [tag, count] (tag)}
                 <Select.Item value={tag} label={tag}>
                   <span class="truncate">{tag}</span>
