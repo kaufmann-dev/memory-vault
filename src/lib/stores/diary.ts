@@ -1,5 +1,5 @@
-import { writable } from 'svelte/store';
-import { decryptRecords, fetchEncryptedRecords } from '#lib/client/records.js';
+import { get, writable } from 'svelte/store';
+import { decryptRecords, fetchEncryptedRecords, updateEncryptedRecords } from '#lib/client/records.js';
 import { markdownToPlainText } from '#lib/markdown.js';
 import type { DiaryPayload, EncryptedRecord } from '#lib/types.js';
 
@@ -35,6 +35,25 @@ export function upsertDiaryEntry(item: DiaryItem) {
 
 export function addDiaryEntries(newItems: DiaryItem[]) {
   diaryEntries.update((items) => sortEntries([...items, ...newItems]));
+}
+
+// Replaces tag with next in place, or drops it when next is null. Renaming onto an existing tag merges both.
+export function replaceTag(tags: string[], tag: string, next: string | null) {
+  return [...new Set(tags.flatMap((value) => (value !== tag ? [value] : next ? [next] : [])))];
+}
+
+export async function replaceDiaryTag(tag: string, next: string | null, dek: CryptoKey) {
+  const updates = get(diaryEntries)
+    .filter((item) => item.payload.tags.includes(tag))
+    .map((item) => ({
+      id: item.record.id,
+      payload: { ...item.payload, tags: replaceTag(item.payload.tags, tag, next) }
+    }));
+  if (updates.length === 0) return;
+
+  const records = await updateEncryptedRecords('diary', updates, dek);
+  const updated = new Map(records.map((record, index) => [record.id, { record, payload: updates[index].payload }]));
+  diaryEntries.update((items) => items.map((item) => updated.get(item.record.id) ?? item));
 }
 
 export function removeDiaryEntry(id: string) {

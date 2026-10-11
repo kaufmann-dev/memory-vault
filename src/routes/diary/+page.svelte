@@ -2,6 +2,7 @@
   import EmptyState from '#lib/components/EmptyState.svelte';
   import LoadingState from '#lib/components/LoadingState.svelte';
   import DiaryEntryModal from '#lib/components/DiaryEntryModal.svelte';
+  import DiaryTagsModal from '#lib/components/DiaryTagsModal.svelte';
   import PageHeader from '#lib/components/PageHeader.svelte';
   import {
     diaryEntries,
@@ -9,6 +10,7 @@
     formatMonth,
     formatShortDate,
     loadDiary,
+    replaceTag,
     type DiaryItem
   } from '#lib/stores/diary.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
@@ -16,7 +18,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { toast } from 'svelte-sonner';
-  import { Plus, Search, X } from '@lucide/svelte';
+  import { Plus, Search, Tags, X } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Select from '#lib/components/ui/select/index.js';
@@ -35,6 +37,7 @@
   let dek: CryptoKey | null = $state(null);
   let loading = $state(true);
   let formOpen = $state(false);
+  let tagsOpen = $state(false);
   let query = $state('');
   let fromDate = $state('');
   let toDate = $state('');
@@ -117,6 +120,10 @@
     selectedTags = [];
   }
 
+  function handleTagChanged(tag: string, next: string | null) {
+    if (selectedTags.includes(tag)) selectedTags = replaceTag(selectedTags, tag, next);
+  }
+
   onMount(async () => {
     dek = get(sessionDEK);
     if (!dek) {
@@ -176,9 +183,9 @@
       </div>
 
       {#if tagCounts.length}
-        <div class="order-5 col-span-2 min-w-0 self-end sm:order-none sm:col-span-1">
+        <div class="order-5 col-span-2 flex min-w-0 items-center gap-1 self-end sm:order-none sm:col-span-1">
           <Select.Root type="multiple" bind:value={selectedTags}>
-            <Select.Trigger class="w-full sm:w-44" aria-label="Filter by tags">
+            <Select.Trigger class="min-w-0 flex-1 sm:w-44 sm:flex-none" aria-label="Filter by tags">
               <span class="truncate">{tagLabel}</span>
             </Select.Trigger>
             <Select.Content class="max-h-[min(18rem,var(--bits-select-content-available-height))]">
@@ -190,6 +197,9 @@
               {/each}
             </Select.Content>
           </Select.Root>
+          <Button variant="ghost" size="icon" onclick={() => (tagsOpen = true)} aria-label="Manage tags" title="Manage tags">
+            <Tags class="size-4" />
+          </Button>
         </div>
       {/if}
 
@@ -260,5 +270,12 @@
       formOpen = false;
       toast.success(`${count} ${count === 1 ? 'entry' : 'entries'} added.`);
     }}
+  />
+  <DiaryTagsModal
+    open={tagsOpen}
+    tags={tagCounts}
+    {dek}
+    onClose={() => (tagsOpen = false)}
+    onChanged={handleTagChanged}
   />
 {/if}
