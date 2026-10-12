@@ -157,7 +157,7 @@ Dark mode inverts the same monochrome palette through the `.dark` tokens in `src
 
 ## Typography
 
-All text is set in **Inter** with system fallbacks. Headlines are bold and tightly tracked. Body text is neutral and readable. Labels are crisp and medium-weight.
+All text is set in **Inter** with system fallbacks; code and other monospace text use **JetBrains Mono**. Headlines are bold and tightly tracked. Body text is neutral and readable. Labels are crisp and medium-weight.
 
 - **Headline XL ({typography.headline-xl.fontSize}):** Page titles. Weight 700, tight tracking.
 - **Headline LG ({typography.headline-lg.fontSize}):** Section headers and card titles.

@@ -18,6 +18,7 @@
     "db:migrate:kit": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@sveltejs/adapter-node": "^6.0.0",
     "@sveltejs/kit": "^3.0.0",
     "@tailwindcss/vite": "^4.3.3",
