@@ -48,6 +48,10 @@
   let taskFormOpen = $state(false);
 
   let selected = $derived(lists.find((list) => list.record.id === selectedId) ?? lists[0] ?? null);
+  let openTasks = $derived(
+    selected?.payload.checklist ? selected.payload.tasks.filter((task) => !task.done) : (selected?.payload.tasks ?? [])
+  );
+  let completedTasks = $derived(selected?.payload.checklist ? selected.payload.tasks.filter((task) => task.done) : []);
 
   let navItems = $derived(
     lists.map((item) => ({
@@ -172,6 +176,26 @@
   </span>
 {/snippet}
 
+{#snippet taskRow(item: ListItem, task: ListPayload['tasks'][number])}
+  <li class="group flex items-center gap-3 py-3">
+    {#if item.payload.checklist}
+      <Checkbox checked={task.done} onCheckedChange={() => toggleTask(item, task.id)} />
+    {/if}
+    <span class={['min-w-0 flex-1 text-sm wrap-anywhere', task.done && 'text-muted-foreground line-through']}>
+      {task.text}
+    </span>
+    <Button
+      variant="ghost"
+      size="icon"
+      class="text-muted-foreground hover:text-destructive size-8 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+      onclick={() => removeTask(item, task.id)}
+      aria-label="Delete task"
+    >
+      <Trash2 class="size-4" />
+    </Button>
+  </li>
+{/snippet}
+
 <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
   <aside class="min-w-0">
     <CollectionNav
@@ -217,27 +241,27 @@
         </Card.Header>
         <Card.Content>
           <ul class="grid">
-            {#each selected.payload.tasks as task, index (task.id)}
+            {#each openTasks as task, index (task.id)}
               {#if index > 0}<Separator />{/if}
-              <li class="group flex items-center gap-3 py-3">
-                {#if selected.payload.checklist}
-                  <Checkbox checked={task.done} onCheckedChange={() => toggleTask(selected, task.id)} />
-                {/if}
-                <span class={['min-w-0 flex-1 text-sm wrap-anywhere', task.done && 'text-muted-foreground line-through']}>
-                  {task.text}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="text-muted-foreground hover:text-destructive size-8 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
-                  onclick={() => removeTask(selected, task.id)}
-                  aria-label="Delete task"
-                >
-                  <Trash2 class="size-4" />
-                </Button>
-              </li>
+              {@render taskRow(selected, task)}
             {/each}
           </ul>
+          {#if completedTasks.length > 0}
+            <h3
+              class={[
+                'text-muted-foreground pt-3 text-xs font-medium tracking-wide uppercase',
+                openTasks.length > 0 && 'mt-4'
+              ]}
+            >
+              Completed · {completedTasks.length}
+            </h3>
+            <ul class="grid">
+              {#each completedTasks as task, index (task.id)}
+                {#if index > 0}<Separator />{/if}
+                {@render taskRow(selected, task)}
+              {/each}
+            </ul>
+          {/if}
         </Card.Content>
       </Card.Root>
     {/if}
