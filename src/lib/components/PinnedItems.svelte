@@ -153,7 +153,7 @@
           <Card.Header>
             <Card.Title class="flex min-w-0 items-center gap-2">
               <Icon class="text-muted-foreground size-4 shrink-0" />
-              <a href={href(item)} class="focus-visible:ring-ring min-w-0 truncate rounded-sm outline-none hover:underline focus-visible:ring-2">
+              <a href={href(item)} class="focus-visible:ring-ring hover:text-muted-foreground min-w-0 truncate rounded-sm outline-none transition-colors focus-visible:ring-2">
                 {title(item)}
               </a>
             </Card.Title>
