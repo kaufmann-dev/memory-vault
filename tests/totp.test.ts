@@ -3,10 +3,12 @@ import test from 'node:test';
 import {
   base32Decode,
   base32Encode,
+  formatTotpCode,
   generateTotp,
   isValidTotpSecret,
   normalizeTotpSecret,
   parseOtpQr,
+  secretTotp,
   totpSecondsLeft,
   type TotpAlgorithm
 } from '../src/lib/totp.ts';
@@ -158,4 +160,13 @@ test('parses Google Authenticator migration QR codes', () => {
       period: 30
     }
   ]);
+});
+
+test('generates codes from secret payloads and formats them in two groups', async () => {
+  const payload = { secret: 'JBSWY3DPEHPK3PXP', otpAlgorithm: 'SHA1', otpDigits: 6, otpPeriod: 30 };
+  const code = await secretTotp(payload, 0);
+  assert.equal(code, await generateTotp({ secret: payload.secret, algorithm: 'SHA1', digits: 6, period: 30 }, 0));
+  assert.equal(await secretTotp({ ...payload, secret: 'not base32!' }, 0), '');
+  assert.equal(formatTotpCode('123456'), '123 456');
+  assert.equal(formatTotpCode('1234567'), '1234 567');
 });

@@ -5,6 +5,8 @@
   import PageHeader from '#lib/components/PageHeader.svelte';
   import CollectionNav from '#lib/components/CollectionNav.svelte';
   import QrCodeReader from '#lib/components/QrCodeReader.svelte';
+  import TotpCode from '#lib/components/TotpCode.svelte';
+  import { copyToClipboard as copyValue } from '#lib/client/clipboard.js';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -18,17 +20,17 @@
     DEFAULT_TOTP_PERIOD,
     TOTP_ALGORITHMS,
     TOTP_DIGITS,
-    generateTotp,
     isValidTotpSecret,
     normalizeTotpAlgorithm,
     normalizeTotpDigits,
     normalizeTotpPeriod,
     normalizeTotpSecret,
     parseOtpQr,
-    totpSecondsLeft,
+    secretTotp,
     type OtpQrResult,
     type TotpAccount
   } from '#lib/totp.js';
+  import { page } from '$app/state';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import type { Component } from 'svelte';
@@ -40,6 +42,7 @@
     EyeOff,
     FileKey,
     Fingerprint,
+    House,
     KeyRound,
     Landmark,
     Plus,
@@ -56,7 +59,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Label } from '#lib/components/ui/label/index.js';
-  import { Progress } from '#lib/components/ui/progress/index.js';
+  import { Checkbox } from '#lib/components/ui/checkbox/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
 
   type SecretItem = {
@@ -195,6 +198,7 @@
     otpDigits: category === 'totp' ? 6 : 0,
     otpPeriod: category === 'totp' ? DEFAULT_TOTP_PERIOD : 0,
     notes: '',
+    homePinned: false,
     createdAt: nowIso(),
     updatedAt: nowIso()
   });
@@ -327,6 +331,7 @@
       otpDigits: category === 'totp' ? normalizeTotpDigits(payload.otpDigits) : 0,
       otpPeriod: category === 'totp' ? normalizeTotpPeriod(payload.otpPeriod) : 0,
       notes: payload.notes ?? '',
+      homePinned: category === 'totp' && (payload.homePinned ?? false),
       createdAt: payload.createdAt ?? nowIso(),
       updatedAt: payload.updatedAt ?? payload.createdAt ?? nowIso()
     };
@@ -358,35 +363,13 @@
     passphraseVisible = false;
   }
 
-  function formatCode(code: string) {
-    const middle = Math.ceil(code.length / 2);
-    return `${code.slice(0, middle)} ${code.slice(middle)}`;
-  }
-
-  async function safeTotp(payload: SecretPayload, time: number) {
-    if (!isValidTotpSecret(payload.secret)) return '';
-    try {
-      return await generateTotp(
-        {
-          secret: payload.secret,
-          algorithm: normalizeTotpAlgorithm(payload.otpAlgorithm),
-          digits: normalizeTotpDigits(payload.otpDigits),
-          period: normalizeTotpPeriod(payload.otpPeriod)
-        },
-        time
-      );
-    } catch {
-      return '';
-    }
-  }
-
   async function refreshCodes() {
     const time = Date.now();
     now = time;
     const totpItems = secrets.filter((item) => item.payload.category === 'totp');
     const [entries, nextFormCode] = await Promise.all([
-      Promise.all(totpItems.map(async (item) => [item.record.id, await safeTotp(item.payload, time)] as const)),
-      secretFormOpen && form.category === 'totp' ? safeTotp(form, time) : ''
+      Promise.all(totpItems.map(async (item) => [item.record.id, await secretTotp(item.payload, time)] as const)),
+      secretFormOpen && form.category === 'totp' ? secretTotp(form, time) : ''
     ]);
     codes = Object.fromEntries(entries);
     formCode = secretFormOpen ? nextFormCode : '';
@@ -493,6 +476,8 @@
         payload: normalizeSecretPayload(item.payload)
       }));
       void refreshCodes();
+      const linked = secrets.find((secret) => secret.record.id === page.url.searchParams.get('id'));
+      if (linked) openSecret(linked);
     } catch {
       loadError = 'Could not decrypt secrets.';
       toast.error('Could not decrypt secrets.');
@@ -533,6 +518,7 @@
         otpDigits: isTotp ? normalizeTotpDigits(form.otpDigits) : 0,
         otpPeriod: isTotp ? normalizeTotpPeriod(form.otpPeriod) : 0,
         notes: form.notes.trim(),
+        homePinned: isTotp && (form.homePinned ?? false),
         createdAt: editingSecretId ? form.createdAt : timestamp,
         updatedAt: timestamp
       };
@@ -570,16 +556,6 @@
     }
   }
 
-  async function copyValue(value: string, label = 'Secret') {
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      toast.success(`${label} copied.`);
-    } catch {
-      toast.error(`Could not copy this ${label.toLowerCase()}.`);
-    }
-  }
-
   async function init() {
     dek = get(sessionDEK);
     if (!dek) {
@@ -600,35 +576,6 @@
   <div class="flex flex-wrap items-center justify-between gap-2">
     <Label for={forId}>{label}</Label>
     <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(value, label)} disabled={!value}>
-      <Copy class="size-4" /> Copy
-    </Button>
-  </div>
-{/snippet}
-
-{#snippet totpCode(code: string | undefined, period: number)}
-  {@const secondsLeft = totpSecondsLeft(normalizeTotpPeriod(period), now)}
-  {@const expiring = secondsLeft <= 5}
-  <div class="flex items-center gap-3">
-    <div class="grid min-w-0 flex-1 gap-1.5">
-      {#if code}
-        <span class={['font-mono text-2xl font-semibold tracking-wider tabular-nums', expiring && 'text-destructive']}>
-          {formatCode(code)}
-        </span>
-      {:else if code === ''}
-        <span class="text-destructive text-sm">Invalid secret key</span>
-      {:else}
-        <span class="text-muted-foreground font-mono text-2xl font-semibold tracking-wider">··· ···</span>
-      {/if}
-      <div class="flex items-center gap-2">
-        <Progress
-          value={(secondsLeft / normalizeTotpPeriod(period)) * 100}
-          class={['h-1 max-w-40', expiring && '[&_[data-slot=progress-indicator]]:bg-destructive']}
-          aria-label="Time until the next code"
-        />
-        <span class={['text-muted-foreground text-xs tabular-nums', expiring && 'text-destructive']}>{secondsLeft}s</span>
-      </div>
-    </div>
-    <Button type="button" variant="ghost" size="sm" onclick={() => copyValue(code ?? '', 'Code')} disabled={!code}>
       <Copy class="size-4" /> Copy
     </Button>
   </div>
@@ -738,7 +685,7 @@
               </button>
               {#if item.payload.category === 'totp'}
                 <div class="border-t px-4 py-3">
-                  {@render totpCode(codes[item.record.id], item.payload.otpPeriod)}
+                  <TotpCode code={codes[item.record.id]} period={item.payload.otpPeriod} {now} />
                 </div>
               {/if}
             </Card.Root>
@@ -801,7 +748,7 @@
     {#if formIsTotp}
       {#if formCode}
         <div class="bg-muted/40 rounded-lg border p-4">
-          {@render totpCode(formCode, form.otpPeriod)}
+          <TotpCode code={formCode} period={form.otpPeriod} {now} />
         </div>
       {/if}
 
@@ -1179,6 +1126,13 @@
       <Label for="secret-notes">Notes</Label>
       <Textarea id="secret-notes" bind:value={form.notes} maxlength={20000} class="min-h-28" />
     </div>
+
+    {#if formIsTotp}
+      <Label for="secret-home-pinned" class="flex items-center gap-2 font-normal">
+        <Checkbox id="secret-home-pinned" bind:checked={form.homePinned} />
+        <House class="size-4" /> Show on home
+      </Label>
+    {/if}
 
     <div class="flex flex-wrap items-center justify-between gap-3">
       <span class="text-muted-foreground text-sm">{form.notes.length}/20000</span>

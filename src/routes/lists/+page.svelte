@@ -4,6 +4,7 @@
   import EntryModal from '#lib/components/EntryModal.svelte';
   import PageHeader from '#lib/components/PageHeader.svelte';
   import CollectionNav from '#lib/components/CollectionNav.svelte';
+  import HomePinButton from '#lib/components/HomePinButton.svelte';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -17,7 +18,7 @@
   import { page } from '$app/state';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { House, Pencil, Plus, Trash2 } from '@lucide/svelte';
+  import { Pencil, Plus, Trash2 } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -228,16 +229,7 @@
             <Button variant="ghost" size="icon" onclick={() => (taskFormOpen = true)} aria-label="Add task">
               <Plus class="size-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              class={[selected.payload.homePinned && 'text-primary hover:text-primary']}
-              onclick={() => toggleHomePinned(selected)}
-              aria-label={selected.payload.homePinned ? 'Unpin from home' : 'Pin to home'}
-              aria-pressed={selected.payload.homePinned ?? false}
-            >
-              <House class="size-4" />
-            </Button>
+            <HomePinButton pinned={selected.payload.homePinned ?? false} onclick={() => toggleHomePinned(selected)} />
             <Button variant="ghost" size="icon" onclick={() => openEditList(selected)} aria-label="Edit list">
               <Pencil class="size-4" />
             </Button>
