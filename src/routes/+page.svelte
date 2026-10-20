@@ -1,8 +1,9 @@
 <script lang="ts">
   import PageHeader from '#lib/components/PageHeader.svelte';
+  import PinnedItems from '#lib/components/PinnedItems.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { fetchRecordCounts } from '#lib/client/records.js';
-  import type { RecordType } from '#lib/types.js';
+  import { countRecords, fetchEncryptedRecords } from '#lib/client/records.js';
+  import type { EncryptedRecord, RecordType } from '#lib/types.js';
   import { onMount } from 'svelte';
   import {
     Activity,
@@ -71,6 +72,7 @@
     }
   ];
 
+  let records = $state.raw<EncryptedRecord[] | null>(null);
   let counts = $state<Record<RecordType, number> | null>(null);
   let loading = $state(true);
 
@@ -78,7 +80,8 @@
 
   onMount(async () => {
     try {
-      counts = await fetchRecordCounts();
+      records = await fetchEncryptedRecords();
+      counts = countRecords(records);
     } catch {
       counts = null;
     } finally {
@@ -88,6 +91,10 @@
 </script>
 
 <PageHeader title="Home" description="Everything here is private and backed by encrypted records." />
+
+{#if records}
+  <PinnedItems {records} />
+{/if}
 
 <div class="divide-border border-border divide-y overflow-hidden rounded-xl border">
   {#each features as feature (feature.href)}

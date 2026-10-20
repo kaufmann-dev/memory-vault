@@ -14,10 +14,11 @@
   } from '#lib/client/records.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { EncryptedRecord, NoteGroupPayload, NotePayload } from '#lib/types.js';
+  import { page } from '$app/state';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
-  import { Pencil, Pin, Plus, Search, Settings2, Trash2, X } from '@lucide/svelte';
+  import { House, Pencil, Pin, Plus, Search, Settings2, Trash2, X } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import * as Select from '#lib/components/ui/select/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -46,6 +47,7 @@
     text: '',
     groupIds: [],
     pinned: false,
+    homePinned: false,
     createdAt: nowIso(),
     updatedAt: nowIso()
   });
@@ -123,6 +125,7 @@
       text: payload.text,
       groupIds: payload.groupIds ?? [],
       pinned: payload.pinned ?? false,
+      homePinned: payload.homePinned ?? false,
       createdAt: payload.createdAt,
       updatedAt: payload.updatedAt
     };
@@ -209,6 +212,8 @@
       payload: normalizeNotePayload(item.payload)
     }));
     loading = false;
+    const linked = notes.find((note) => note.record.id === page.url.searchParams.get('id'));
+    if (linked) openNote(linked);
   }
 
   async function saveNote() {
@@ -221,6 +226,7 @@
         text: noteForm.text.trim(),
         groupIds: noteForm.groupIds.filter((groupId) => groupById.has(groupId)),
         pinned: noteForm.pinned ?? false,
+        homePinned: noteForm.homePinned ?? false,
         createdAt: editingNoteId ? noteForm.createdAt : timestamp,
         updatedAt: timestamp
       };
@@ -467,6 +473,11 @@
     <Label for="note-pinned" class="flex items-center gap-2 font-normal">
       <Checkbox id="note-pinned" bind:checked={noteForm.pinned} />
       <Pin class="size-4" /> Pinned
+    </Label>
+
+    <Label for="note-home-pinned" class="flex items-center gap-2 font-normal">
+      <Checkbox id="note-home-pinned" bind:checked={noteForm.homePinned} />
+      <House class="size-4" /> Show on home
     </Label>
 
     <div class="grid gap-2">

@@ -10,11 +10,12 @@
     fetchEncryptedRecords,
     updateEncryptedRecord
   } from '#lib/client/records.js';
+  import { elapsedDays, progressPercent } from '#lib/day-counter.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { DayCounterPayload, EncryptedRecord } from '#lib/types.js';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Pencil, Plus, RotateCcw, Trash2 } from '@lucide/svelte';
+  import { House, Pencil, Plus, RotateCcw, Trash2 } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -35,12 +36,6 @@
   let form = $state(emptyCounter());
   let editingCounterId: string | null = $state(null);
   let formOpen = $state(false);
-
-  function elapsedDays(date: string) {
-    const start = new Date(`${date}T00:00:00`);
-    const now = new Date();
-    return Math.max(0, Math.floor((now.getTime() - start.getTime()) / 86_400_000));
-  }
 
   function sortCounters(items: CounterItem[]) {
     return [...items].sort((a, b) => elapsedDays(b.payload.initiated) - elapsedDays(a.payload.initiated));
@@ -95,6 +90,13 @@
     await updateEncryptedRecord(item.record.id, 'day_counter', payload, dek);
   }
 
+  async function toggleHomePinned(item: CounterItem) {
+    if (!dek) return;
+    const payload = { ...item.payload, homePinned: !item.payload.homePinned };
+    counters = counters.map((c) => (c.record.id === item.record.id ? { ...c, payload } : c));
+    await updateEncryptedRecord(item.record.id, 'day_counter', payload, dek);
+  }
+
   async function removeCounter(item: CounterItem) {
     if (!confirm('Delete this counter?')) return;
     counters = counters.filter((c) => c.record.id !== item.record.id);
@@ -131,6 +133,16 @@
             <Card.Title class="wrap-anywhere">{item.payload.name}</Card.Title>
             <Card.Description>Since {item.payload.initiated}</Card.Description>
             <Card.Action class="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                class={[item.payload.homePinned && 'text-primary hover:text-primary']}
+                onclick={() => toggleHomePinned(item)}
+                aria-label={item.payload.homePinned ? 'Unpin from home' : 'Pin to home'}
+                aria-pressed={item.payload.homePinned ?? false}
+              >
+                <House class="size-4" />
+              </Button>
               <Button variant="ghost" size="icon" onclick={() => openEditCounter(item)} aria-label="Edit milestone">
                 <Pencil class="size-4" />
               </Button>
@@ -151,11 +163,9 @@
           <Card.Content>
             <p class="text-4xl font-bold tracking-tight">{elapsedDays(item.payload.initiated)}</p>
             <p class="text-muted-foreground mt-1 text-sm font-medium">days elapsed</p>
-            {#if item.payload.maxDays !== null}
-              <Progress
-                value={Math.min(100, (elapsedDays(item.payload.initiated) / item.payload.maxDays) * 100)}
-                class="mt-4"
-              />
+            {@const progress = progressPercent(item.payload)}
+            {#if progress !== null}
+              <Progress value={progress} class="mt-4" />
             {/if}
           </Card.Content>
         </Card.Root>
