@@ -3,6 +3,7 @@
   import LoadingState from '#lib/components/LoadingState.svelte';
   import EntryModal from '#lib/components/EntryModal.svelte';
   import PageHeader from '#lib/components/PageHeader.svelte';
+  import HomePinButton from '#lib/components/HomePinButton.svelte';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -15,7 +16,7 @@
   import type { DayCounterPayload, EncryptedRecord } from '#lib/types.js';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { House, Pencil, Plus, RotateCcw, Trash2 } from '@lucide/svelte';
+  import { Pencil, Plus, RotateCcw, Trash2 } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -133,16 +134,7 @@
             <Card.Title class="wrap-anywhere">{item.payload.name}</Card.Title>
             <Card.Description>Since {item.payload.initiated}</Card.Description>
             <Card.Action class="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                class={[item.payload.homePinned && 'text-primary hover:text-primary']}
-                onclick={() => toggleHomePinned(item)}
-                aria-label={item.payload.homePinned ? 'Unpin from home' : 'Pin to home'}
-                aria-pressed={item.payload.homePinned ?? false}
-              >
-                <House class="size-4" />
-              </Button>
+              <HomePinButton pinned={item.payload.homePinned ?? false} onclick={() => toggleHomePinned(item)} />
               <Button variant="ghost" size="icon" onclick={() => openEditCounter(item)} aria-label="Edit milestone">
                 <Pencil class="size-4" />
               </Button>

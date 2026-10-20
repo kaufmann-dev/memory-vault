@@ -98,6 +98,7 @@ export type SecretPayload = {
   otpDigits: number;
   otpPeriod: number;
   notes: string;
+  homePinned?: boolean;
   createdAt: string;
   updatedAt: string;
 };

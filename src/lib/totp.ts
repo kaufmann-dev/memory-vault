@@ -1,3 +1,5 @@
+import type { SecretPayload } from '#lib/types.js';
+
 export const TOTP_ALGORITHMS = ['SHA1', 'SHA256', 'SHA512'] as const;
 export const TOTP_DIGITS = [6, 7, 8] as const;
 export const DEFAULT_TOTP_PERIOD = 30;
@@ -110,6 +112,31 @@ export async function generateTotp(params: TotpParams, timeMs = Date.now()) {
     ((mac[offset] & 0x7f) << 24) | (mac[offset + 1] << 16) | (mac[offset + 2] << 8) | mac[offset + 3];
 
   return String(binary % 10 ** params.digits).padStart(params.digits, '0');
+}
+
+export async function secretTotp(
+  payload: Pick<SecretPayload, 'secret' | 'otpAlgorithm' | 'otpDigits' | 'otpPeriod'>,
+  timeMs = Date.now()
+) {
+  if (!isValidTotpSecret(payload.secret)) return '';
+  try {
+    return await generateTotp(
+      {
+        secret: payload.secret,
+        algorithm: normalizeTotpAlgorithm(payload.otpAlgorithm),
+        digits: normalizeTotpDigits(payload.otpDigits),
+        period: normalizeTotpPeriod(payload.otpPeriod)
+      },
+      timeMs
+    );
+  } catch {
+    return '';
+  }
+}
+
+export function formatTotpCode(code: string) {
+  const middle = Math.ceil(code.length / 2);
+  return `${code.slice(0, middle)} ${code.slice(middle)}`;
 }
 
 export function totpSecondsLeft(period: number, timeMs = Date.now()) {
