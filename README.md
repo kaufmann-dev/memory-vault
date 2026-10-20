@@ -20,6 +20,7 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 - Separate provider authentication and client-only vault passphrase
 - Client-side encryption using the browser Web Crypto API
 - Encrypted diary entries with Markdown formatting (toolbar and preview), filtering by date, language, tags, and word count, and tag renaming and deletion, plus notes, lists, diagrams, milestones, and secrets
+- Pin lists, notes, milestones, and diagrams to the home screen, with checklist tasks checkable in place
 - Batch import of diagram measurements (tab-separated) and diary entries (JSON), pasted or uploaded from a file
 - 2FA (TOTP) codes added by camera, image, or pasted QR scan, including Google Authenticator transfer QR codes
 - Vault passphrase rotation by re-encrypting only the data encryption key
@@ -133,7 +134,7 @@ npm run dev          # Start Vite on 0.0.0.0
 npm run build        # Build the SvelteKit app
 npm run preview      # Preview the production build
 npm run check        # Run svelte-kit sync and svelte-check
-npm test             # Run focused unit tests (auth policy, TOTP)
+npm test             # Run focused unit tests (auth policy, TOTP, diary import, Markdown, milestones)
 npm run db:generate  # Generate Drizzle migrations
 npm run db:migrate   # Run migrations with scripts/migrate.mjs
 ```
@@ -190,5 +191,5 @@ See `ARCHITECTURE.md` for the detailed encryption model.
 
 - Visit `/login` and sign in through the configured OIDC provider. On a fresh database, create the separate vault passphrase after OIDC login.
 - On later visits, sign in through OIDC and unlock the vault with the existing vault passphrase.
-- Use `/diary`, `/notes`, `/lists`, `/diagrams`, `/day-counters`, and `/secrets` to manage encrypted records.
+- Use `/diary`, `/notes`, `/lists`, `/diagrams`, `/day-counters`, and `/secrets` to manage encrypted records. Use the house button on a list, diagram, or milestone, or "Show on home" in a note, to pin it to the home screen.
 - Use `/settings` to change the vault passphrase, remember the current device, or export/import encrypted backups.

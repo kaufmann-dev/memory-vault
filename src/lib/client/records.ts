@@ -14,14 +14,12 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function fetchEncryptedRecords(type: RecordType) {
-  const response = await fetch(`/api/records?type=${encodeURIComponent(type)}`);
+export async function fetchEncryptedRecords(type?: RecordType) {
+  const response = await fetch(type ? `/api/records?type=${encodeURIComponent(type)}` : '/api/records');
   return parseResponse<RecordResponse>(response).then((body) => body.records);
 }
 
-export async function fetchRecordCounts(): Promise<Record<RecordType, number>> {
-  const response = await fetch('/api/records');
-  const { records } = await parseResponse<RecordResponse>(response);
+export function countRecords(records: EncryptedRecord[]): Record<RecordType, number> {
   const counts = {
     diary: 0,
     note: 0,

@@ -57,6 +57,7 @@ export type ListPayload = {
     text: string;
     done: boolean;
   }>;
+  homePinned?: boolean;
 };
 
 export type NotePayload = {
@@ -64,6 +65,7 @@ export type NotePayload = {
   text: string;
   groupIds: string[];
   pinned?: boolean;
+  homePinned?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -104,6 +106,7 @@ export type DayCounterPayload = {
   name: string;
   initiated: string;
   maxDays: number | null;
+  homePinned?: boolean;
 };
 
 export type DiagramField = {
@@ -130,4 +133,5 @@ export type DiagramPayload = {
   };
   fields: DiagramField[];
   measurements: DiagramMeasurement[];
+  homePinned?: boolean;
 };

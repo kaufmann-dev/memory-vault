@@ -14,9 +14,10 @@
   } from '#lib/client/records.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { EncryptedRecord, ListPayload } from '#lib/types.js';
+  import { page } from '$app/state';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Pencil, Plus, Trash2 } from '@lucide/svelte';
+  import { House, Pencil, Plus, Trash2 } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -67,7 +68,10 @@
     loading = true;
     const records = await fetchEncryptedRecords('list');
     lists = await decryptRecords<ListPayload>(records, dek);
-    if (!selectedId && lists[0]) selectedId = lists[0].record.id;
+    if (!selectedId) {
+      const linkedId = page.url.searchParams.get('id');
+      selectedId = (lists.find((list) => list.record.id === linkedId) ?? lists[0])?.record.id ?? null;
+    }
     loading = false;
   }
 
@@ -79,12 +83,7 @@
 
   function openEditList(item: ListItem) {
     editingListId = item.record.id;
-    form = {
-      title: item.payload.title,
-      description: item.payload.description,
-      checklist: item.payload.checklist,
-      tasks: [...item.payload.tasks]
-    };
+    form = { ...item.payload, tasks: [...item.payload.tasks] };
     listFormOpen = true;
   }
 
@@ -143,6 +142,10 @@
       ...item.payload,
       tasks: item.payload.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done } : task))
     });
+  }
+
+  async function toggleHomePinned(item: ListItem) {
+    await updateList(item, { ...item.payload, homePinned: !item.payload.homePinned });
   }
 
   async function removeTask(item: ListItem, taskId: string) {
@@ -224,6 +227,16 @@
           <Card.Action class="flex gap-1">
             <Button variant="ghost" size="icon" onclick={() => (taskFormOpen = true)} aria-label="Add task">
               <Plus class="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              class={[selected.payload.homePinned && 'text-primary hover:text-primary']}
+              onclick={() => toggleHomePinned(selected)}
+              aria-label={selected.payload.homePinned ? 'Unpin from home' : 'Pin to home'}
+              aria-pressed={selected.payload.homePinned ?? false}
+            >
+              <House class="size-4" />
             </Button>
             <Button variant="ghost" size="icon" onclick={() => openEditList(selected)} aria-label="Edit list">
               <Pencil class="size-4" />

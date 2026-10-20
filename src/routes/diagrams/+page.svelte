@@ -15,11 +15,21 @@
     randomId,
     updateEncryptedRecord
   } from '#lib/client/records.js';
+  import {
+    chartSeries,
+    defaultXAxis,
+    isNumberAxis,
+    normalizeDiagramPayload,
+    sortedMeasurements,
+    xAxis,
+    xLabel
+  } from '#lib/diagram.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { DiagramField, DiagramMeasurement, DiagramPayload, EncryptedRecord } from '#lib/types.js';
+  import { page } from '$app/state';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Pencil, Plus, Trash2 } from '@lucide/svelte';
+  import { House, Pencil, Plus, Trash2 } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import * as Select from '#lib/components/ui/select/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -50,7 +60,6 @@
   const colors = ['#2563eb', '#dc2626', '#0f766e', '#ca8a04', '#9333ea', '#0891b2'];
   const measurementNumberFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
   const todayDateTime = () => new Date().toISOString().slice(0, 16);
-  const defaultXAxis = () => ({ type: 'datetime' as const, label: 'Date', unit: '' });
   const emptyField = (): DiagramField => ({ id: randomId(), label: '', unit: '', color: colors[0] });
   const emptyDiagram = (): DiagramPayload => ({
     title: '',
@@ -88,34 +97,6 @@
       measurementCount: item.payload.measurements.length
     }))
   );
-
-  function normalizeDiagramPayload(payload: DiagramPayload): DiagramPayload {
-    return {
-      ...payload,
-      xAxis: payload.xAxis ?? defaultXAxis(),
-      fields: payload.fields,
-      measurements: payload.measurements.map((measurement) => ({
-        ...measurement,
-        x: measurement.x ?? null,
-        values: { ...measurement.values }
-      }))
-    };
-  }
-
-  function xAxis(payload: DiagramPayload) {
-    return payload.xAxis ?? defaultXAxis();
-  }
-
-  function isNumberAxis(payload: DiagramPayload) {
-    return xAxis(payload).type === 'number';
-  }
-
-  function sortedMeasurements(payload: DiagramPayload) {
-    return [...payload.measurements].sort((a, b) => {
-      if (isNumberAxis(payload)) return (a.x ?? 0) - (b.x ?? 0);
-      return a.date.localeCompare(b.date);
-    });
-  }
 
   function resetMeasurement(payload: DiagramPayload | null = selected?.payload ?? null) {
     measurementForm = emptyMeasurement(payload?.fields ?? []);
@@ -195,9 +176,13 @@
       ...item,
       payload: normalizeDiagramPayload(item.payload)
     }));
-    if (!selectedId && diagrams[0]) {
-      selectedId = diagrams[0].record.id;
-      resetMeasurement(diagrams[0].payload);
+    if (!selectedId) {
+      const linkedId = page.url.searchParams.get('id');
+      const initial = diagrams.find((diagram) => diagram.record.id === linkedId) ?? diagrams[0];
+      if (initial) {
+        selectedId = initial.record.id;
+        resetMeasurement(initial.payload);
+      }
     }
     loading = false;
   }
@@ -415,6 +400,13 @@
     measurementFormOpen = false;
   }
 
+  async function toggleHomePinned(item: DiagramItem) {
+    if (!dek) return;
+    const payload = { ...item.payload, homePinned: !item.payload.homePinned };
+    diagrams = diagrams.map((d) => (d.record.id === item.record.id ? { ...d, payload } : d));
+    await updateEncryptedRecord(item.record.id, 'diagram', payload, dek);
+  }
+
   async function removeMeasurement(item: DiagramItem, measurementId: string) {
     if (!dek) return;
     const payload = {
@@ -423,20 +415,6 @@
     };
     diagrams = diagrams.map((d) => (d.record.id === item.record.id ? { ...d, payload } : d));
     await updateEncryptedRecord(item.record.id, 'diagram', payload, dek);
-  }
-
-  function points(item: DiagramItem, field: DiagramField) {
-    return sortedMeasurements(item.payload).map((measurement) => ({
-      x: isNumberAxis(item.payload) ? measurement.x : new Date(measurement.date).getTime(),
-      xLabel: xLabel(item.payload, measurement),
-      y: measurement.values[field.id] ?? null
-    }));
-  }
-
-  function xLabel(payload: DiagramPayload, measurement: DiagramMeasurement) {
-    if (!isNumberAxis(payload)) return new Date(measurement.date).toLocaleString();
-    const axis = xAxis(payload);
-    return `${measurement.x ?? ''}${axis.unit ? ` ${axis.unit}` : ''}`;
   }
 
   function measurementHeading(payload: DiagramPayload) {
@@ -545,6 +523,16 @@
               <Button variant="ghost" size="icon" onclick={() => openCreateMeasurement(selected)} aria-label="Add measurement">
                 <Plus class="size-4" />
               </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                class={[selected.payload.homePinned && 'text-primary hover:text-primary']}
+                onclick={() => toggleHomePinned(selected)}
+                aria-label={selected.payload.homePinned ? 'Unpin from home' : 'Pin to home'}
+                aria-pressed={selected.payload.homePinned ?? false}
+              >
+                <House class="size-4" />
+              </Button>
               <Button variant="ghost" size="icon" onclick={() => startEdit(selected)} aria-label="Edit diagram">
                 <Pencil class="size-4" />
               </Button>
@@ -562,11 +550,7 @@
           <Card.Content class="min-w-0">
             <SimpleLineChart
               xAxis={xAxis(selected.payload)}
-              series={selected.payload.fields.map((field) => ({
-                label: field.unit ? `${field.label} (${field.unit})` : field.label,
-                points: points(selected, field),
-                color: field.color
-              }))}
+              series={chartSeries(selected.payload)}
             />
           </Card.Content>
         </Card.Root>
