@@ -5,3 +5,5 @@ build
 .env.*
 !.env.example
 drizzle
+
+.playwright-mcp/
