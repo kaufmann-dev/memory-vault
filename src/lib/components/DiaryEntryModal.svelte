@@ -5,6 +5,7 @@
   import MarkdownEditor from '#lib/components/MarkdownEditor.svelte';
   import { createEncryptedRecord, createEncryptedRecords, updateEncryptedRecord } from '#lib/client/records.js';
   import { wordCount } from '#lib/markdown.js';
+  import { localDate } from '#lib/date.js';
   import { DIARY_LANGUAGES, parseDiaryImport } from '#lib/diary-import.js';
   import { addDiaryEntries, upsertDiaryEntry, type DiaryItem } from '#lib/stores/diary.js';
   import type { DiaryPayload } from '#lib/types.js';
@@ -36,7 +37,7 @@
   const emptyForm = (): DiaryPayload => ({
     title: '',
     body: '',
-    occurredAt: new Date().toISOString().slice(0, 10),
+    occurredAt: localDate(),
     language: 'English',
     tags: []
   });

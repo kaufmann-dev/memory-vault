@@ -12,6 +12,7 @@
     updateEncryptedRecord
   } from '#lib/client/records.js';
   import { elapsedDays, progressPercent } from '#lib/day-counter.js';
+  import { localDate } from '#lib/date.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { DayCounterPayload, EncryptedRecord } from '#lib/types.js';
   import { get } from 'svelte/store';
@@ -28,8 +29,7 @@
     payload: DayCounterPayload;
   };
 
-  const today = () => new Date().toISOString().slice(0, 10);
-  const emptyCounter = (): DayCounterPayload => ({ name: '', initiated: today(), maxDays: null });
+  const emptyCounter = (): DayCounterPayload => ({ name: '', initiated: localDate(), maxDays: null });
 
   let dek: CryptoKey | null = null;
   let loading = $state(true);
@@ -86,7 +86,7 @@
 
   async function resetCounter(item: CounterItem) {
     if (!dek) return;
-    const payload = { ...item.payload, initiated: today() };
+    const payload = { ...item.payload, initiated: localDate() };
     counters = sortCounters(counters.map((c) => (c.record.id === item.record.id ? { ...c, payload } : c)));
     await updateEncryptedRecord(item.record.id, 'day_counter', payload, dek);
   }

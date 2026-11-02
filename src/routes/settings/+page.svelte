@@ -16,6 +16,7 @@
   } from '#lib/backup.js';
   import { decrypt, decryptDEK, deriveKEK, encrypt, encryptDEK } from '#lib/crypto.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
+  import { localDate } from '#lib/date.js';
   import type { EncryptedRecord } from '#lib/types.js';
   import { invalidateAll } from '$app/navigation';
   import { get } from 'svelte/store';
@@ -243,7 +244,7 @@
         keyMaterial,
         payload: encryptedPayload
       };
-      const filename = `memory-vault-${new Date().toISOString().slice(0, 10)}.${BACKUP_EXTENSION}`;
+      const filename = `memory-vault-${localDate()}.${BACKUP_EXTENSION}`;
 
       downloadBlob(new Blob([JSON.stringify(backup)], { type: 'application/json' }), filename);
       exportSuccess = true;

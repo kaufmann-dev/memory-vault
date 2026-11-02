@@ -8,6 +8,7 @@
   import HomePinButton from '#lib/components/HomePinButton.svelte';
   import BatchImportHelp from '#lib/components/BatchImportHelp.svelte';
   import TextFileButton from '#lib/components/TextFileButton.svelte';
+  import { localDateTime } from '#lib/date.js';
   import {
     createEncryptedRecord,
     decryptRecords,
@@ -60,7 +61,6 @@
 
   const colors = ['#2563eb', '#dc2626', '#0f766e', '#ca8a04', '#9333ea', '#0891b2'];
   const measurementNumberFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
-  const todayDateTime = () => new Date().toISOString().slice(0, 16);
   const emptyField = (): DiagramField => ({ id: randomId(), label: '', unit: '', color: colors[0] });
   const emptyDiagram = (): DiagramPayload => ({
     title: '',
@@ -70,7 +70,7 @@
     measurements: []
   });
   const emptyMeasurement = (fields: DiagramField[] = []): MeasurementForm => ({
-    date: todayDateTime(),
+    date: localDateTime(),
     x: null,
     values: Object.fromEntries(fields.map((field) => [field.id, null]))
   });
@@ -334,7 +334,7 @@
         if (xValue === null) throw new Error(`Row ${rowNumber}: "x" is required.`);
         return {
           id: randomId(),
-          date: todayDateTime(),
+          date: localDateTime(),
           x: xValue,
           values
         };

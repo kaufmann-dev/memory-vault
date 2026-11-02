@@ -1,8 +1,11 @@
 import type { DayCounterPayload } from '#lib/types.js';
 
+/** Whole calendar days since `date` (YYYY-MM-DD) in the device's time zone; daylight saving changes do not shift the count. */
 export function elapsedDays(date: string, now = new Date()) {
-  const start = new Date(`${date}T00:00:00`);
-  return Math.max(0, Math.floor((now.getTime() - start.getTime()) / 86_400_000));
+  const [year, month, day] = date.split('-').map(Number);
+  const start = Date.UTC(year, month - 1, day);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, (today - start) / 86_400_000);
 }
 
 export function progressPercent(payload: DayCounterPayload, now = new Date()) {

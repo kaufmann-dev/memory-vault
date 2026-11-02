@@ -134,7 +134,7 @@ npm run dev          # Start Vite on 0.0.0.0
 npm run build        # Build the SvelteKit app
 npm run preview      # Preview the production build
 npm run check        # Run svelte-kit sync and svelte-check
-npm test             # Run focused unit tests (auth policy, TOTP, diary import, Markdown, milestones)
+npm test             # Run focused unit tests (auth policy, TOTP, diary import, Markdown, milestones, local dates)
 npm run db:generate  # Generate Drizzle migrations
 npm run db:migrate   # Run migrations with scripts/migrate.mjs
 ```
