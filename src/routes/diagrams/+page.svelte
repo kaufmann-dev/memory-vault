@@ -21,6 +21,8 @@
     chartSeries,
     defaultXAxis,
     isNumberAxis,
+    parseDiagramImport,
+    SERIES_COLORS,
     sortedMeasurements,
     xLabel
   } from '#lib/diagram.js';
@@ -56,11 +58,10 @@
     color: string;
   };
 
-  type MeasurementMode = 'single' | 'batch';
+  type DiagramMode = 'single' | 'batch';
 
-  const colors = ['#2563eb', '#dc2626', '#0f766e', '#ca8a04', '#9333ea', '#0891b2'];
   const measurementNumberFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
-  const emptyField = (): DiagramField => ({ id: randomId(), label: '', unit: '', color: colors[0] });
+  const emptyField = (): DiagramField => ({ id: randomId(), label: '', unit: '', color: SERIES_COLORS[0] });
   const emptyDiagram = (): DiagramPayload => ({
     title: '',
     description: '',
@@ -69,6 +70,35 @@
     measurements: [],
     relativeToPeak: false
   });
+  const diagramBatchInstructions = [
+    'Paste exactly one JSON object that defines the whole diagram: its settings, series, and measurements.',
+    '"title" is required and must be a non-empty string; "description" is optional.',
+    '"xAxis" is required. "type" is "datetime" for calendar dates and times or "number" for numeric x values such as minutes since a dose; "label" is required; "unit" is optional, e.g. "min".',
+    '"relativeToPeak" is optional (default false). Set it to true to plot each series as a percentage of its own peak, which helps when series have very different magnitudes.',
+    '"series" is required: a non-empty array of objects with a unique "name", an optional "unit", and an optional "color" written as #rrggbb.',
+    '"measurements" is optional: an array where each object is one point on the x axis.',
+    'On a datetime axis, each measurement needs "date" as local YYYY-MM-DD HH:mm text, such as 2024-05-01 08:30. On a number axis, it needs "x" as a plain number instead.',
+    '"values" maps series names to plain numbers with dot decimals and no units. Omit a series or use null to skip it, but every measurement needs at least one number.',
+    'No other keys are allowed anywhere. If anything is invalid, nothing is saved.'
+  ];
+  const diagramBatchExample = JSON.stringify(
+    {
+      title: 'Morning vitals',
+      description: 'Measured right after waking up.',
+      xAxis: { type: 'datetime', label: 'Date' },
+      relativeToPeak: false,
+      series: [
+        { name: 'Weight', unit: 'kg', color: '#2563eb' },
+        { name: 'Resting heart rate', unit: 'bpm' }
+      ],
+      measurements: [
+        { date: '2024-05-01 07:15', values: { Weight: 72.4, 'Resting heart rate': 58 } },
+        { date: '2024-05-02 07:20', values: { Weight: 72.1 } }
+      ]
+    },
+    null,
+    2
+  );
   const emptyMeasurement = (fields: DiagramField[] = []): MeasurementForm => ({
     date: localDateTime(),
     x: null,
@@ -83,11 +113,13 @@
   let editingMeasurementId: string | null = $state(null);
   let diagramForm = $state(emptyDiagram());
   let measurementForm = $state(emptyMeasurement());
-  let measurementMode: MeasurementMode = $state('single');
+  let diagramMode = $state<DiagramMode>('single');
   let batchText = $state('');
   let batchError = $state('');
   let diagramFormOpen = $state(false);
   let measurementFormOpen = $state(false);
+
+  let batchActive = $derived(!editingId && diagramMode === 'batch');
 
   let selected = $derived(diagrams.find((diagram) => diagram.record.id === selectedId) ?? diagrams[0] ?? null);
 
@@ -101,10 +133,7 @@
 
   function resetMeasurement(payload: DiagramPayload | null = selected?.payload ?? null) {
     measurementForm = emptyMeasurement(payload?.fields ?? []);
-    measurementMode = 'single';
     editingMeasurementId = null;
-    batchText = '';
-    batchError = '';
   }
 
   function selectDiagram(item: DiagramItem) {
@@ -127,22 +156,33 @@
     diagramFormOpen = true;
   }
 
-  function cancelEdit() {
+  function resetDiagramForm() {
     editingId = null;
     diagramForm = emptyDiagram();
+    diagramMode = 'single';
+    batchText = '';
+    batchError = '';
+  }
+
+  function cancelEdit() {
+    resetDiagramForm();
     diagramFormOpen = false;
   }
 
   function openCreate() {
-    editingId = null;
-    diagramForm = emptyDiagram();
+    resetDiagramForm();
     diagramFormOpen = true;
+  }
+
+  function setDiagramMode(mode: DiagramMode) {
+    diagramMode = mode;
+    batchError = '';
   }
 
   function addFormField() {
     diagramForm.fields = [
       ...diagramForm.fields,
-      { ...emptyField(), color: colors[diagramForm.fields.length % colors.length] }
+      { ...emptyField(), color: SERIES_COLORS[diagramForm.fields.length % SERIES_COLORS.length] }
     ];
   }
 
@@ -192,7 +232,7 @@
         ...field,
         label: field.label.trim(),
         unit: field.unit.trim(),
-        color: field.color || colors[index % colors.length]
+        color: field.color || SERIES_COLORS[index % SERIES_COLORS.length]
       }))
       .filter((field) => field.label);
     if (fields.length === 0) return;
@@ -204,7 +244,7 @@
       xAxis: {
         type: diagramForm.xAxis?.type ?? 'datetime',
         label: diagramForm.xAxis?.label.trim() || (diagramForm.xAxis?.type === 'number' ? 'Minutes' : 'Date'),
-        unit: diagramForm.xAxis?.unit.trim() || (diagramForm.xAxis?.type === 'number' ? 'min' : '')
+        unit: diagramForm.xAxis.unit.trim()
       },
       fields
     };
@@ -223,6 +263,29 @@
     cancelEdit();
   }
 
+  async function saveBatchDiagram() {
+    if (!dek) return;
+    batchError = '';
+    let payload: DiagramPayload;
+    try {
+      payload = parseDiagramImport(batchText, localDateTime());
+    } catch (error) {
+      batchError = error instanceof Error ? error.message : 'The diagram JSON could not be imported.';
+      return;
+    }
+
+    try {
+      const record = await createEncryptedRecord('diagram', payload, dek);
+      diagrams = [...diagrams, { record, payload }];
+      selectedId = record.id;
+    } catch (error) {
+      batchError = error instanceof Error ? error.message : 'The diagram could not be saved.';
+      return;
+    }
+
+    cancelEdit();
+  }
+
   async function removeDiagram(item: DiagramItem) {
     if (!confirm('Delete this diagram?')) return;
     diagrams = diagrams.filter((d) => d.record.id !== item.record.id);
@@ -234,115 +297,17 @@
   function openCreateMeasurement(item: DiagramItem) {
     editingMeasurementId = null;
     measurementForm = emptyMeasurement(item.payload.fields);
-    measurementMode = 'single';
-    batchText = '';
-    batchError = '';
     measurementFormOpen = true;
   }
 
   function openEditMeasurement(item: DiagramItem, measurement: DiagramMeasurement) {
     editingMeasurementId = measurement.id;
-    measurementMode = 'single';
-    batchText = '';
-    batchError = '';
     measurementForm = {
       date: measurement.date,
       x: measurement.x,
       values: Object.fromEntries(item.payload.fields.map((field) => [field.id, measurement.values[field.id] ?? null]))
     };
     measurementFormOpen = true;
-  }
-
-  function setMeasurementMode(mode: MeasurementMode) {
-    measurementMode = mode;
-    batchError = '';
-  }
-
-  function fieldByLabel(fields: DiagramField[]) {
-    const labels: Array<{ label: string; field: DiagramField }> = [];
-    for (const field of fields) {
-      const label = field.label.trim();
-      const aliases = field.unit.trim() ? [label, `${label} (${field.unit.trim()})`] : [label];
-      for (const alias of aliases) {
-        if (labels.some((entry) => entry.label === alias)) {
-          throw new Error(`Series labels must be unique before batch import. "${alias}" is used more than once.`);
-        }
-        labels.push({ label: alias, field });
-      }
-    }
-    return labels;
-  }
-
-  function normalizeBatchDate(value: string, rowNumber: number) {
-    const match = value.trim().match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$/);
-    if (!match) throw new Error(`Row ${rowNumber}: the date must use YYYY-MM-DD HH:mm.`);
-    const normalized = `${match[1]}T${match[2]}`;
-    if (Number.isNaN(new Date(normalized).getTime())) throw new Error(`Row ${rowNumber}: the date is not valid.`);
-    return normalized;
-  }
-
-  function parseBatchNumber(value: string, rowNumber: number, column: string) {
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const parsed = Number(trimmed);
-    if (!Number.isFinite(parsed)) throw new Error(`Row ${rowNumber}: "${column}" must be a number.`);
-    return parsed;
-  }
-
-  function parseBatchMeasurements(item: DiagramItem) {
-    const lines = batchText
-      .split('\n')
-      .map((line) => line.replace(/\r$/, ''))
-      .filter((line) => line.trim());
-    if (lines.length < 2) throw new Error('Paste one header row and at least one measurement row.');
-
-    const header = lines[0].split('\t').map((column) => column.trim());
-    const expectedFirstColumn = isNumberAxis(item.payload) ? 'x' : 'date';
-    if (header[0] !== expectedFirstColumn) throw new Error(`The first column header must be "${expectedFirstColumn}".`);
-    if (header.length < 2) throw new Error('Add at least one series column after the first column.');
-
-    const labels = fieldByLabel(item.payload.fields);
-    const fields = header.slice(1).map((label) => {
-      const field = labels.find((entry) => entry.label === label)?.field;
-      if (!field) throw new Error(`The column "${label}" does not match any series label.`);
-      return field;
-    });
-    if (fields.some((field, index) => fields.findIndex((candidate) => candidate.id === field.id) !== index)) {
-      throw new Error('Each series label can only appear once in the header row.');
-    }
-
-    return lines.slice(1).map((line, index): DiagramMeasurement => {
-      const rowNumber = index + 2;
-      const cells = line.split('\t');
-      if (cells.length !== header.length) {
-        throw new Error(`Row ${rowNumber}: expected ${header.length} tab-separated columns, got ${cells.length}.`);
-      }
-      const values: Record<string, number | null> = Object.fromEntries(item.payload.fields.map((field) => [field.id, null]));
-      for (const [cellIndex, field] of fields.entries()) {
-        values[field.id] = parseBatchNumber(cells[cellIndex + 1], rowNumber, field.label);
-      }
-      if (!Object.values(values).some((value) => value !== null)) {
-        throw new Error(`Row ${rowNumber}: at least one series value is required.`);
-      }
-
-      if (isNumberAxis(item.payload)) {
-        const xValue = parseBatchNumber(cells[0], rowNumber, 'x');
-        if (xValue === null) throw new Error(`Row ${rowNumber}: "x" is required.`);
-        return {
-          id: randomId(),
-          date: localDateTime(),
-          x: xValue,
-          values
-        };
-      }
-
-      return {
-        id: randomId(),
-        date: normalizeBatchDate(cells[0], rowNumber),
-        x: null,
-        values
-      };
-    });
   }
 
   function closeMeasurementForm(item: DiagramItem) {
@@ -373,24 +338,6 @@
       : [...item.payload.measurements, measurement];
 
     const payload = { ...item.payload, measurements };
-    diagrams = diagrams.map((d) => (d.record.id === item.record.id ? { ...d, payload } : d));
-    await updateEncryptedRecord(item.record.id, 'diagram', payload, dek);
-    resetMeasurement(payload);
-    measurementFormOpen = false;
-  }
-
-  async function saveBatchMeasurements(item: DiagramItem) {
-    if (!dek) return;
-    batchError = '';
-    let imported: DiagramMeasurement[];
-    try {
-      imported = parseBatchMeasurements(item);
-    } catch (error) {
-      batchError = error instanceof Error ? error.message : 'The batch text could not be imported.';
-      return;
-    }
-
-    const payload = { ...item.payload, measurements: [...item.payload.measurements, ...imported] };
     diagrams = diagrams.map((d) => (d.record.id === item.record.id ? { ...d, payload } : d));
     await updateEncryptedRecord(item.record.id, 'diagram', payload, dek);
     resetMeasurement(payload);
@@ -431,36 +378,6 @@
         }
       ];
     });
-  }
-
-  function batchInstructions(payload: DiagramPayload) {
-    const firstHeader = isNumberAxis(payload) ? 'x' : 'date';
-    const seriesNames = payload.fields
-      .map((field) => (field.unit.trim() ? `${field.label} or ${field.label} (${field.unit})` : field.label))
-      .join(', ');
-    return [
-      'Paste exactly one tab-separated table. Row 1 is the header; every later non-empty row is one measurement.',
-      'Separate columns with real tab characters, not commas or spaces.',
-      'Every row must have the same number of columns as the header.',
-      `The first header must be "${firstHeader}".`,
-      isNumberAxis(payload)
-        ? 'The x column must contain a plain finite number such as 0, 30, or 120.'
-        : 'The date column must contain YYYY-MM-DD HH:mm text such as 2022-09-24 16:22, not Unix timestamps.',
-      `Every other header must exactly match one series name of this diagram: ${seriesNames}.`,
-      'Units are read from the diagram setup and must not be written in value cells.',
-      'Value cells must be plain finite numbers using dot decimals.',
-      'An empty value cell skips only that series for that row; every row needs at least one value.'
-    ];
-  }
-
-  function batchExample(payload: DiagramPayload) {
-    const firstHeader = isNumberAxis(payload) ? 'x' : 'date';
-    const header = [firstHeader, ...payload.fields.map((field) => field.label)].join('\t');
-    const firstRowStart = isNumberAxis(payload) ? '0' : '2022-09-24 16:22';
-    const secondRowStart = isNumberAxis(payload) ? '30' : '2022-09-26 03:34';
-    const firstValues = payload.fields.map((_, index) => String(120 - index * 20)).join('\t');
-    const secondValues = payload.fields.map((_, index) => String(125 - index * 18)).join('\t');
-    return [header, `${firstRowStart}\t${firstValues}`, `${secondRowStart}\t${secondValues}`].join('\n');
   }
 
   onMount(async () => {
@@ -606,109 +523,143 @@
 
 <EntryModal
   open={diagramFormOpen}
-  title={editingId ? 'Edit diagram' : 'New diagram'}
-  description="Define the chart and the numeric series you want to track."
+  title={editingId ? 'Edit diagram' : batchActive ? 'Batch create diagram' : 'New diagram'}
+  description={batchActive
+    ? 'Paste one JSON object that defines the whole diagram, including its measurements.'
+    : 'Define the chart and the numeric series you want to track.'}
   onClose={cancelEdit}
 >
   <form
     class="grid gap-4"
     onsubmit={(event) => {
       event.preventDefault();
-      saveDiagram();
+      if (batchActive) {
+        saveBatchDiagram();
+      } else {
+        saveDiagram();
+      }
     }}
   >
-    <div class="grid gap-2">
-      <Label for="diagram-title">Title</Label>
-      <Input id="diagram-title" bind:value={diagramForm.title} required />
-    </div>
-    <div class="grid gap-2">
-      <Label for="diagram-description">Description</Label>
-      <Textarea id="diagram-description" bind:value={diagramForm.description} />
-    </div>
-
-    <div class="grid gap-3 rounded-lg border p-3">
-      <h3 class="text-sm font-semibold">X axis</h3>
-      <div class="grid gap-3 sm:grid-cols-3">
-        <div class="grid gap-2">
-          <Label>Type</Label>
-          <Select.Root
-            type="single"
-            value={diagramForm.xAxis.type}
-            onValueChange={(value) => setXAxisType(value === 'number' ? 'number' : 'datetime')}
-          >
-            <Select.Trigger class="w-full">{diagramForm.xAxis.type === 'number' ? 'Number' : 'Date/time'}</Select.Trigger>
-            <Select.Content>
-              <Select.Item value="datetime" label="Date/time">Date/time</Select.Item>
-              <Select.Item value="number" label="Number">Number</Select.Item>
-            </Select.Content>
-          </Select.Root>
-        </div>
-        <div class="grid gap-2">
-          <Label for="xaxis-label">Label</Label>
-          <Input
-            id="xaxis-label"
-            bind:value={diagramForm.xAxis.label}
-            placeholder={diagramForm.xAxis.type === 'number' ? 'Minutes' : 'Date'}
-          />
-        </div>
-        <div class="grid gap-2">
-          <Label for="xaxis-unit">Unit</Label>
-          <Input
-            id="xaxis-unit"
-            bind:value={diagramForm.xAxis.unit}
-            placeholder={diagramForm.xAxis.type === 'number' ? 'min' : 'optional'}
-          />
-        </div>
-      </div>
-    </div>
-
-    <Label for="diagram-relative" class="flex items-center gap-2 font-normal">
-      <Checkbox id="diagram-relative" bind:checked={diagramForm.relativeToPeak} />
-      Show each series relative to its peak (%)
-    </Label>
-
-    <div class="grid gap-3">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold">Series</h3>
-        <Button variant="ghost" size="icon" class="size-8" onclick={addFormField} aria-label="Add series">
-          <Plus class="size-4" />
+    {#if !editingId}
+      <div class="bg-muted inline-flex gap-1 rounded-lg p-1">
+        <Button variant={diagramMode === 'single' ? 'default' : 'ghost'} size="sm" onclick={() => setDiagramMode('single')}>
+          Single
+        </Button>
+        <Button variant={diagramMode === 'batch' ? 'default' : 'ghost'} size="sm" onclick={() => setDiagramMode('batch')}>
+          Batch
         </Button>
       </div>
+    {/if}
 
-      {#each diagramForm.fields as field (field.id)}
-        <div class="grid grid-cols-[2.5rem_minmax(0,1fr)_5rem_2.5rem] gap-2">
-          <input
-            class="border-input h-9 w-10 cursor-pointer rounded-md border bg-transparent p-1"
-            type="color"
-            bind:value={field.color}
-            aria-label="Series color"
-          />
-          <Input class="min-w-0" bind:value={field.label} placeholder="Name" required />
-          <Input class="min-w-0" bind:value={field.unit} placeholder="Unit" />
-          <Button
-            variant="ghost"
-            size="icon"
-            class="text-muted-foreground hover:text-destructive size-8"
-            onclick={() => removeFormField(field.id)}
-            aria-label="Remove series"
-            disabled={diagramForm.fields.length === 1}
-          >
-            <Trash2 class="size-4" />
+    {#if batchActive}
+      <BatchImportHelp instructions={diagramBatchInstructions} example={diagramBatchExample} />
+      <div class="grid gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Label for="diagram-json">Diagram JSON</Label>
+          <TextFileButton accept=".json,application/json" onLoad={(text) => (batchText = text)} />
+        </div>
+        <Textarea id="diagram-json" bind:value={batchText} spellcheck="false" class="min-h-60 font-mono text-xs" />
+      </div>
+      {#if batchError}
+        <p class="text-destructive text-sm font-medium">{batchError}</p>
+      {/if}
+      <div class="flex justify-end">
+        <Button type="submit">Create diagram</Button>
+      </div>
+    {:else}
+      <div class="grid gap-2">
+        <Label for="diagram-title">Title</Label>
+        <Input id="diagram-title" bind:value={diagramForm.title} required />
+      </div>
+      <div class="grid gap-2">
+        <Label for="diagram-description">Description</Label>
+        <Textarea id="diagram-description" bind:value={diagramForm.description} />
+      </div>
+
+      <div class="grid gap-3 rounded-lg border p-3">
+        <h3 class="text-sm font-semibold">X axis</h3>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div class="grid gap-2">
+            <Label>Type</Label>
+            <Select.Root
+              type="single"
+              value={diagramForm.xAxis.type}
+              onValueChange={(value) => setXAxisType(value === 'number' ? 'number' : 'datetime')}
+            >
+              <Select.Trigger class="w-full">{diagramForm.xAxis.type === 'number' ? 'Number' : 'Date/time'}</Select.Trigger>
+              <Select.Content>
+                <Select.Item value="datetime" label="Date/time">Date/time</Select.Item>
+                <Select.Item value="number" label="Number">Number</Select.Item>
+              </Select.Content>
+            </Select.Root>
+          </div>
+          <div class="grid gap-2">
+            <Label for="xaxis-label">Label</Label>
+            <Input
+              id="xaxis-label"
+              bind:value={diagramForm.xAxis.label}
+              placeholder={diagramForm.xAxis.type === 'number' ? 'Minutes' : 'Date'}
+            />
+          </div>
+          <div class="grid gap-2">
+            <Label for="xaxis-unit">Unit</Label>
+            <Input
+              id="xaxis-unit"
+              bind:value={diagramForm.xAxis.unit}
+              placeholder={diagramForm.xAxis.type === 'number' ? 'min' : 'optional'}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Label for="diagram-relative" class="flex items-center gap-2 font-normal">
+        <Checkbox id="diagram-relative" bind:checked={diagramForm.relativeToPeak} />
+        Show each series relative to its peak (%)
+      </Label>
+
+      <div class="grid gap-3">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-sm font-semibold">Series</h3>
+          <Button variant="ghost" size="icon" class="size-8" onclick={addFormField} aria-label="Add series">
+            <Plus class="size-4" />
           </Button>
         </div>
-      {/each}
-    </div>
 
-    <div class="flex justify-end">
-      <Button type="submit">{editingId ? 'Save' : 'Create'}</Button>
-    </div>
+        {#each diagramForm.fields as field (field.id)}
+          <div class="grid grid-cols-[2.5rem_minmax(0,1fr)_5rem_2.5rem] gap-2">
+            <input
+              class="border-input h-9 w-10 cursor-pointer rounded-md border bg-transparent p-1"
+              type="color"
+              bind:value={field.color}
+              aria-label="Series color"
+            />
+            <Input class="min-w-0" bind:value={field.label} placeholder="Name" required />
+            <Input class="min-w-0" bind:value={field.unit} placeholder="Unit" />
+            <Button
+              variant="ghost"
+              size="icon"
+              class="text-muted-foreground hover:text-destructive size-8"
+              onclick={() => removeFormField(field.id)}
+              aria-label="Remove series"
+              disabled={diagramForm.fields.length === 1}
+            >
+              <Trash2 class="size-4" />
+            </Button>
+          </div>
+        {/each}
+      </div>
+
+      <div class="flex justify-end">
+        <Button type="submit">{editingId ? 'Save' : 'Create'}</Button>
+      </div>
+    {/if}
   </form>
 </EntryModal>
 
 {#if selected}
   <EntryModal
     open={measurementFormOpen}
-    title={editingMeasurementId ? 'Edit measurement' : measurementMode === 'batch' ? 'Batch add measurements' : 'New measurement'}
+    title={editingMeasurementId ? 'Edit measurement' : 'New measurement'}
     description={`${editingMeasurementId ? 'Update' : 'Add'} values to ${selected.payload.title}. Empty series are skipped.`}
     onClose={() => closeMeasurementForm(selected)}
   >
@@ -716,78 +667,39 @@
       class="grid gap-4"
       onsubmit={(event) => {
         event.preventDefault();
-        if (measurementMode === 'batch' && !editingMeasurementId) {
-          saveBatchMeasurements(selected);
-        } else {
-          saveMeasurement(selected);
-        }
+        saveMeasurement(selected);
       }}
     >
-      {#if !editingMeasurementId}
-        <div class="bg-muted inline-flex gap-1 rounded-lg p-1">
-          <Button
-            variant={measurementMode === 'single' ? 'default' : 'ghost'}
-            size="sm"
-            onclick={() => setMeasurementMode('single')}
-          >
-            Single
-          </Button>
-          <Button
-            variant={measurementMode === 'batch' ? 'default' : 'ghost'}
-            size="sm"
-            onclick={() => setMeasurementMode('batch')}
-          >
-            Batch
-          </Button>
-        </div>
-      {/if}
-
-      {#if measurementMode === 'batch' && !editingMeasurementId}
-        <BatchImportHelp instructions={batchInstructions(selected.payload)} example={batchExample(selected.payload)} />
+      {#if isNumberAxis(selected.payload)}
         <div class="grid gap-2">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <Label for="batch-text">Batch measurements</Label>
-            <TextFileButton accept=".tsv,.txt,text/tab-separated-values,text/plain" onLoad={(text) => (batchText = text)} />
-          </div>
-          <Textarea id="batch-text" bind:value={batchText} spellcheck="false" class="min-h-60 font-mono text-xs" />
+          <Label for="measurement-x" class="wrap-anywhere">
+            {selected.payload.xAxis.unit
+              ? `${selected.payload.xAxis.label} (${selected.payload.xAxis.unit})`
+              : selected.payload.xAxis.label}
+          </Label>
+          <Input id="measurement-x" type="number" step="0.001" bind:value={measurementForm.x} required />
         </div>
-        {#if batchError}
-          <p class="text-destructive text-sm font-medium">{batchError}</p>
-        {/if}
       {:else}
-        {#if isNumberAxis(selected.payload)}
-          <div class="grid gap-2">
-            <Label for="measurement-x" class="wrap-anywhere">
-              {selected.payload.xAxis.unit
-                ? `${selected.payload.xAxis.label} (${selected.payload.xAxis.unit})`
-                : selected.payload.xAxis.label}
-            </Label>
-            <Input id="measurement-x" type="number" step="0.001" bind:value={measurementForm.x} required />
-          </div>
-        {:else}
-          <div class="grid gap-2">
-            <Label for="measurement-date">Date</Label>
-            <Input id="measurement-date" type="datetime-local" bind:value={measurementForm.date} required />
-          </div>
-        {/if}
-        <div class="grid gap-3 sm:grid-cols-2">
-          {#each selected.payload.fields as field (field.id)}
-            <div class="grid gap-2">
-              <Label for={`measurement-${field.id}`} class="wrap-anywhere">{field.unit ? `${field.label} (${field.unit})` : field.label}</Label>
-              <Input
-                id={`measurement-${field.id}`}
-                type="number"
-                step="0.001"
-                bind:value={measurementForm.values[field.id]}
-              />
-            </div>
-          {/each}
+        <div class="grid gap-2">
+          <Label for="measurement-date">Date</Label>
+          <Input id="measurement-date" type="datetime-local" bind:value={measurementForm.date} required />
         </div>
       {/if}
+      <div class="grid gap-3 sm:grid-cols-2">
+        {#each selected.payload.fields as field (field.id)}
+          <div class="grid gap-2">
+            <Label for={`measurement-${field.id}`} class="wrap-anywhere">{field.unit ? `${field.label} (${field.unit})` : field.label}</Label>
+            <Input
+              id={`measurement-${field.id}`}
+              type="number"
+              step="0.001"
+              bind:value={measurementForm.values[field.id]}
+            />
+          </div>
+        {/each}
+      </div>
       <div class="flex justify-end">
-        <Button type="submit">
-          {editingMeasurementId ? 'Save' : measurementMode === 'batch' ? 'Add measurements' : 'Add'}
-        </Button>
+        <Button type="submit">{editingMeasurementId ? 'Save' : 'Add'}</Button>
       </div>
     </form>
   </EntryModal>

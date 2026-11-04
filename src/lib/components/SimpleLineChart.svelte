@@ -61,6 +61,16 @@
   );
   const hasData = $derived(seriesDefs.some((item) => item.data.length > 0));
 
+  // Axis tick labels are 12px text drawn outside the plot area, so reserve room for them:
+  // the widest y label on the left (one extra character for rounded-up ticks) and half of
+  // the last x label on the right.
+  const tickCharWidth = 7.5;
+  const chartPadding = $derived.by(() => {
+    const ys = seriesDefs.flatMap((item) => item.data.map((point) => point.y));
+    const longestY = ys.length ? Math.max(formatY(Math.max(...ys)).length, formatY(Math.min(...ys)).length) : 1;
+    return { top: 8, right: 24, bottom: 24, left: Math.ceil((longestY + 1) * tickCharWidth) + 8 };
+  });
+
   function formatNumber(value: number) {
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
   }
@@ -105,6 +115,7 @@
         x="x"
         y="y"
         yBaseline={null}
+        padding={chartPadding}
         series={seriesDefs}
         props={{
           spline: { motion: 'none', class: 'stroke-2' },
