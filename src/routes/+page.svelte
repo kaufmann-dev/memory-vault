@@ -37,7 +37,7 @@
     {
       href: '/lists',
       label: 'Lists',
-      description: 'Encrypted checklists and plain lists for changing plans.',
+      description: 'Encrypted checklists, plain lists, and ordered routines.',
       icon: ListChecks,
       type: 'list' as RecordType,
       one: 'list',

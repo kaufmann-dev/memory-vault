@@ -2,9 +2,10 @@
   import HomePinButton from '#lib/components/HomePinButton.svelte';
   import SimpleLineChart from '#lib/components/SimpleLineChart.svelte';
   import TotpCode from '#lib/components/TotpCode.svelte';
-  import { decryptRecord, updateEncryptedRecord } from '#lib/client/records.js';
+  import { decryptRecord, saveMigrated, updateEncryptedRecord } from '#lib/client/records.js';
   import { elapsedDays, progressPercent } from '#lib/day-counter.js';
   import { chartSeries } from '#lib/diagram.js';
+  import { migrateListPayload, type StoredListPayload } from '#lib/list.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import { secretTotp } from '#lib/totp.js';
   import type {
@@ -64,6 +65,10 @@
   }
 
   async function decryptPinned(record: EncryptedRecord, key: CryptoKey): Promise<PinnedItem> {
+    if (record.type === 'list') {
+      const payload = await decryptRecord<StoredListPayload>(record, key);
+      return { type: 'list', record, payload: await saveMigrated(record, payload, migrateListPayload, key) };
+    }
     return { type: record.type, record, payload: await decryptRecord(record, key) } as PinnedItem;
   }
 
@@ -134,13 +139,13 @@
 {/snippet}
 
 {#snippet listBody(item: ListItem)}
-  {@const openEntries = item.payload.checklist
+  {@const openEntries = item.payload.kind === 'checklist'
     ? item.payload.entries.filter((entry) => !entry.done)
     : item.payload.entries}
   {@const completedCount = item.payload.entries.length - openEntries.length}
   {#if openEntries.length === 0}
     <p class="text-muted-foreground text-sm">No open entries</p>
-  {:else if item.payload.checklist}
+  {:else if item.payload.kind === 'checklist'}
     <ul class="grid gap-2">
       {#each openEntries as entry (entry.id)}
         <li>
@@ -151,6 +156,12 @@
         </li>
       {/each}
     </ul>
+  {:else if item.payload.kind === 'ordered'}
+    <ol class="grid list-decimal gap-2 pl-5">
+      {#each openEntries as entry (entry.id)}
+        <li class="text-sm">{@render entryText(item, entry)}</li>
+      {/each}
+    </ol>
   {:else}
     <ul class="grid list-disc gap-2 pl-5">
       {#each openEntries as entry (entry.id)}

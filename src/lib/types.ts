@@ -48,6 +48,10 @@ export type DiaryPayload = {
   tags: string[];
 };
 
+export const LIST_KINDS = ['plain', 'checklist', 'ordered'] as const;
+
+export type ListKind = (typeof LIST_KINDS)[number];
+
 export type ListColumn = {
   id: string;
   /** May be empty only when it is the list's sole column. */
@@ -64,7 +68,7 @@ export type ListEntry = {
 export type ListPayload = {
   title: string;
   description: string;
-  checklist: boolean;
+  kind: ListKind;
   /** Always at least one, in display order. */
   columns: ListColumn[];
   entries: ListEntry[];

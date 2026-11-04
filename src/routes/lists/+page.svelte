@@ -11,15 +11,24 @@
     deleteEncryptedRecord,
     fetchEncryptedRecords,
     randomId,
+    saveMigrated,
     updateEncryptedRecord
   } from '#lib/client/records.js';
-  import { columnLabel, entryValues, newColumn } from '#lib/list.js';
+  import {
+    columnLabel,
+    entryValues,
+    listKindLabels,
+    migrateListPayload,
+    moveEntry,
+    newColumn,
+    type StoredListPayload
+  } from '#lib/list.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
-  import type { EncryptedRecord, ListEntry, ListPayload } from '#lib/types.js';
+  import { LIST_KINDS, type EncryptedRecord, type ListEntry, type ListKind, type ListPayload } from '#lib/types.js';
   import { page } from '$app/state';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { Pencil, Plus, Trash2 } from '@lucide/svelte';
+  import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -27,6 +36,7 @@
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { Label } from '#lib/components/ui/label/index.js';
   import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+  import * as Select from '#lib/components/ui/select/index.js';
   import { Separator } from '#lib/components/ui/separator/index.js';
 
   type ListItem = {
@@ -37,7 +47,7 @@
   const emptyList = (): ListPayload => ({
     title: '',
     description: '',
-    checklist: true,
+    kind: 'checklist',
     columns: [newColumn()],
     entries: []
   });
@@ -55,12 +65,12 @@
 
   let selected = $derived(lists.find((list) => list.record.id === selectedId) ?? lists[0] ?? null);
   let openEntries = $derived(
-    selected?.payload.checklist
+    selected?.payload.kind === 'checklist'
       ? selected.payload.entries.filter((entry) => !entry.done)
       : (selected?.payload.entries ?? [])
   );
   let completedEntries = $derived(
-    selected?.payload.checklist ? selected.payload.entries.filter((entry) => entry.done) : []
+    selected?.payload.kind === 'checklist' ? selected.payload.entries.filter((entry) => entry.done) : []
   );
 
   let navItems = $derived(
@@ -68,15 +78,21 @@
       id: item.record.id,
       label: item.payload.title || 'Untitled list',
       entryCount: item.payload.entries.length,
-      checklist: item.payload.checklist
+      kind: item.payload.kind
     }))
   );
 
   async function loadLists() {
-    if (!dek) return;
+    const key = dek;
+    if (!key) return;
     loading = true;
     const records = await fetchEncryptedRecords('list');
-    lists = await decryptRecords<ListPayload>(records, dek);
+    lists = await Promise.all(
+      (await decryptRecords<StoredListPayload>(records, key)).map(async ({ record, payload }) => ({
+        record,
+        payload: await saveMigrated(record, payload, migrateListPayload, key)
+      }))
+    );
     if (!selectedId) {
       const linkedId = page.url.searchParams.get('id');
       selectedId = (lists.find((list) => list.record.id === linkedId) ?? lists[0])?.record.id ?? null;
@@ -186,6 +202,10 @@
     });
   }
 
+  async function moveListEntry(item: ListItem, entryId: string, offset: -1 | 1) {
+    await updateList(item, { ...item.payload, entries: moveEntry(item.payload.entries, entryId, offset) });
+  }
+
   async function toggleHomePinned(item: ListItem) {
     await updateList(item, { ...item.payload, homePinned: !item.payload.homePinned });
   }
@@ -207,7 +227,7 @@
   });
 </script>
 
-<PageHeader title="Lists" description="Encrypted checklists and plain lists, stored as self-contained records.">
+<PageHeader title="Lists" description="Encrypted checklists, plain lists, and ordered lists, stored as self-contained records.">
   <Button onclick={openCreateList}>
     <Plus class="size-4" />
     New
@@ -217,7 +237,7 @@
 {#snippet listRow(item: (typeof navItems)[number])}
   <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
   <span class="text-muted-foreground ml-auto shrink-0 text-xs whitespace-nowrap">
-    {item.entryCount} · {item.checklist ? 'Checklist' : 'List'}
+    {item.entryCount} · {listKindLabels[item.kind]}
   </span>
 {/snippet}
 
@@ -225,10 +245,32 @@
   <Checkbox checked={entry.done} onCheckedChange={() => toggleEntry(item, entry.id)} />
 {/snippet}
 
-{#snippet entryActions(item: ListItem, entry: ListEntry)}
+{#snippet entryActions(item: ListItem, entry: ListEntry, index: number)}
   <div
     class="flex shrink-0 justify-end gap-1 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
   >
+    {#if item.payload.kind === 'ordered'}
+      <Button
+        variant="ghost"
+        size="icon"
+        class="text-muted-foreground size-8"
+        onclick={() => moveListEntry(item, entry.id, -1)}
+        aria-label="Move up"
+        disabled={index === 0}
+      >
+        <ArrowUp class="size-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        class="text-muted-foreground size-8"
+        onclick={() => moveListEntry(item, entry.id, 1)}
+        aria-label="Move down"
+        disabled={index === item.payload.entries.length - 1}
+      >
+        <ArrowDown class="size-4" />
+      </Button>
+    {/if}
     <Button
       variant="ghost"
       size="icon"
@@ -250,22 +292,26 @@
   </div>
 {/snippet}
 
-{#snippet entryRow(item: ListItem, entry: ListEntry)}
+{#snippet entryRow(item: ListItem, entry: ListEntry, index: number)}
   <li class="group flex items-center gap-3 py-3">
-    {#if item.payload.checklist}
+    {#if item.payload.kind === 'checklist'}
       {@render entryCheckbox(item, entry)}
+    {:else if item.payload.kind === 'ordered'}
+      <span class="text-muted-foreground w-6 shrink-0 text-right text-sm tabular-nums">{index + 1}.</span>
     {/if}
     <span class={['min-w-0 flex-1 text-sm wrap-anywhere', entry.done && 'text-muted-foreground line-through']}>
       {entry.values[item.payload.columns[0].id]}
     </span>
-    {@render entryActions(item, entry)}
+    {@render entryActions(item, entry, index)}
   </li>
 {/snippet}
 
-{#snippet entryTableRow(item: ListItem, entry: ListEntry)}
+{#snippet entryTableRow(item: ListItem, entry: ListEntry, index: number)}
   <Table.Row class="group">
-    {#if item.payload.checklist}
+    {#if item.payload.kind === 'checklist'}
       <Table.Cell class="w-8">{@render entryCheckbox(item, entry)}</Table.Cell>
+    {:else if item.payload.kind === 'ordered'}
+      <Table.Cell class="text-muted-foreground w-8 tabular-nums">{index + 1}</Table.Cell>
     {/if}
     {#each item.payload.columns as column (column.id)}
       <Table.Cell
@@ -274,7 +320,7 @@
         {entry.values[column.id]}
       </Table.Cell>
     {/each}
-    <Table.Cell class="w-px">{@render entryActions(item, entry)}</Table.Cell>
+    <Table.Cell class="w-px">{@render entryActions(item, entry, index)}</Table.Cell>
   </Table.Row>
 {/snippet}
 
@@ -327,8 +373,10 @@
             <Table.Root>
               <Table.Header>
                 <Table.Row>
-                  {#if selected.payload.checklist}
+                  {#if selected.payload.kind === 'checklist'}
                     <Table.Head class="w-8"><span class="sr-only">Done</span></Table.Head>
+                  {:else if selected.payload.kind === 'ordered'}
+                    <Table.Head class="w-8">#</Table.Head>
                   {/if}
                   {#each selected.payload.columns as column (column.id)}
                     <Table.Head class="whitespace-normal wrap-break-word">{columnLabel(column)}</Table.Head>
@@ -337,8 +385,8 @@
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {#each openEntries as entry (entry.id)}
-                  {@render entryTableRow(selected, entry)}
+                {#each openEntries as entry, index (entry.id)}
+                  {@render entryTableRow(selected, entry, index)}
                 {/each}
                 {#if completedEntries.length > 0}
                   <Table.Row class="hover:bg-transparent">
@@ -352,19 +400,19 @@
                       Completed · {completedEntries.length}
                     </Table.Cell>
                   </Table.Row>
-                  {#each completedEntries as entry (entry.id)}
-                    {@render entryTableRow(selected, entry)}
+                  {#each completedEntries as entry, index (entry.id)}
+                    {@render entryTableRow(selected, entry, index)}
                   {/each}
                 {/if}
               </Table.Body>
             </Table.Root>
           {:else}
-            <ul class="grid">
+            <svelte:element this={selected.payload.kind === 'ordered' ? 'ol' : 'ul'} class="grid">
               {#each openEntries as entry, index (entry.id)}
                 {#if index > 0}<Separator />{/if}
-                {@render entryRow(selected, entry)}
+                {@render entryRow(selected, entry, index)}
               {/each}
-            </ul>
+            </svelte:element>
             {#if completedEntries.length > 0}
               <h3
                 class={[
@@ -377,7 +425,7 @@
               <ul class="grid">
                 {#each completedEntries as entry, index (entry.id)}
                   {#if index > 0}<Separator />{/if}
-                  {@render entryRow(selected, entry)}
+                  {@render entryRow(selected, entry, index)}
                 {/each}
               </ul>
             {/if}
@@ -409,10 +457,17 @@
       <Label for="list-description">Description</Label>
       <Textarea id="list-description" bind:value={form.description} />
     </div>
-    <Label for="list-checklist" class="flex items-center gap-2 font-normal">
-      <Checkbox id="list-checklist" bind:checked={form.checklist} />
-      Checklist
-    </Label>
+    <div class="grid gap-2">
+      <Label>Type</Label>
+      <Select.Root type="single" value={form.kind} onValueChange={(value) => (form.kind = value as ListKind)}>
+        <Select.Trigger class="w-full">{listKindLabels[form.kind]}</Select.Trigger>
+        <Select.Content>
+          {#each LIST_KINDS as kind (kind)}
+            <Select.Item value={kind} label={listKindLabels[kind]}>{listKindLabels[kind]}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+    </div>
 
     <div class="grid gap-3">
       <div class="flex items-center justify-between gap-3">
