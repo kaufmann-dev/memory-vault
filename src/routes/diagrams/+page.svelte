@@ -15,16 +15,17 @@
     deleteEncryptedRecord,
     fetchEncryptedRecords,
     randomId,
+    saveMigrated,
     updateEncryptedRecord
   } from '#lib/client/records.js';
   import {
     chartSeries,
     defaultXAxis,
     isNumberAxis,
-    normalizeDiagramPayload,
+    migrateDiagramPayload,
     sortedMeasurements,
-    xAxis,
-    xLabel
+    xLabel,
+    type StoredDiagramPayload
   } from '#lib/diagram.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { DiagramField, DiagramMeasurement, DiagramPayload, EncryptedRecord } from '#lib/types.js';
@@ -117,11 +118,10 @@
     editingId = item.record.id;
     diagramForm = {
       ...item.payload,
-      xAxis: { ...xAxis(item.payload) },
+      xAxis: { ...item.payload.xAxis },
       fields: item.payload.fields.map((field) => ({ ...field })),
       measurements: item.payload.measurements.map((measurement) => ({
         ...measurement,
-        x: measurement.x ?? null,
         values: { ...measurement.values }
       }))
     };
@@ -173,10 +173,13 @@
     if (!dek) return;
     loading = true;
     const records = await fetchEncryptedRecords('diagram');
-    diagrams = (await decryptRecords<DiagramPayload>(records, dek)).map((item) => ({
-      ...item,
-      payload: normalizeDiagramPayload(item.payload)
-    }));
+    const key = dek;
+    diagrams = await Promise.all(
+      (await decryptRecords<StoredDiagramPayload>(records, key)).map(async ({ record, payload }) => ({
+        record,
+        payload: await saveMigrated(record, payload, migrateDiagramPayload, key)
+      }))
+    );
     if (!selectedId) {
       const linkedId = page.url.searchParams.get('id');
       const initial = diagrams.find((diagram) => diagram.record.id === linkedId) ?? diagrams[0];
@@ -251,7 +254,7 @@
     batchError = '';
     measurementForm = {
       date: measurement.date,
-      x: measurement.x ?? null,
+      x: measurement.x,
       values: Object.fromEntries(item.payload.fields.map((field) => [field.id, measurement.values[field.id] ?? null]))
     };
     measurementFormOpen = true;
@@ -369,7 +372,7 @@
     const measurement: DiagramMeasurement = {
       id: editingMeasurementId ?? randomId(),
       date: measurementForm.date,
-      x: isNumberAxis(item.payload) ? xValue : null,
+      x: isNumberAxis(item.payload) ? (xValue ?? null) : null,
       values
     };
     const measurements = editingMeasurementId
@@ -419,7 +422,7 @@
   }
 
   function measurementHeading(payload: DiagramPayload) {
-    return isNumberAxis(payload) ? xAxis(payload).label : 'Date';
+    return isNumberAxis(payload) ? payload.xAxis.label : 'Date';
   }
 
   function measurementEntries(payload: DiagramPayload, measurement: DiagramMeasurement): MeasurementEntry[] {
@@ -541,7 +544,7 @@
           </Card.Header>
           <Card.Content class="min-w-0">
             <SimpleLineChart
-              xAxis={xAxis(selected.payload)}
+              xAxis={selected.payload.xAxis}
               series={chartSeries(selected.payload)}
             />
           </Card.Content>
@@ -757,9 +760,9 @@
         {#if isNumberAxis(selected.payload)}
           <div class="grid gap-2">
             <Label for="measurement-x" class="wrap-anywhere">
-              {xAxis(selected.payload).unit
-                ? `${xAxis(selected.payload).label} (${xAxis(selected.payload).unit})`
-                : xAxis(selected.payload).label}
+              {selected.payload.xAxis.unit
+                ? `${selected.payload.xAxis.label} (${selected.payload.xAxis.unit})`
+                : selected.payload.xAxis.label}
             </Label>
             <Input id="measurement-x" type="number" step="0.001" bind:value={measurementForm.x} required />
           </div>

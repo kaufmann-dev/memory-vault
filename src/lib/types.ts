@@ -48,15 +48,26 @@ export type DiaryPayload = {
   tags: string[];
 };
 
+export type ListColumn = {
+  id: string;
+  /** May be empty only when it is the list's sole column. */
+  name: string;
+};
+
+export type ListEntry = {
+  id: string;
+  /** Keyed by column id. */
+  values: Record<string, string>;
+  done: boolean;
+};
+
 export type ListPayload = {
   title: string;
   description: string;
   checklist: boolean;
-  tasks: Array<{
-    id: string;
-    text: string;
-    done: boolean;
-  }>;
+  /** Always at least one, in display order. */
+  columns: ListColumn[];
+  entries: ListEntry[];
   homePinned?: boolean;
 };
 
@@ -120,7 +131,7 @@ export type DiagramField = {
 export type DiagramMeasurement = {
   id: string;
   date: string;
-  x?: number | null;
+  x: number | null;
   values: Record<string, number | null>;
 };
 

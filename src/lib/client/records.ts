@@ -89,6 +89,19 @@ export async function updateEncryptedRecord<T>(
   return record;
 }
 
+/** Temporary: re-saves a payload that `migrate` converts from a legacy shape and returns the current shape. */
+export async function saveMigrated<S, T>(
+  record: EncryptedRecord,
+  payload: S,
+  migrate: (payload: S) => T | null,
+  dek: CryptoKey
+): Promise<T> {
+  const migrated = migrate(payload);
+  if (!migrated) return payload as unknown as T;
+  await updateEncryptedRecord(record.id, record.type, migrated, dek);
+  return migrated;
+}
+
 export async function deleteEncryptedRecord(id: string) {
   const response = await fetch('/api/records', {
     method: 'DELETE',

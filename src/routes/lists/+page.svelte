@@ -11,15 +11,18 @@
     deleteEncryptedRecord,
     fetchEncryptedRecords,
     randomId,
+    saveMigrated,
     updateEncryptedRecord
   } from '#lib/client/records.js';
+  import { columnLabel, entryValues, migrateListPayload, newColumn, type StoredListPayload } from '#lib/list.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
-  import type { EncryptedRecord, ListPayload } from '#lib/types.js';
+  import type { EncryptedRecord, ListEntry, ListPayload } from '#lib/types.js';
   import { page } from '$app/state';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { Pencil, Plus, Trash2 } from '@lucide/svelte';
   import * as Card from '#lib/components/ui/card/index.js';
+  import * as Table from '#lib/components/ui/table/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
@@ -36,7 +39,8 @@
     title: '',
     description: '',
     checklist: true,
-    tasks: []
+    columns: [newColumn()],
+    entries: []
   });
 
   let dek: CryptoKey | null = null;
@@ -45,30 +49,41 @@
   let selectedId: string | null = $state(null);
   let form = $state(emptyList());
   let editingListId: string | null = $state(null);
-  let newTask = $state('');
+  let entryForm: Record<string, string> = $state({});
+  let editingEntryId: string | null = $state(null);
   let listFormOpen = $state(false);
-  let taskFormOpen = $state(false);
+  let entryFormOpen = $state(false);
 
   let selected = $derived(lists.find((list) => list.record.id === selectedId) ?? lists[0] ?? null);
-  let openTasks = $derived(
-    selected?.payload.checklist ? selected.payload.tasks.filter((task) => !task.done) : (selected?.payload.tasks ?? [])
+  let openEntries = $derived(
+    selected?.payload.checklist
+      ? selected.payload.entries.filter((entry) => !entry.done)
+      : (selected?.payload.entries ?? [])
   );
-  let completedTasks = $derived(selected?.payload.checklist ? selected.payload.tasks.filter((task) => task.done) : []);
+  let completedEntries = $derived(
+    selected?.payload.checklist ? selected.payload.entries.filter((entry) => entry.done) : []
+  );
 
   let navItems = $derived(
     lists.map((item) => ({
       id: item.record.id,
       label: item.payload.title || 'Untitled list',
-      taskCount: item.payload.tasks.length,
+      entryCount: item.payload.entries.length,
       checklist: item.payload.checklist
     }))
   );
 
   async function loadLists() {
-    if (!dek) return;
+    const key = dek;
+    if (!key) return;
     loading = true;
     const records = await fetchEncryptedRecords('list');
-    lists = await decryptRecords<ListPayload>(records, dek);
+    lists = await Promise.all(
+      (await decryptRecords<StoredListPayload>(records, key)).map(async ({ record, payload }) => ({
+        record,
+        payload: await saveMigrated(record, payload, migrateListPayload, key)
+      }))
+    );
     if (!selectedId) {
       const linkedId = page.url.searchParams.get('id');
       selectedId = (lists.find((list) => list.record.id === linkedId) ?? lists[0])?.record.id ?? null;
@@ -84,7 +99,7 @@
 
   function openEditList(item: ListItem) {
     editingListId = item.record.id;
-    form = { ...item.payload, tasks: [...item.payload.tasks] };
+    form = $state.snapshot(item.payload);
     listFormOpen = true;
   }
 
@@ -94,12 +109,24 @@
     form = emptyList();
   }
 
+  function addColumn() {
+    form.columns = [...form.columns, newColumn()];
+  }
+
+  function removeColumn(columnId: string) {
+    if (form.columns.length === 1) return;
+    form.columns = form.columns.filter((column) => column.id !== columnId);
+  }
+
   async function saveList() {
     if (!dek || !form.title.trim()) return;
-    const payload = {
+    const columns = form.columns.map((column) => ({ ...column, name: column.name.trim() }));
+    const payload: ListPayload = {
       ...form,
       title: form.title.trim(),
-      description: form.description.trim()
+      description: form.description.trim(),
+      columns,
+      entries: form.entries.map((entry) => ({ ...entry, values: entryValues(columns, entry.values) }))
     };
 
     if (editingListId) {
@@ -128,20 +155,41 @@
     await deleteEncryptedRecord(item.record.id);
   }
 
-  async function addTask(item: ListItem) {
-    if (!newTask.trim()) return;
-    await updateList(item, {
-      ...item.payload,
-      tasks: [...item.payload.tasks, { id: randomId(), text: newTask.trim(), done: false }]
-    });
-    newTask = '';
-    taskFormOpen = false;
+  function openAddEntry(item: ListItem) {
+    editingEntryId = null;
+    entryForm = entryValues(item.payload.columns, {});
+    entryFormOpen = true;
   }
 
-  async function toggleTask(item: ListItem, taskId: string) {
+  function openEditEntry(item: ListItem, entry: ListEntry) {
+    editingEntryId = entry.id;
+    entryForm = entryValues(item.payload.columns, entry.values);
+    entryFormOpen = true;
+  }
+
+  function closeEntryForm() {
+    entryFormOpen = false;
+    editingEntryId = null;
+    entryForm = {};
+  }
+
+  async function saveEntry(item: ListItem) {
+    const values = entryValues(item.payload.columns, entryForm);
+    if (!values[item.payload.columns[0].id]) return;
+    const id = editingEntryId;
     await updateList(item, {
       ...item.payload,
-      tasks: item.payload.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done } : task))
+      entries: id
+        ? item.payload.entries.map((entry) => (entry.id === id ? { ...entry, values } : entry))
+        : [...item.payload.entries, { id: randomId(), values, done: false }]
+    });
+    closeEntryForm();
+  }
+
+  async function toggleEntry(item: ListItem, entryId: string) {
+    await updateList(item, {
+      ...item.payload,
+      entries: item.payload.entries.map((entry) => (entry.id === entryId ? { ...entry, done: !entry.done } : entry))
     });
   }
 
@@ -149,10 +197,10 @@
     await updateList(item, { ...item.payload, homePinned: !item.payload.homePinned });
   }
 
-  async function removeTask(item: ListItem, taskId: string) {
+  async function removeEntry(item: ListItem, entryId: string) {
     await updateList(item, {
       ...item.payload,
-      tasks: item.payload.tasks.filter((task) => task.id !== taskId)
+      entries: item.payload.entries.filter((entry) => entry.id !== entryId)
     });
   }
 
@@ -176,28 +224,65 @@
 {#snippet listRow(item: (typeof navItems)[number])}
   <span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
   <span class="text-muted-foreground ml-auto shrink-0 text-xs whitespace-nowrap">
-    {item.taskCount} · {item.checklist ? 'Checklist' : 'List'}
+    {item.entryCount} · {item.checklist ? 'Checklist' : 'List'}
   </span>
 {/snippet}
 
-{#snippet taskRow(item: ListItem, task: ListPayload['tasks'][number])}
-  <li class="group flex items-center gap-3 py-3">
-    {#if item.payload.checklist}
-      <Checkbox checked={task.done} onCheckedChange={() => toggleTask(item, task.id)} />
-    {/if}
-    <span class={['min-w-0 flex-1 text-sm wrap-anywhere', task.done && 'text-muted-foreground line-through']}>
-      {task.text}
-    </span>
+{#snippet entryCheckbox(item: ListItem, entry: ListEntry)}
+  <Checkbox checked={entry.done} onCheckedChange={() => toggleEntry(item, entry.id)} />
+{/snippet}
+
+{#snippet entryActions(item: ListItem, entry: ListEntry)}
+  <div
+    class="flex shrink-0 justify-end gap-1 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
+  >
     <Button
       variant="ghost"
       size="icon"
-      class="text-muted-foreground hover:text-destructive size-8 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
-      onclick={() => removeTask(item, task.id)}
-      aria-label="Delete task"
+      class="text-muted-foreground size-8"
+      onclick={() => openEditEntry(item, entry)}
+      aria-label="Edit entry"
+    >
+      <Pencil class="size-4" />
+    </Button>
+    <Button
+      variant="ghost"
+      size="icon"
+      class="text-muted-foreground hover:text-destructive size-8"
+      onclick={() => removeEntry(item, entry.id)}
+      aria-label="Delete entry"
     >
       <Trash2 class="size-4" />
     </Button>
+  </div>
+{/snippet}
+
+{#snippet entryRow(item: ListItem, entry: ListEntry)}
+  <li class="group flex items-center gap-3 py-3">
+    {#if item.payload.checklist}
+      {@render entryCheckbox(item, entry)}
+    {/if}
+    <span class={['min-w-0 flex-1 text-sm wrap-anywhere', entry.done && 'text-muted-foreground line-through']}>
+      {entry.values[item.payload.columns[0].id]}
+    </span>
+    {@render entryActions(item, entry)}
   </li>
+{/snippet}
+
+{#snippet entryTableRow(item: ListItem, entry: ListEntry)}
+  <Table.Row class="group">
+    {#if item.payload.checklist}
+      <Table.Cell class="w-8">{@render entryCheckbox(item, entry)}</Table.Cell>
+    {/if}
+    {#each item.payload.columns as column (column.id)}
+      <Table.Cell
+        class={['min-w-24 whitespace-normal wrap-break-word', entry.done && 'text-muted-foreground line-through']}
+      >
+        {entry.values[column.id]}
+      </Table.Cell>
+    {/each}
+    <Table.Cell class="w-px">{@render entryActions(item, entry)}</Table.Cell>
+  </Table.Row>
 {/snippet}
 
 <div class="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
@@ -217,7 +302,7 @@
     {#if loading}
       <LoadingState message="Decrypting lists…" />
     {:else if !selected}
-      <EmptyState title="No lists yet" description="Create a list to start tracking tasks." />
+      <EmptyState title="No lists yet" description="Create a list to start collecting entries." />
     {:else}
       <Card.Root>
         <Card.Header>
@@ -226,7 +311,7 @@
             <Card.Description class="wrap-anywhere">{selected.payload.description}</Card.Description>
           {/if}
           <Card.Action class="flex gap-1">
-            <Button variant="ghost" size="icon" onclick={() => (taskFormOpen = true)} aria-label="Add task">
+            <Button variant="ghost" size="icon" onclick={() => openAddEntry(selected)} aria-label="Add entry">
               <Plus class="size-4" />
             </Button>
             <HomePinButton pinned={selected.payload.homePinned ?? false} onclick={() => toggleHomePinned(selected)} />
@@ -245,27 +330,64 @@
           </Card.Action>
         </Card.Header>
         <Card.Content>
-          <ul class="grid">
-            {#each openTasks as task, index (task.id)}
-              {#if index > 0}<Separator />{/if}
-              {@render taskRow(selected, task)}
-            {/each}
-          </ul>
-          {#if completedTasks.length > 0}
-            <h3
-              class={[
-                'text-muted-foreground pt-3 text-xs font-medium tracking-wide uppercase',
-                openTasks.length > 0 && 'mt-4'
-              ]}
-            >
-              Completed · {completedTasks.length}
-            </h3>
+          {#if selected.payload.columns.length > 1}
+            <Table.Root>
+              <Table.Header>
+                <Table.Row>
+                  {#if selected.payload.checklist}
+                    <Table.Head class="w-8"><span class="sr-only">Done</span></Table.Head>
+                  {/if}
+                  {#each selected.payload.columns as column (column.id)}
+                    <Table.Head class="whitespace-normal wrap-break-word">{columnLabel(column)}</Table.Head>
+                  {/each}
+                  <Table.Head class="w-px"><span class="sr-only">Actions</span></Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {#each openEntries as entry (entry.id)}
+                  {@render entryTableRow(selected, entry)}
+                {/each}
+                {#if completedEntries.length > 0}
+                  <Table.Row class="hover:bg-transparent">
+                    <Table.Cell
+                      colspan={selected.payload.columns.length + 2}
+                      class={[
+                        'text-muted-foreground text-xs font-medium tracking-wide uppercase',
+                        openEntries.length > 0 && 'pt-6'
+                      ]}
+                    >
+                      Completed · {completedEntries.length}
+                    </Table.Cell>
+                  </Table.Row>
+                  {#each completedEntries as entry (entry.id)}
+                    {@render entryTableRow(selected, entry)}
+                  {/each}
+                {/if}
+              </Table.Body>
+            </Table.Root>
+          {:else}
             <ul class="grid">
-              {#each completedTasks as task, index (task.id)}
+              {#each openEntries as entry, index (entry.id)}
                 {#if index > 0}<Separator />{/if}
-                {@render taskRow(selected, task)}
+                {@render entryRow(selected, entry)}
               {/each}
             </ul>
+            {#if completedEntries.length > 0}
+              <h3
+                class={[
+                  'text-muted-foreground pt-3 text-xs font-medium tracking-wide uppercase',
+                  openEntries.length > 0 && 'mt-4'
+                ]}
+              >
+                Completed · {completedEntries.length}
+              </h3>
+              <ul class="grid">
+                {#each completedEntries as entry, index (entry.id)}
+                  {#if index > 0}<Separator />{/if}
+                  {@render entryRow(selected, entry)}
+                {/each}
+              </ul>
+            {/if}
           {/if}
         </Card.Content>
       </Card.Root>
@@ -276,7 +398,7 @@
 <EntryModal
   open={listFormOpen}
   title={editingListId ? 'Edit list' : 'New list'}
-  description={editingListId ? 'Update this private list shell.' : 'Create a private list shell. Tasks can be added once the list exists.'}
+  description={editingListId ? 'Update this private list.' : 'Create a private list. Entries can be added once the list exists.'}
   onClose={closeListForm}
 >
   <form
@@ -298,6 +420,41 @@
       <Checkbox id="list-checklist" bind:checked={form.checklist} />
       Checklist
     </Label>
+
+    <div class="grid gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <div class="grid gap-1">
+          <h3 class="text-sm font-semibold">Columns</h3>
+          <p class="text-muted-foreground text-xs">Add columns to store several values per entry.</p>
+        </div>
+        <Button variant="ghost" size="icon" class="size-8" onclick={addColumn} aria-label="Add column">
+          <Plus class="size-4" />
+        </Button>
+      </div>
+
+      {#each form.columns as column (column.id)}
+        <div class="grid grid-cols-[minmax(0,1fr)_2.5rem] items-center gap-2">
+          <Input
+            class="min-w-0"
+            bind:value={column.name}
+            placeholder={form.columns.length > 1 ? 'Name' : 'Name (optional)'}
+            required={form.columns.length > 1}
+            aria-label="Column name"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            class="text-muted-foreground hover:text-destructive size-8"
+            onclick={() => removeColumn(column.id)}
+            aria-label="Remove column"
+            disabled={form.columns.length === 1}
+          >
+            <Trash2 class="size-4" />
+          </Button>
+        </div>
+      {/each}
+    </div>
+
     <div class="flex justify-end">
       <Button type="submit">{editingListId ? 'Save' : 'Create'}</Button>
     </div>
@@ -306,27 +463,28 @@
 
 {#if selected}
   <EntryModal
-    open={taskFormOpen}
-    title="New task"
-    description={`Add a task to ${selected.payload.title}.`}
-    onClose={() => {
-      taskFormOpen = false;
-      newTask = '';
-    }}
+    open={entryFormOpen}
+    title={editingEntryId ? 'Edit entry' : 'New entry'}
+    description={editingEntryId
+      ? `Update this entry in ${selected.payload.title}.`
+      : `Add an entry to ${selected.payload.title}.`}
+    onClose={closeEntryForm}
   >
     <form
       class="grid gap-4"
       onsubmit={(event) => {
         event.preventDefault();
-        addTask(selected);
+        saveEntry(selected);
       }}
     >
-      <div class="grid gap-2">
-        <Label for="new-task">Task</Label>
-        <Input id="new-task" bind:value={newTask} required />
-      </div>
+      {#each selected.payload.columns as column, index (column.id)}
+        <div class="grid gap-2">
+          <Label for={`entry-${column.id}`} class="wrap-anywhere">{columnLabel(column)}</Label>
+          <Input id={`entry-${column.id}`} bind:value={entryForm[column.id]} required={index === 0} />
+        </div>
+      {/each}
       <div class="flex justify-end">
-        <Button type="submit">Add</Button>
+        <Button type="submit">{editingEntryId ? 'Save' : 'Add'}</Button>
       </div>
     </form>
   </EntryModal>

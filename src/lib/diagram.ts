@@ -2,25 +2,24 @@ import type { DiagramField, DiagramMeasurement, DiagramPayload } from '#lib/type
 
 export const defaultXAxis = () => ({ type: 'datetime' as const, label: 'Date', unit: '' });
 
-export function normalizeDiagramPayload(payload: DiagramPayload): DiagramPayload {
+/** Temporary: stored diagram payloads may predate the x axis and per-measurement x values. */
+export type StoredDiagramPayload = Omit<DiagramPayload, 'xAxis' | 'measurements'> & {
+  xAxis?: DiagramPayload['xAxis'];
+  measurements: Array<Omit<DiagramMeasurement, 'x'> & { x?: number | null }>;
+};
+
+/** Temporary: fills in the x axis and measurement x values; returns null when already current. */
+export function migrateDiagramPayload(payload: StoredDiagramPayload): DiagramPayload | null {
+  if (payload.xAxis && payload.measurements.every((measurement) => measurement.x !== undefined)) return null;
   return {
     ...payload,
     xAxis: payload.xAxis ?? defaultXAxis(),
-    fields: payload.fields,
-    measurements: payload.measurements.map((measurement) => ({
-      ...measurement,
-      x: measurement.x ?? null,
-      values: { ...measurement.values }
-    }))
+    measurements: payload.measurements.map((measurement) => ({ ...measurement, x: measurement.x ?? null }))
   };
 }
 
-export function xAxis(payload: DiagramPayload) {
-  return payload.xAxis ?? defaultXAxis();
-}
-
 export function isNumberAxis(payload: DiagramPayload) {
-  return xAxis(payload).type === 'number';
+  return payload.xAxis.type === 'number';
 }
 
 export function sortedMeasurements(payload: DiagramPayload) {
@@ -32,8 +31,8 @@ export function sortedMeasurements(payload: DiagramPayload) {
 
 export function xLabel(payload: DiagramPayload, measurement: DiagramMeasurement) {
   if (!isNumberAxis(payload)) return new Date(measurement.date).toLocaleString();
-  const axis = xAxis(payload);
-  return `${measurement.x ?? ''}${axis.unit ? ` ${axis.unit}` : ''}`;
+  const { unit } = payload.xAxis;
+  return `${measurement.x ?? ''}${unit ? ` ${unit}` : ''}`;
 }
 
 export function points(payload: DiagramPayload, field: DiagramField) {

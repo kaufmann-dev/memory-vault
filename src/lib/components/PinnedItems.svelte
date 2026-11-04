@@ -2,15 +2,17 @@
   import HomePinButton from '#lib/components/HomePinButton.svelte';
   import SimpleLineChart from '#lib/components/SimpleLineChart.svelte';
   import TotpCode from '#lib/components/TotpCode.svelte';
-  import { decryptRecord, updateEncryptedRecord } from '#lib/client/records.js';
+  import { decryptRecord, saveMigrated, updateEncryptedRecord } from '#lib/client/records.js';
   import { elapsedDays, progressPercent } from '#lib/day-counter.js';
-  import { chartSeries, normalizeDiagramPayload, xAxis } from '#lib/diagram.js';
+  import { chartSeries, migrateDiagramPayload, type StoredDiagramPayload } from '#lib/diagram.js';
+  import { migrateListPayload, type StoredListPayload } from '#lib/list.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import { secretTotp } from '#lib/totp.js';
   import type {
     DayCounterPayload,
     DiagramPayload,
     EncryptedRecord,
+    ListEntry,
     ListPayload,
     NotePayload,
     SecretPayload
@@ -63,11 +65,15 @@
   }
 
   async function decryptPinned(record: EncryptedRecord, key: CryptoKey): Promise<PinnedItem> {
-    const payload = await decryptRecord<PinnedItem['payload']>(record, key);
-    if (record.type === 'diagram') {
-      return { type: 'diagram', record, payload: normalizeDiagramPayload(payload as DiagramPayload) };
+    if (record.type === 'list') {
+      const payload = await decryptRecord<StoredListPayload>(record, key);
+      return { type: 'list', record, payload: await saveMigrated(record, payload, migrateListPayload, key) };
     }
-    return { type: record.type, record, payload } as PinnedItem;
+    if (record.type === 'diagram') {
+      const payload = await decryptRecord<StoredDiagramPayload>(record, key);
+      return { type: 'diagram', record, payload: await saveMigrated(record, payload, migrateDiagramPayload, key) };
+    }
+    return { type: record.type, record, payload: await decryptRecord(record, key) } as PinnedItem;
   }
 
   function isPinned(item: PinnedItem) {
@@ -92,10 +98,10 @@
     await updateEncryptedRecord(item.record.id, item.type, payload, dek);
   }
 
-  async function toggleTask(item: ListItem, taskId: string) {
+  async function toggleEntry(item: ListItem, entryId: string) {
     await updateItem(item, {
       ...item.payload,
-      tasks: item.payload.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done } : task))
+      entries: item.payload.entries.map((entry) => (entry.id === entryId ? { ...entry, done: !entry.done } : entry))
     });
   }
 
@@ -125,26 +131,39 @@
   });
 </script>
 
+{#snippet entryText(item: ListItem, entry: ListEntry)}
+  {@const [first, ...rest] = item.payload.columns}
+  {@const details = rest.map((column) => entry.values[column.id]).filter(Boolean)}
+  <span class="grid min-w-0 flex-1 gap-0.5 wrap-anywhere">
+    <span class="text-sm">{entry.values[first.id]}</span>
+    {#if details.length > 0}
+      <span class="text-muted-foreground text-xs">{details.join(' · ')}</span>
+    {/if}
+  </span>
+{/snippet}
+
 {#snippet listBody(item: ListItem)}
-  {@const openTasks = item.payload.checklist ? item.payload.tasks.filter((task) => !task.done) : item.payload.tasks}
-  {@const completedCount = item.payload.tasks.length - openTasks.length}
-  {#if openTasks.length === 0}
-    <p class="text-muted-foreground text-sm">No open tasks</p>
+  {@const openEntries = item.payload.checklist
+    ? item.payload.entries.filter((entry) => !entry.done)
+    : item.payload.entries}
+  {@const completedCount = item.payload.entries.length - openEntries.length}
+  {#if openEntries.length === 0}
+    <p class="text-muted-foreground text-sm">No open entries</p>
   {:else if item.payload.checklist}
     <ul class="grid gap-2">
-      {#each openTasks as task (task.id)}
+      {#each openEntries as entry (entry.id)}
         <li>
           <Label class="flex items-start gap-3 font-normal">
-            <Checkbox checked={task.done} onCheckedChange={() => toggleTask(item, task.id)} class="mt-0.5" />
-            <span class="min-w-0 flex-1 text-sm wrap-anywhere">{task.text}</span>
+            <Checkbox checked={entry.done} onCheckedChange={() => toggleEntry(item, entry.id)} class="mt-0.5" />
+            {@render entryText(item, entry)}
           </Label>
         </li>
       {/each}
     </ul>
   {:else}
     <ul class="grid list-disc gap-2 pl-5">
-      {#each openTasks as task (task.id)}
-        <li class="text-sm wrap-anywhere">{task.text}</li>
+      {#each openEntries as entry (entry.id)}
+        <li class="text-sm">{@render entryText(item, entry)}</li>
       {/each}
     </ul>
   {/if}
@@ -170,7 +189,7 @@
   {#if item.payload.measurements.length === 0}
     <p class="text-muted-foreground text-sm">No measurements yet</p>
   {:else}
-    <SimpleLineChart xAxis={xAxis(item.payload)} series={chartSeries(item.payload)} height={220} />
+    <SimpleLineChart xAxis={item.payload.xAxis} series={chartSeries(item.payload)} height={220} />
   {/if}
 {/snippet}
 
