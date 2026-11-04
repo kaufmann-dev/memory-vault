@@ -2,30 +2,6 @@ import type { DiagramField, DiagramMeasurement, DiagramPayload } from '#lib/type
 
 export const defaultXAxis = () => ({ type: 'datetime' as const, label: 'Date', unit: '' });
 
-/** Temporary: stored diagram payloads may predate the x axis, per-measurement x values, and relative scaling. */
-export type StoredDiagramPayload = Omit<DiagramPayload, 'xAxis' | 'measurements' | 'relativeToPeak'> & {
-  xAxis?: DiagramPayload['xAxis'];
-  measurements: Array<Omit<DiagramMeasurement, 'x'> & { x?: number | null }>;
-  relativeToPeak?: boolean;
-};
-
-/** Temporary: fills in the x axis, measurement x values, and relative scaling; returns null when already current. */
-export function migrateDiagramPayload(payload: StoredDiagramPayload): DiagramPayload | null {
-  if (
-    payload.xAxis &&
-    typeof payload.relativeToPeak === 'boolean' &&
-    payload.measurements.every((measurement) => measurement.x !== undefined)
-  ) {
-    return null;
-  }
-  return {
-    ...payload,
-    xAxis: payload.xAxis ?? defaultXAxis(),
-    measurements: payload.measurements.map((measurement) => ({ ...measurement, x: measurement.x ?? null })),
-    relativeToPeak: payload.relativeToPeak ?? false
-  };
-}
-
 export function isNumberAxis(payload: DiagramPayload) {
   return payload.xAxis.type === 'number';
 }

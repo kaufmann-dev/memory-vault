@@ -11,10 +11,9 @@
     deleteEncryptedRecord,
     fetchEncryptedRecords,
     randomId,
-    saveMigrated,
     updateEncryptedRecord
   } from '#lib/client/records.js';
-  import { columnLabel, entryValues, migrateListPayload, newColumn, type StoredListPayload } from '#lib/list.js';
+  import { columnLabel, entryValues, newColumn } from '#lib/list.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { EncryptedRecord, ListEntry, ListPayload } from '#lib/types.js';
   import { page } from '$app/state';
@@ -74,16 +73,10 @@
   );
 
   async function loadLists() {
-    const key = dek;
-    if (!key) return;
+    if (!dek) return;
     loading = true;
     const records = await fetchEncryptedRecords('list');
-    lists = await Promise.all(
-      (await decryptRecords<StoredListPayload>(records, key)).map(async ({ record, payload }) => ({
-        record,
-        payload: await saveMigrated(record, payload, migrateListPayload, key)
-      }))
-    );
+    lists = await decryptRecords<ListPayload>(records, dek);
     if (!selectedId) {
       const linkedId = page.url.searchParams.get('id');
       selectedId = (lists.find((list) => list.record.id === linkedId) ?? lists[0])?.record.id ?? null;

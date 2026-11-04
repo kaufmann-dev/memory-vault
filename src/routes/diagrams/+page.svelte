@@ -15,17 +15,14 @@
     deleteEncryptedRecord,
     fetchEncryptedRecords,
     randomId,
-    saveMigrated,
     updateEncryptedRecord
   } from '#lib/client/records.js';
   import {
     chartSeries,
     defaultXAxis,
     isNumberAxis,
-    migrateDiagramPayload,
     sortedMeasurements,
-    xLabel,
-    type StoredDiagramPayload
+    xLabel
   } from '#lib/diagram.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import type { DiagramField, DiagramMeasurement, DiagramPayload, EncryptedRecord } from '#lib/types.js';
@@ -175,13 +172,7 @@
     if (!dek) return;
     loading = true;
     const records = await fetchEncryptedRecords('diagram');
-    const key = dek;
-    diagrams = await Promise.all(
-      (await decryptRecords<StoredDiagramPayload>(records, key)).map(async ({ record, payload }) => ({
-        record,
-        payload: await saveMigrated(record, payload, migrateDiagramPayload, key)
-      }))
-    );
+    diagrams = await decryptRecords<DiagramPayload>(records, dek);
     if (!selectedId) {
       const linkedId = page.url.searchParams.get('id');
       const initial = diagrams.find((diagram) => diagram.record.id === linkedId) ?? diagrams[0];
