@@ -1,4 +1,4 @@
-import type { ListColumn, ListEntry, ListKind, ListPayload } from '#lib/types.js';
+import type { ListColumn, ListEntry, ListKind } from '#lib/types.js';
 
 export const listKindLabels: Record<ListKind, string> = {
   plain: 'List',
@@ -27,16 +27,4 @@ export function moveEntry(entries: ListEntry[], entryId: string, offset: -1 | 1)
   const next = [...entries];
   [next[from], next[to]] = [next[to], next[from]];
   return next;
-}
-
-type LegacyListPayload = Omit<ListPayload, 'kind'> & { checklist: boolean };
-
-/** Temporary: stored list payloads may still use the boolean `checklist` flag. */
-export type StoredListPayload = ListPayload | LegacyListPayload;
-
-/** Temporary: converts the `checklist` flag to `kind`; returns null when already current. */
-export function migrateListPayload(payload: StoredListPayload): ListPayload | null {
-  if (!('checklist' in payload)) return null;
-  const { checklist, ...rest } = payload;
-  return { ...rest, kind: checklist ? 'checklist' : 'plain' };
 }

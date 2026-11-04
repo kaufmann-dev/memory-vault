@@ -2,10 +2,9 @@
   import HomePinButton from '#lib/components/HomePinButton.svelte';
   import SimpleLineChart from '#lib/components/SimpleLineChart.svelte';
   import TotpCode from '#lib/components/TotpCode.svelte';
-  import { decryptRecord, saveMigrated, updateEncryptedRecord } from '#lib/client/records.js';
+  import { decryptRecord, updateEncryptedRecord } from '#lib/client/records.js';
   import { elapsedDays, progressPercent } from '#lib/day-counter.js';
   import { chartSeries } from '#lib/diagram.js';
-  import { migrateListPayload, type StoredListPayload } from '#lib/list.js';
   import { sessionDEK } from '#lib/stores/cryptoKey.js';
   import { secretTotp } from '#lib/totp.js';
   import type {
@@ -65,10 +64,6 @@
   }
 
   async function decryptPinned(record: EncryptedRecord, key: CryptoKey): Promise<PinnedItem> {
-    if (record.type === 'list') {
-      const payload = await decryptRecord<StoredListPayload>(record, key);
-      return { type: 'list', record, payload: await saveMigrated(record, payload, migrateListPayload, key) };
-    }
     return { type: record.type, record, payload: await decryptRecord(record, key) } as PinnedItem;
   }
 
