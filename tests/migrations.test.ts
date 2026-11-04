@@ -39,7 +39,7 @@ const diagram = {
   fields: [{ id: 'w', label: 'Weight', unit: 'kg', color: '#2563eb' }]
 };
 
-test('migrateDiagramPayload fills the x axis and measurement x values', () => {
+test('migrateDiagramPayload fills the x axis, measurement x values, and relative scaling', () => {
   const migrated = migrateDiagramPayload({
     ...diagram,
     measurements: [{ id: 'm', date: '2026-01-01T08:00', values: { w: 80 } }]
@@ -48,6 +48,18 @@ test('migrateDiagramPayload fills the x axis and measurement x values', () => {
   assert.deepEqual(migrated.xAxis, defaultXAxis());
   assert.equal(migrated.measurements[0].x, null);
   assert.deepEqual(migrated.measurements[0].values, { w: 80 });
+  assert.equal(migrated.relativeToPeak, false);
+});
+
+test('migrateDiagramPayload adds relative scaling to otherwise current payloads', () => {
+  const migrated = migrateDiagramPayload({
+    ...diagram,
+    xAxis: { type: 'number', label: 'Minutes', unit: 'min' },
+    measurements: [{ id: 'm', date: '2026-01-01T08:00', x: 5, values: { w: 80 } }]
+  });
+  assert.ok(migrated);
+  assert.equal(migrated.relativeToPeak, false);
+  assert.equal(migrated.measurements[0].x, 5);
 });
 
 test('migrateDiagramPayload leaves current payloads alone', () => {
@@ -55,7 +67,8 @@ test('migrateDiagramPayload leaves current payloads alone', () => {
     migrateDiagramPayload({
       ...diagram,
       xAxis: { type: 'number', label: 'Minutes', unit: 'min' },
-      measurements: [{ id: 'm', date: '2026-01-01T08:00', x: 5, values: { w: 80 } }]
+      measurements: [{ id: 'm', date: '2026-01-01T08:00', x: 5, values: { w: 80 } }],
+      relativeToPeak: true
     }),
     null
   );

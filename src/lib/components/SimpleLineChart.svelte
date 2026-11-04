@@ -10,6 +10,9 @@
 
   type Series = {
     label: string;
+    unit: string;
+    /** Factor applied to the plotted values; null when the values are absolute. */
+    scale: number | null;
     points: Point[];
     color: string;
   };
@@ -27,6 +30,7 @@
   }: { series?: Series[]; xAxis?: Axis; height?: number } = $props();
 
   const mobileHeight = $derived(Math.max(220, Math.round(height * 0.75)));
+  const relative = $derived(series.some((item) => item.scale !== null));
 
   const chartConfig = $derived(
     Object.fromEntries(series.map((item, index) => [`s${index}`, { label: item.label, color: item.color }]))
@@ -61,6 +65,17 @@
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
   }
 
+  function formatY(value: number) {
+    return relative ? `${formatNumber(value)} %` : formatNumber(value);
+  }
+
+  function formatRelativeValue(key: string, value: number) {
+    const item = series[Number(key.slice(1))];
+    if (!item?.scale) return formatNumber(value);
+    const raw = `${formatNumber(value / item.scale)}${item.unit ? ` ${item.unit}` : ''}`;
+    return `${raw} · ${formatNumber(value)} %`;
+  }
+
   function formatX(value: Date | number) {
     if (xAxis.type === 'datetime' || value instanceof Date) {
       return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(value));
@@ -68,6 +83,16 @@
     return formatNumber(value as number);
   }
 </script>
+
+{#snippet relativeTooltipRow({ value, item }: { value: unknown; item: { key: string; label: string; color?: string } })}
+  <div class="flex w-full items-center gap-2">
+    <div class="size-2.5 shrink-0 rounded-[2px]" style="background-color: {item.color};"></div>
+    <div class="flex flex-1 shrink-0 items-center justify-between gap-4 leading-none">
+      <span class="text-muted-foreground">{item.label}</span>
+      <span class="text-foreground font-mono font-medium tabular-nums">{formatRelativeValue(item.key, value as number)}</span>
+    </div>
+  </div>
+{/snippet}
 
 {#if hasData}
   <div class="min-w-0">
@@ -88,7 +113,7 @@
             tickSpacing: xAxis.type === 'datetime' ? 88 : 72
           },
           yAxis: {
-            format: formatNumber,
+            format: formatY,
             tickSpacing: 48
           },
           highlight: { points: { r: 4 } }
@@ -100,10 +125,15 @@
               xAxis.type === 'datetime' || value instanceof Date
                 ? new Date(value).toLocaleString()
                 : `${formatNumber(value as number)}${xAxis.unit ? ` ${xAxis.unit}` : ''}`}
+            formatter={relative ? relativeTooltipRow : undefined}
           />
         {/snippet}
       </LineChart>
     </Chart.Container>
+
+    {#if relative}
+      <p class="text-muted-foreground mt-2 text-xs">Each series is shown as a percentage of its own peak.</p>
+    {/if}
 
     {#if series.length}
       <ul class="mt-4 flex flex-wrap gap-2" aria-label="Series">

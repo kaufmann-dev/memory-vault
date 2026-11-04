@@ -145,5 +145,7 @@ export type DiagramPayload = {
   };
   fields: DiagramField[];
   measurements: DiagramMeasurement[];
+  /** Plot each series as a percentage of its own largest absolute value. */
+  relativeToPeak: boolean;
   homePinned?: boolean;
 };

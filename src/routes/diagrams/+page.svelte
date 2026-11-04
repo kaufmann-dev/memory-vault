@@ -39,6 +39,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { Label } from '#lib/components/ui/label/index.js';
+  import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 
   type DiagramItem = {
     record: EncryptedRecord;
@@ -68,7 +69,8 @@
     description: '',
     xAxis: defaultXAxis(),
     fields: [{ ...emptyField(), label: 'Value' }],
-    measurements: []
+    measurements: [],
+    relativeToPeak: false
   });
   const emptyMeasurement = (fields: DiagramField[] = []): MeasurementForm => ({
     date: localDateTime(),
@@ -668,6 +670,11 @@
         </div>
       </div>
     </div>
+
+    <Label for="diagram-relative" class="flex items-center gap-2 font-normal">
+      <Checkbox id="diagram-relative" bind:checked={diagramForm.relativeToPeak} />
+      Show each series relative to its peak (%)
+    </Label>
 
     <div class="grid gap-3">
       <div class="flex items-center justify-between gap-3">

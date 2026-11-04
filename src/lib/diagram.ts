@@ -2,19 +2,27 @@ import type { DiagramField, DiagramMeasurement, DiagramPayload } from '#lib/type
 
 export const defaultXAxis = () => ({ type: 'datetime' as const, label: 'Date', unit: '' });
 
-/** Temporary: stored diagram payloads may predate the x axis and per-measurement x values. */
-export type StoredDiagramPayload = Omit<DiagramPayload, 'xAxis' | 'measurements'> & {
+/** Temporary: stored diagram payloads may predate the x axis, per-measurement x values, and relative scaling. */
+export type StoredDiagramPayload = Omit<DiagramPayload, 'xAxis' | 'measurements' | 'relativeToPeak'> & {
   xAxis?: DiagramPayload['xAxis'];
   measurements: Array<Omit<DiagramMeasurement, 'x'> & { x?: number | null }>;
+  relativeToPeak?: boolean;
 };
 
-/** Temporary: fills in the x axis and measurement x values; returns null when already current. */
+/** Temporary: fills in the x axis, measurement x values, and relative scaling; returns null when already current. */
 export function migrateDiagramPayload(payload: StoredDiagramPayload): DiagramPayload | null {
-  if (payload.xAxis && payload.measurements.every((measurement) => measurement.x !== undefined)) return null;
+  if (
+    payload.xAxis &&
+    typeof payload.relativeToPeak === 'boolean' &&
+    payload.measurements.every((measurement) => measurement.x !== undefined)
+  ) {
+    return null;
+  }
   return {
     ...payload,
     xAxis: payload.xAxis ?? defaultXAxis(),
-    measurements: payload.measurements.map((measurement) => ({ ...measurement, x: measurement.x ?? null }))
+    measurements: payload.measurements.map((measurement) => ({ ...measurement, x: measurement.x ?? null })),
+    relativeToPeak: payload.relativeToPeak ?? false
   };
 }
 
@@ -43,10 +51,23 @@ export function points(payload: DiagramPayload, field: DiagramField) {
   }));
 }
 
+/** Factor that maps the largest absolute value to 100; 1 when there is no non-zero value. */
+export function peakScale(values: Array<number | null>) {
+  const finite = values.filter((value): value is number => value !== null && Number.isFinite(value));
+  const peak = Math.max(0, ...finite.map(Math.abs));
+  return peak > 0 ? 100 / peak : 1;
+}
+
 export function chartSeries(payload: DiagramPayload) {
-  return payload.fields.map((field) => ({
-    label: field.unit ? `${field.label} (${field.unit})` : field.label,
-    points: points(payload, field),
-    color: field.color
-  }));
+  return payload.fields.map((field) => {
+    const raw = points(payload, field);
+    const scale = payload.relativeToPeak ? peakScale(raw.map((point) => point.y)) : null;
+    return {
+      label: field.unit ? `${field.label} (${field.unit})` : field.label,
+      unit: field.unit,
+      scale,
+      points: scale === null ? raw : raw.map((point) => ({ ...point, y: point.y === null ? null : point.y * scale })),
+      color: field.color
+    };
+  });
 }

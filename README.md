@@ -21,6 +21,7 @@ Memory Vault is a private, admin-only personal archive built with SvelteKit. It 
 - Client-side encryption using the browser Web Crypto API
 - Encrypted diary entries with Markdown formatting (toolbar and preview), filtering by date, language, tags, and word count, and tag renaming and deletion, plus notes, lists with optional named columns, diagrams, milestones, and secrets
 - Pin lists, notes, milestones, diagrams, and 2FA codes to the home screen, with checklist entries checkable in place and live 2FA codes
+- Diagrams that can show each series as a percentage of its own peak, to compare curves with very different magnitudes
 - Batch import of diagram measurements (tab-separated) and diary entries (JSON), pasted or uploaded from a file
 - 2FA (TOTP) codes added by camera, image, or pasted QR scan, including Google Authenticator transfer QR codes
 - Vault passphrase rotation by re-encrypting only the data encryption key
