@@ -61,15 +61,45 @@
   );
   const hasData = $derived(seriesDefs.some((item) => item.data.length > 0));
 
-  // Axis tick labels are 12px text drawn outside the plot area, so reserve room for them:
-  // the widest y label on the left (one extra character for rounded-up ticks) and half of
-  // the last x label on the right.
+  // The y axis and the grid share one tick count so every grid line has a label.
+  const yTickCount = 5;
+  // Tick labels are 12px text drawn outside the plot area; reserve room for the widest y label
+  // on the left and for half of the last x label on the right.
   const tickCharWidth = 7.5;
+  const tickLabelGap = 8;
   const chartPadding = $derived.by(() => {
+    const xs = seriesDefs.flatMap((item) => item.data.map((point) => point._x));
     const ys = seriesDefs.flatMap((item) => item.data.map((point) => point.y));
-    const longestY = ys.length ? Math.max(formatY(Math.max(...ys)).length, formatY(Math.min(...ys)).length) : 1;
-    return { top: 8, right: 24, bottom: 24, left: Math.ceil((longestY + 1) * tickCharWidth) + 8 };
+    const widestY = Math.max(1, ...yTickLabels(ys).map((label) => label.length));
+    const lastX = xAxis.type === 'number' && xs.length ? formatNumber(Math.max(...xs)).length : "Jan '24".length;
+    return {
+      top: 8,
+      right: Math.ceil((lastX * tickCharWidth) / 2),
+      bottom: 20,
+      left: Math.ceil(widestY * tickCharWidth) + tickLabelGap
+    };
   });
+
+  /** Tick step of a d3 linear scale, so the estimated labels match the rendered ones. */
+  function tickStep(min: number, max: number, count: number) {
+    const rough = (max - min) / count;
+    const power = 10 ** Math.floor(Math.log10(rough));
+    const error = rough / power;
+    return power * (error >= Math.sqrt(50) ? 10 : error >= Math.sqrt(10) ? 5 : error >= Math.SQRT2 ? 2 : 1);
+  }
+
+  function yTickLabels(values: number[]) {
+    if (!values.length) return [];
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    if (max === min) return [formatY(min)];
+    const step = tickStep(min, max, yTickCount);
+    const labels: string[] = [];
+    for (let index = Math.floor(min / step); index <= Math.ceil(max / step); index += 1) {
+      labels.push(formatY(index * step));
+    }
+    return labels;
+  }
 
   function formatNumber(value: number) {
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
@@ -86,12 +116,6 @@
     return `${raw} · ${formatNumber(value)} %`;
   }
 
-  function formatX(value: Date | number) {
-    if (xAxis.type === 'datetime' || value instanceof Date) {
-      return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(value));
-    }
-    return formatNumber(value as number);
-  }
 </script>
 
 {#snippet relativeTooltipRow({ value, item }: { value: unknown; item: { key: string; label: string; color?: string } })}
@@ -119,14 +143,10 @@
         series={seriesDefs}
         props={{
           spline: { motion: 'none', class: 'stroke-2' },
-          xAxis: {
-            format: formatX,
-            tickSpacing: xAxis.type === 'datetime' ? 88 : 72
-          },
-          yAxis: {
-            format: formatY,
-            tickSpacing: 48
-          },
+          // Date axes use LayerChart's interval-aware labels (years, months, days, or times).
+          xAxis: xAxis.type === 'number' ? { format: formatNumber, tickSpacing: 72 } : {},
+          yAxis: { format: formatY, ticks: yTickCount },
+          grid: { yTicks: yTickCount },
           highlight: { points: { r: 4 } }
         }}
       >
