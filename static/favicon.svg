@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
-  <style>
-    #icon-path { fill: #000000 }
-    @media (prefers-color-scheme: dark) {
-      #icon-path { fill: #ffffff }
-    }
-  </style>
-  <path id="icon-path" d="M420-360h120l-23-129q20-10 31.5-29t11.5-42q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 23 11.5 42t31.5 29l-23 129Zm60 280q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>Memory Vault</title><defs><linearGradient id="g" x1="3" y1="3" x2="29" y2="29" gradientUnits="userSpaceOnUse"><stop class="g-a"/><stop class="g-b" offset="1"/></linearGradient></defs><style>.g-a{stop-color:#ca62a1}.g-b{stop-color:#af3b43}@media (prefers-color-scheme:dark){.g-a{stop-color:#fea8d9}.g-b{stop-color:#ed7477}}</style><g stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"><path fill-rule="evenodd" d="M16 2L28.5 6.5V15C28.5 22.5 23.5 28 16 30C8.5 28 3.5 22.5 3.5 15V6.5ZM16 9.5A3.5 3.5 0 0 0 14.2 16L13 23H19L17.8 16A3.5 3.5 0 0 0 16 9.5Z" fill="url(#g)"/></g></svg>

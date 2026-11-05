@@ -54,7 +54,7 @@
             {#snippet child({ props })}
               <a href="/" {...props}>
                 <div class="flex aspect-square size-8 items-center justify-center">
-                  <img src="/memory-vault.svg" alt="" class="size-8 dark:invert" />
+                  <img src="/favicon.svg" alt="" class="size-8" />
                 </div>
                 <div class="grid flex-1 text-left text-sm leading-tight">
                   <span class="truncate font-semibold">Memory Vault</span>
@@ -147,7 +147,7 @@
       <Sidebar.Trigger class="-ml-1" />
       <Separator orientation="vertical" class="mr-1 data-[orientation=vertical]:h-4" />
       <a href="/" class="flex items-center gap-2 font-semibold lg:hidden">
-        <img src="/memory-vault.svg" alt="" class="size-6 dark:invert" />
+        <img src="/favicon.svg" alt="" class="size-6" />
         Memory Vault
       </a>
     </header>
