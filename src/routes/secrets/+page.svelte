@@ -50,6 +50,7 @@
     Search,
     Server,
     ShieldCheck,
+    Ticket,
     Trash2,
     Wifi,
     X
@@ -95,7 +96,7 @@
   const defaultVpnProtocol = vpnProtocols[0];
   const remoteProtocols = ['RDP', 'SSH', 'VNC', 'SPICE', 'SFTP'] as const;
   const defaultRemoteProtocol = remoteProtocols[0];
-  const copyableGenericUsernameCategories = new Set<SecretCategory>(['password', 'api_key', 'wifi']);
+  const copyableGenericUsernameCategories = new Set<SecretCategory>(['password', 'api_key', 'license_key', 'wifi']);
 
   const secretCategories: SecretCategoryMeta[] = [
     {
@@ -108,11 +109,19 @@
     },
     {
       id: 'api_key',
-      label: 'API Keys',
-      singular: 'API Key',
+      label: 'API Keys & Tokens',
+      singular: 'API Key / Token',
       icon: Braces,
-      secretLabel: 'API key',
+      secretLabel: 'API key or token',
       usernameLabel: 'Account or service user'
+    },
+    {
+      id: 'license_key',
+      label: 'License Keys',
+      singular: 'License Key',
+      icon: Ticket,
+      secretLabel: 'License key',
+      usernameLabel: 'Licensed to'
     },
     {
       id: 'encryption_key',

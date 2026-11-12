@@ -32,6 +32,7 @@ export type RecordType = (typeof RECORD_TYPES)[number];
 export type SecretCategory =
   | 'password'
   | 'api_key'
+  | 'license_key'
   | 'encryption_key'
   | 'wifi'
   | 'pgp_key'
