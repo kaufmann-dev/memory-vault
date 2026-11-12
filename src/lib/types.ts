@@ -39,7 +39,8 @@ export type SecretCategory =
   | 'bank_account'
   | 'vpn'
   | 'remote_connection'
-  | 'totp';
+  | 'totp'
+  | 'recovery_codes';
 
 export type DiaryPayload = {
   title: string;

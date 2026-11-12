@@ -45,6 +45,7 @@
     House,
     KeyRound,
     Landmark,
+    LifeBuoy,
     Plus,
     RectangleEllipsis,
     Search,
@@ -96,7 +97,7 @@
   const defaultVpnProtocol = vpnProtocols[0];
   const remoteProtocols = ['RDP', 'SSH', 'VNC', 'SPICE', 'SFTP'] as const;
   const defaultRemoteProtocol = remoteProtocols[0];
-  const copyableGenericUsernameCategories = new Set<SecretCategory>(['password', 'api_key', 'license_key', 'wifi']);
+  const copyableGenericUsernameCategories = new Set<SecretCategory>(['password', 'api_key', 'license_key', 'wifi', 'recovery_codes']);
 
   const secretCategories: SecretCategoryMeta[] = [
     {
@@ -177,6 +178,14 @@
       singular: '2FA Code',
       icon: RectangleEllipsis,
       secretLabel: 'Secret key',
+      usernameLabel: 'Account'
+    },
+    {
+      id: 'recovery_codes',
+      label: 'Recovery Codes',
+      singular: 'Recovery Codes',
+      icon: LifeBuoy,
+      secretLabel: 'Recovery codes',
       usernameLabel: 'Account'
     }
   ];
@@ -266,6 +275,7 @@
   let formIsVpn = $derived(form.category === 'vpn');
   let formIsRemoteConnection = $derived(form.category === 'remote_connection');
   let formIsTotp = $derived(form.category === 'totp');
+  let formIsRecoveryCodes = $derived(form.category === 'recovery_codes');
   let totpSecretInvalid = $derived(formIsTotp && Boolean(form.secret.trim()) && !isValidTotpSecret(form.secret));
   let canSaveSecret = $derived(
     formIsBankAccount
@@ -1117,16 +1127,30 @@
               </Button>
             </div>
           </div>
-          <Input
-            id="secret-value"
-            bind:value={form.secret}
-            type="text"
-            class={secretVisible ? undefined : 'masked-text-input'}
-            required
-            autocomplete="off"
-            autocapitalize="none"
-            spellcheck="false"
-          />
+          {#if formIsRecoveryCodes}
+            {#if secretVisible}
+              <Textarea id="secret-value" bind:value={form.secret} class="min-h-48 font-mono text-xs" spellcheck="false" />
+            {:else}
+              <Textarea
+                id="secret-value"
+                value={maskSecret(form.secret)}
+                readonly
+                class="masked-text-input min-h-24 font-mono text-xs"
+                aria-label="Hidden recovery codes"
+              />
+            {/if}
+          {:else}
+            <Input
+              id="secret-value"
+              bind:value={form.secret}
+              type="text"
+              class={secretVisible ? undefined : 'masked-text-input'}
+              required
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+            />
+          {/if}
         </div>
       {/if}
     {/if}
